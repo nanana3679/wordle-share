@@ -64,12 +64,14 @@ export function submitGuess(gameState: GameState): GameState {
   const newKeyboardState = { ...gameState.keyboardState };
   newGuess.letters.forEach(letter => {
     if (letter.char && letter.state !== 'empty') {
+      // 키보드에서는 대문자로 저장 (키보드 배열이 대문자이므로)
+      const upperChar = letter.char.toUpperCase();
       // 더 높은 우선순위 상태로 업데이트 (correct > present > absent)
-      const currentState = newKeyboardState[letter.char];
+      const currentState = newKeyboardState[upperChar];
       if (!currentState || 
           (currentState === 'absent' && letter.state !== 'absent') ||
           (currentState === 'present' && letter.state === 'correct')) {
-        newKeyboardState[letter.char] = letter.state;
+        newKeyboardState[upperChar] = letter.state;
       }
     }
   });
