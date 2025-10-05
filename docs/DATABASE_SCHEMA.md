@@ -31,7 +31,7 @@ interface User {
 - `id`: UUID (Primary Key)
 - `name`: 덱 이름
 - `description`: 덱 설명
-- `words`: 단어 배열 (JSON)
+- `words`: 단어 배열 (text[])
 - `thumbnail_url`: 썸네일 이미지 URL
 - `is_public`: 공개 여부
 - `created_at`: 생성일시
@@ -40,15 +40,12 @@ interface User {
 
 ## Likes 테이블
 
-- `id`: UUID (Primary Key)
 - `deck_id`: 덱 ID (Foreign Key, Decks.id)
-- `user_id`: 사용자 ID (Nullable, auth.users.id - 로그인 사용자)
-- `ip_address`: IP 주소 (Nullable - 비로그인 사용자)
+- `user_id`: 사용자 ID (auth.users.id - 로그인 사용자만)
 - `created_at`: 좋아요 누른 시간
 
-**중복 체크 로직:**
-- 로그인: `deck_id` + `user_id` 유니크 제약
-- 비로그인: `deck_id` + `ip_address` 유니크 제약
+**Primary Key:**
+- `(deck_id, user_id)` 복합키
 
 ## 관계
 
@@ -64,8 +61,7 @@ Users (1) ──── (N) Decks
 - `decks.is_public` - 공개 덱 필터링
 - `decks.created_at` - 최신순 정렬
 - `likes.deck_id` - 덱별 좋아요 개수
-- `likes(deck_id, user_id)` - 로그인 사용자 중복 체크 (유니크)
-- `likes(deck_id, ip_address)` - 비로그인 사용자 중복 체크 (유니크)
+- `likes(deck_id, user_id)` - Primary Key (복합키)
 
 ## Row Level Security (RLS) 정책
 
@@ -79,7 +75,5 @@ Users (1) ──── (N) Decks
 ### Likes 테이블
 
 - **SELECT**: 모두
-- **INSERT**: 모두
-  - 로그인: `user_id` + `deck_id` 유니크 제약으로 중복 방지
-  - 비로그인: `ip_address` + `deck_id` 유니크 제약으로 중복 방지
-- **DELETE**: 본인만 (로그인 사용자), 비로그인은 삭제 불가
+- **INSERT**: 인증된 사용자만 (`user_id` 필수)
+- **DELETE**: 본인만
