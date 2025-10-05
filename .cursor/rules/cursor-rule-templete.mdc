@@ -1,0 +1,13 @@
+---
+description: feature에 대한 요약 md 파일을 생성할 때
+globs: *.md
+alwaysApply: false
+---
+
+개발한 feature에 대한 요약을 생성할 때 다음과 같은 형식으로 최대한 간결하게 작성
+
+## 라우트
+
+## 스키마
+
+## 서비스 함수
