@@ -1,6 +1,3 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { X } from "lucide-react";
@@ -9,8 +6,6 @@ interface CongratulationsModalProps {
   isOpen: boolean;
   onClose: () => void;
   attempts: number;
-  maxAttempts: number;
-  targetWord: string;
   onRestart: () => void;
 }
 
@@ -18,20 +13,8 @@ export function CongratulationsModal({
   isOpen,
   onClose,
   attempts,
-  maxAttempts,
-  targetWord,
   onRestart
 }: CongratulationsModalProps) {
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      setIsVisible(true);
-    } else {
-      setIsVisible(false);
-    }
-  }, [isOpen]);
-
   if (!isOpen) return null;
 
   const handleBackdropClick = (e: React.MouseEvent) => {

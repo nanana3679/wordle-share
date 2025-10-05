@@ -10,11 +10,12 @@ import { Plus, LogIn, LogOut } from "lucide-react";
 import { useUser } from "@/hook/useUser";
 import { signOut } from "@/app/actions/auth";
 import Loading from "@/components/Loading";
+import { Deck } from "@/app/actions/deck";
 
 export default function DecksPage() {
   const { user, loading } = useUser();
   const router = useRouter();
-  const [decks, setDecks] = useState<any[]>([]);
+  const [decks, setDecks] = useState<Deck[]>([]);
   const [decksLoading, setDecksLoading] = useState(true);
 
   useEffect(() => {

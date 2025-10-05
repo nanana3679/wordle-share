@@ -1,6 +1,6 @@
 "use client";
 
-import { GameState, LetterState } from "@/lib/wordleGame";
+import { GameState } from "@/lib/wordleGame";
 
 interface WordleGridProps {
   gameState: GameState;

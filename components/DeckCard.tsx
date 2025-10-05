@@ -9,6 +9,7 @@ import { toggleLike, getLikeCount, isLikedByUser } from "@/app/actions/like";
 import { useUser } from "@/hook/useUser";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import Image from 'next/image';
 
 interface DeckCardProps {
   deck: Deck;
@@ -91,7 +92,7 @@ export function DeckCard({ deck }: DeckCardProps) {
         {/* 덱 이미지 */}
         <div className="h-48 md:h-52 overflow-hidden rounded-t-lg bg-gray-50 flex items-center justify-center">
           {deck.thumbnail_url ? (
-            <img 
+            <Image 
               src={deck.thumbnail_url} 
               alt={deck.name || "덱 이미지"}
               className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"

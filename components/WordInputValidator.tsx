@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { validateWords, parseWordsString, type WordValidationResult } from "@/lib/wordConstraints";
+import { parseWordsString, type WordValidationResult } from "@/lib/wordConstraints";
 
 interface WordInputValidatorProps {
   wordsString: string;

@@ -18,7 +18,7 @@ export async function uploadDeckThumbnail(file: File, deckId: string): Promise<s
   const filePath = fileName;
 
   // 파일 업로드 (덱당 하나의 썸네일만 허용하므로 upsert: true)
-  const { data, error } = await supabase.storage
+  const { error } = await supabase.storage
     .from('deck-thumbnails')
     .upload(filePath, file, {
       cacheControl: '3600',

@@ -79,7 +79,7 @@ export function DeckDetail({ deck }: DeckDetailProps) {
           text: deck.description || "",
           url: window.location.href,
         });
-      } catch (error) {
+      } catch {
         console.log("공유 취소됨");
       }
     } else {

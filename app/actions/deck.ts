@@ -35,7 +35,7 @@ export async function getDecks() {
     throw new Error(`덱 목록을 가져오는데 실패했습니다: ${error.message}`);
   }
 
-  return data;
+  return data as Deck[];
 }
 
 export async function getDeck(id: string) {

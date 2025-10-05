@@ -187,8 +187,6 @@ function GameLoader({ deckId }: { deckId: string }) {
         isOpen={showCongratsModal}
         onClose={() => setShowCongratsModal(false)}
         attempts={gameState.guesses.length}
-        maxAttempts={gameState.maxGuesses}
-        targetWord={gameState.targetWord}
         onRestart={restartGame}
       />
 

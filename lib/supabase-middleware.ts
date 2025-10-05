@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Database } from '@/types/database';
 
 export function createClient(request: NextRequest) {
-  let response = NextResponse.next({
+  const response = NextResponse.next({
     request: {
       headers: request.headers,
     },
