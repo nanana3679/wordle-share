@@ -17,20 +17,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EditDeckDialog } from "@/components/editDeckDialog";
 import { DeleteDeckDialog } from "@/components/deleteDeckDialog";
-import { Edit, Trash2, Search, Filter } from "lucide-react";
-// 간단한 날짜 포맷팅 함수
-function formatDate(dateString: string) {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffInMs = now.getTime() - date.getTime();
-  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-  
-  if (diffInDays === 0) return "오늘";
-  if (diffInDays === 1) return "1일 전";
-  if (diffInDays < 7) return `${diffInDays}일 전`;
-  if (diffInDays < 30) return `${Math.floor(diffInDays / 7)}주 전`;
-  return `${Math.floor(diffInDays / 30)}개월 전`;
-}
+import { Edit, Trash2, Search, Filter, Heart } from "lucide-react";
+import { toggleLike } from "@/app/actions/like";
+import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
+import { ko } from "date-fns/locale";
 
 interface DeckTableProps {
   decks: Deck[];
@@ -39,6 +30,19 @@ interface DeckTableProps {
 export function DeckTable({ decks }: DeckTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterPublic, setFilterPublic] = useState<string>("all");
+
+  async function handleToggleLike(deckId: string) {
+    try {
+      const result = await toggleLike(deckId);
+      if (result.action === "added") {
+        toast.success("좋아요를 눌렀습니다!");
+      } else {
+        toast.success("좋아요를 취소했습니다!");
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "좋아요 처리에 실패했습니다.");
+    }
+  }
 
   // 검색 및 필터링
   const filteredDecks = decks.filter((deck) => {
@@ -116,10 +120,21 @@ export function DeckTable({ decks }: DeckTableProps) {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {deck.created_at && formatDate(deck.created_at)}
+                    {deck.created_at && formatDistanceToNow(new Date(deck.created_at), {
+                      addSuffix: true,
+                      locale: ko
+                    })}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleToggleLike(deck.id)}
+                        className="text-red-500 hover:text-red-600"
+                      >
+                        <Heart className="w-4 h-4" />
+                      </Button>
                       <EditDeckDialog deck={deck}>
                         <Button variant="outline" size="sm">
                           <Edit className="w-4 h-4" />
