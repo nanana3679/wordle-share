@@ -2,17 +2,60 @@
 
 import Link from "next/link";
 import { Deck } from "@/app/actions/deck";
+import { getUserInfo } from "@/app/actions/user";
+import { getLikeCount, isLikedByUser, toggleLike } from "@/app/actions/like";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Play, Share2, Heart, Edit, Trash2 } from "lucide-react";
+import { Play, Share2, Heart, Edit, Trash2, User, ArrowLeft } from "lucide-react";
+import { useUser } from "@/hook/useUser";
+import { useEffect, useState } from "react";
+import Image from "next/image";
+import { DeckDialog } from "@/components/DeckDialog";
+import { DeleteDeckDialog } from "@/components/deleteDeckDialog";
+import { toast } from "sonner";
 
 interface DeckDetailProps {
   deck: Deck;
 }
 
+type UserInfo = Awaited<ReturnType<typeof getUserInfo>>;
+
 export function DeckDetail({ deck }: DeckDetailProps) {
+  const { user } = useUser();
+  const [creatorInfo, setCreatorInfo] = useState<UserInfo | null>(null);
+  const [likeCount, setLikeCount] = useState(0);
+  const [isLiked, setIsLiked] = useState(false);
+  const [isLikeLoading, setIsLikeLoading] = useState(false);
+  
+  // 현재 사용자가 덱의 생성자인지 확인
+  const isCreator = user && deck.creator_id === user.id;
+
+  // 작성자 정보 가져오기
+  useEffect(() => {
+    if (deck.creator_id) {
+      getUserInfo(deck.creator_id).then(setCreatorInfo);
+    }
+  }, [deck.creator_id]);
+
+  // 좋아요 정보 가져오기
+  useEffect(() => {
+    const loadLikeInfo = async () => {
+      try {
+        const [count, liked] = await Promise.all([
+          getLikeCount(deck.id),
+          user ? isLikedByUser(deck.id, user.id) : false
+        ]);
+        setLikeCount(count);
+        setIsLiked(liked);
+      } catch (error) {
+        console.error('좋아요 정보를 가져오는데 실패했습니다:', error);
+      }
+    };
+
+    loadLikeInfo();
+  }, [deck.id, user]);
+
   const handleShare = async () => {
     if (navigator.share) {
       try {
@@ -31,13 +74,45 @@ export function DeckDetail({ deck }: DeckDetailProps) {
     }
   };
 
-  const handleLike = () => {
-    // TODO: 좋아요 기능 구현
-    console.log("좋아요 클릭");
+  const handleLike = async () => {
+    if (!user) {
+      toast.error("로그인이 필요합니다.");
+      return;
+    }
+
+    setIsLikeLoading(true);
+    
+    try {
+      const result = await toggleLike(deck.id);
+      
+      if (result.action === "added") {
+        setLikeCount(prev => prev + 1);
+        setIsLiked(true);
+        toast.success("좋아요를 눌렀습니다!");
+      } else {
+        setLikeCount(prev => prev - 1);
+        setIsLiked(false);
+        toast.success("좋아요를 취소했습니다.");
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "좋아요 처리에 실패했습니다.");
+    } finally {
+      setIsLikeLoading(false);
+    }
   };
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
+      {/* 돌아가기 버튼 */}
+      <div className="mb-6">
+        <Button variant="ghost" asChild>
+          <Link href="/demo/decks">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            덱 목록으로 돌아가기
+          </Link>
+        </Button>
+      </div>
+
       {/* 헤더 */}
       <div className="mb-8">
         <div className="flex items-start justify-between mb-4">
@@ -49,9 +124,16 @@ export function DeckDetail({ deck }: DeckDetailProps) {
           </div>
           
           <div className="flex gap-2 ml-4">
-            <Button onClick={handleLike} variant="outline" size="sm">
-              <Heart className="h-4 w-4 mr-2" />
-              좋아요
+            <Button 
+              onClick={handleLike} 
+              variant="outline" 
+              size="sm"
+              disabled={isLikeLoading}
+            >
+              <Heart 
+                className={`h-4 w-4 mr-2 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} 
+              />
+              {likeCount}
             </Button>
             <Button onClick={handleShare} variant="outline" size="sm">
               <Share2 className="h-4 w-4 mr-2" />
@@ -59,6 +141,43 @@ export function DeckDetail({ deck }: DeckDetailProps) {
             </Button>
           </div>
         </div>
+
+        {/* 썸네일 이미지 */}
+        {deck.thumbnail_url && (
+          <div className="mb-4">
+            <div className="relative w-full h-48 sm:h-64 md:h-80 rounded-lg overflow-hidden">
+              <Image
+                src={deck.thumbnail_url}
+                alt={deck.name || "덱 썸네일"}
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* 작성자 정보 */}
+        {creatorInfo && (
+          <div className="mb-4 flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+            {creatorInfo.avatar_url ? (
+              <Image
+                src={creatorInfo.avatar_url}
+                alt={creatorInfo.name}
+                width={40}
+                height={40}
+                className="rounded-full"
+              />
+            ) : (
+              <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+                <User className="h-5 w-5 text-muted-foreground" />
+              </div>
+            )}
+            <div>
+              <p className="font-medium">{creatorInfo.name}</p>
+            </div>
+          </div>
+        )}
 
         {/* 메타 정보 */}
         <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
@@ -90,49 +209,24 @@ export function DeckDetail({ deck }: DeckDetailProps) {
         </CardContent>
       </Card>
 
-      {/* 단어 목록 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>단어 목록</CardTitle>
-          <CardDescription>
-            이 덱에 포함된 모든 단어들입니다.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {deck.words && deck.words.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-              {deck.words.map((word, index) => (
-                <div
-                  key={index}
-                  className="bg-muted/50 px-3 py-2 rounded-md text-center font-medium"
-                >
-                  {word.toUpperCase()}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-muted-foreground text-center py-8">
-              단어가 없습니다.
-            </p>
-          )}
-        </CardContent>
-      </Card>
 
       {/* 관리자 액션 (소유자인 경우) */}
-      <div className="mt-8 flex justify-center gap-4">
-        <Button variant="outline" asChild>
-          <Link href={`/demo/decks/${deck.id}/edit`}>
-            <Edit className="h-4 w-4 mr-2" />
-            수정
-          </Link>
-        </Button>
-        <Button variant="destructive" asChild>
-          <Link href={`/demo/decks/${deck.id}/delete`}>
-            <Trash2 className="h-4 w-4 mr-2" />
-            삭제
-          </Link>
-        </Button>
-      </div>
+      {isCreator && (
+        <div className="mt-8 flex justify-center gap-4">
+          <DeckDialog deck={deck}>
+            <Button variant="outline">
+              <Edit className="h-4 w-4 mr-2" />
+              수정
+            </Button>
+          </DeckDialog>
+          <DeleteDeckDialog deck={deck}>
+            <Button variant="destructive">
+              <Trash2 className="h-4 w-4 mr-2" />
+              삭제
+            </Button>
+          </DeleteDeckDialog>
+        </div>
+      )}
     </div>
   );
 }

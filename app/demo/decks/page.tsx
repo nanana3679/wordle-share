@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { getDecks } from "@/app/actions/deck";
 import { DeckTable } from "@/components/deckTable";
-import { CreateDeckDialog } from "@/components/createDeckDialog";
+import { DeckDialog } from "@/components/DeckDialog";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
@@ -15,12 +15,12 @@ export default function DecksPage() {
             Wordle 게임용 단어 덱을 생성하고 관리하세요
           </p>
         </div>
-        <CreateDeckDialog>
+        <DeckDialog>
           <Button>
             <Plus className="w-4 h-4 mr-2" />
             새 덱 만들기
           </Button>
-        </CreateDeckDialog>
+        </DeckDialog>
       </div>
 
       <Suspense fallback={<div>덱 목록을 불러오는 중...</div>}>

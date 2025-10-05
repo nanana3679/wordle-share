@@ -104,9 +104,9 @@ export async function createLike(deckId: string) {
     .select("*")
     .eq("deck_id", deckId)
     .eq("user_id", user.id)
-    .single();
+    .maybeSingle();
 
-  if (checkError && checkError.code !== "PGRST116") {
+  if (checkError) {
     throw new Error(`좋아요 확인에 실패했습니다: ${checkError.message}`);
   }
 
@@ -180,9 +180,9 @@ export async function toggleLike(deckId: string) {
     .select("*")
     .eq("deck_id", deckId)
     .eq("user_id", user.id)
-    .single();
+    .maybeSingle();
 
-  if (checkError && checkError.code !== "PGRST116") {
+  if (checkError) {
     throw new Error(`좋아요 확인에 실패했습니다: ${checkError.message}`);
   }
 
@@ -222,9 +222,9 @@ export async function isLikedByUser(deckId: string, userId?: string) {
     .select("*")
     .eq("deck_id", deckId)
     .eq("user_id", userId)
-    .single();
+    .maybeSingle();
 
-  if (error && error.code !== "PGRST116") {
+  if (error) {
     throw new Error(`좋아요 확인에 실패했습니다: ${error.message}`);
   }
 

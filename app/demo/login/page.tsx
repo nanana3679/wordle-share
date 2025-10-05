@@ -1,7 +1,6 @@
 'use client';
 
 import { signInWithGoogle, signOut } from '@/app/actions/auth';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useUser } from '@/hook/useUser';
 import Loading from '@/components/Loading';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -113,9 +112,5 @@ function TestLoginContent() {
 }
 
 export default function TestLoginPage() {
-  return (
-    <ErrorBoundary>
-      <TestLoginContent />
-    </ErrorBoundary>
-  );
+  return <TestLoginContent />;
 }
