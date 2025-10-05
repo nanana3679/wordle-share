@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase-server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { Tables, TablesInsert, TablesUpdate } from "@/types/database";
+import { parseWordsString } from "@/lib/wordConstraints";
 
 export type Deck = Tables<"decks">;
 export type DeckInsert = TablesInsert<"decks">;
@@ -59,14 +60,11 @@ export async function createDeck(formData: FormData) {
     throw new Error("이름과 단어는 필수입니다.");
   }
 
-  // 단어 배열로 변환 (쉼표로 구분)
-  const words = wordsString
-    .split(",")
-    .map(word => word.trim())
-    .filter(word => word.length > 0);
+  // 단어 문자열 파싱 및 유효성 검사
+  const { normalizedWords: words, validation } = parseWordsString(wordsString);
 
-  if (words.length === 0) {
-    throw new Error("최소 하나의 단어가 필요합니다.");
+  if (!validation.isValid) {
+    throw new Error(`단어 검증 실패: ${validation.errors.join(', ')}`);
   }
 
   const { data, error } = await supabase
@@ -108,14 +106,11 @@ export async function updateDeck(id: string, formData: FormData) {
     throw new Error("이름과 단어는 필수입니다.");
   }
 
-  // 단어 배열로 변환 (쉼표로 구분)
-  const words = wordsString
-    .split(",")
-    .map(word => word.trim())
-    .filter(word => word.length > 0);
+  // 단어 문자열 파싱 및 유효성 검사
+  const { normalizedWords: words, validation } = parseWordsString(wordsString);
 
-  if (words.length === 0) {
-    throw new Error("최소 하나의 단어가 필요합니다.");
+  if (!validation.isValid) {
+    throw new Error(`단어 검증 실패: ${validation.errors.join(', ')}`);
   }
 
   const { data, error } = await supabase

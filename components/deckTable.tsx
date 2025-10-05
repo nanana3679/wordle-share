@@ -17,7 +17,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EditDeckDialog } from "@/components/editDeckDialog";
 import { DeleteDeckDialog } from "@/components/deleteDeckDialog";
-import { Edit, Trash2, Search, Filter, Heart } from "lucide-react";
+import { Edit, Trash2, Search, Filter, Heart, Play } from "lucide-react";
+import Link from "next/link";
 import { toggleLike } from "@/app/actions/like";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -127,6 +128,12 @@ export function DeckTable({ decks }: DeckTableProps) {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
+                      <Link href={`/demo/play/${deck.id}`}>
+                        <Button variant="default" size="sm">
+                          <Play className="w-4 h-4 mr-1" />
+                          플레이
+                        </Button>
+                      </Link>
                       <Button 
                         variant="outline" 
                         size="sm"
