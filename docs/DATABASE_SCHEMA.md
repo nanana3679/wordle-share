@@ -2,20 +2,29 @@
 
 ## Users 테이블 (Supabase Auth에서 자동 생성)
 
-- `id`: UUID (Primary Key)
-- `email`: 이메일 주소 (구글 계정)
-- `provider`: 인증 제공자 (google 고정)
-- `created_at`: 계정 생성일시
-- `updated_at`: 정보 수정일시
+Supabase의 `auth.users` 테이블을 직접 사용합니다.
 
-## Profiles 테이블
+### Supabase User 타입 구조
 
-- `id`: UUID (Primary Key, auth.users.id와 연결)
-- `email`: 이메일 (구글 계정, 빠른 조회용)
-- `display_name`: 표시명 (구글 이름)
-- `avatar_url`: 프로필 이미지 URL (구글 프로필 사진)
-- `created_at`: 프로필 생성일시
-- `updated_at`: 프로필 수정일시
+```typescript
+interface User {
+  id: string;                    // UUID (Primary Key)
+  aud: string;                   // 오디언스 클레임
+  role?: string;                 // Postgres RLS 역할
+  email?: string;                // 이메일 주소 (Google 계정)
+  email_confirmed_at?: string;   // 이메일 확인 타임스탬프
+  phone?: string;                // 전화번호
+  phone_confirmed_at?: string;   // 전화번호 확인 타임스탬프
+  confirmed_at?: string;         // 이메일 또는 전화번호 확인 타임스탬프
+  last_sign_in_at?: string;      // 마지막 로그인 타임스탬프
+  app_metadata: Record<string, any>;     // 앱 메타데이터
+  user_metadata: Record<string, any>;    // 사용자 메타데이터 (Google OAuth 정보)
+  identities: any[];             // 인증 방법들 배열
+  created_at: string;            // 계정 생성일시
+  updated_at: string;            // 정보 수정일시
+  is_anonymous: boolean;         // 익명 사용자 여부
+}
+```
 
 ## Decks 테이블
 
@@ -44,11 +53,9 @@
 ## 관계
 
 ```
-Users (1) ──── (1) Profiles
-  │
-  └── (1) ──── (N) Decks
-                 │
-                 └── (1) ──── (N) Likes
+Users (1) ──── (N) Decks
+               │
+               └── (1) ──── (N) Likes
 ```
 
 ## 인덱스 (성능 최적화)
@@ -68,13 +75,6 @@ Users (1) ──── (1) Profiles
 - **INSERT**: 인증된 사용자
 - **UPDATE**: 소유자만
 - **DELETE**: 소유자만
-
-### Profiles 테이블
-
-- **SELECT**: 모두
-- **INSERT**: 본인만
-- **UPDATE**: 본인만
-- **DELETE**: 본인만
 
 ### Likes 테이블
 

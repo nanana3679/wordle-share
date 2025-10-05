@@ -36,11 +36,11 @@ function TestLoginContent() {
                 <CardContent className="space-y-3">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-12 w-12">
-                      <AvatarImage src={user.avatar_url || undefined} alt="Profile" />
-                      <AvatarFallback>{user.name?.charAt(0) || 'U'}</AvatarFallback>
+                      <AvatarImage src={user.user_metadata.avatar_url || undefined} alt="Profile" />
+                      <AvatarFallback>{user.user_metadata.name?.charAt(0) || 'U'}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <p className="font-medium">{user.name}</p>
+                        <p className="font-medium">{user.user_metadata.name}</p>
                       <p className="text-sm text-muted-foreground">{user.email}</p>
                     </div>
                   </div>

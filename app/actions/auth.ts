@@ -2,7 +2,6 @@
 
 import { createClient } from "@/lib/supabase-server";
 import { redirect } from "next/navigation";
-import { User } from "@/type/user";
 
 export async function signInWithGoogle() {
   const supabase = await createClient();
@@ -43,17 +42,7 @@ export async function getUser() {
       data: { user },
     } = await supabase.auth.getUser();
     
-    if (user) {
-      return {
-        id: user.id,
-        email: user.email,
-        name: user.user_metadata?.full_name || user.user_metadata?.name || 'Unknown',
-        avatar_url: user.user_metadata?.avatar_url || null,
-        created_at: user.created_at,
-      } as User;
-    }
-    
-    return null;
+    return user;
   } catch (error) {
     console.error('getUser error:', error);
     // 네트워크 오류나 기타 오류를 명시적으로 던져서 ErrorBoundary가 잡을 수 있도록 함

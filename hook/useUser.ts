@@ -1,7 +1,7 @@
 'use client';
 
 import { getUser } from '@/app/actions/auth';
-import { User } from '@/type/user';
+import { User } from '@supabase/supabase-js';
 import { useEffect, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 
