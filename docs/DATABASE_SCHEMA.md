@@ -3,17 +3,17 @@
 ## Users 테이블 (Supabase Auth에서 자동 생성)
 
 - `id`: UUID (Primary Key)
-- `email`: 이메일 주소 (소셜 계정에서 가져옴)
-- `provider`: 인증 제공자 (google, github)
+- `email`: 이메일 주소 (구글 계정)
+- `provider`: 인증 제공자 (google 고정)
 - `created_at`: 계정 생성일시
 - `updated_at`: 정보 수정일시
 
 ## Profiles 테이블
 
-- `id`: UUID (Primary Key, Users.id와 연결)
-- `display_name`: 표시명 (소셜 계정에서 가져옴)
-- `avatar_url`: 프로필 이미지 URL (소셜 계정에서 가져옴)
-- `provider_id`: 소셜 계정 고유 ID
+- `id`: UUID (Primary Key, auth.users.id와 연결)
+- `email`: 이메일 (구글 계정, 빠른 조회용)
+- `display_name`: 표시명 (구글 이름)
+- `avatar_url`: 프로필 이미지 URL (구글 프로필 사진)
 - `created_at`: 프로필 생성일시
 - `updated_at`: 프로필 수정일시
 
@@ -32,9 +32,14 @@
 ## Likes 테이블
 
 - `id`: UUID (Primary Key)
-- `deck_id`: 덱 ID (Foreign Key)
-- `ip_address`: IP 주소
+- `deck_id`: 덱 ID (Foreign Key, Decks.id)
+- `user_id`: 사용자 ID (Nullable, auth.users.id - 로그인 사용자)
+- `ip_address`: IP 주소 (Nullable - 비로그인 사용자)
 - `created_at`: 좋아요 누른 시간
+
+**중복 체크 로직:**
+- 로그인: `deck_id` + `user_id` 유니크 제약
+- 비로그인: `deck_id` + `ip_address` 유니크 제약
 
 ## 관계
 
@@ -52,7 +57,8 @@ Users (1) ──── (1) Profiles
 - `decks.is_public` - 공개 덱 필터링
 - `decks.created_at` - 최신순 정렬
 - `likes.deck_id` - 덱별 좋아요 개수
-- `likes.ip_address` - IP 중복 체크
+- `likes(deck_id, user_id)` - 로그인 사용자 중복 체크 (유니크)
+- `likes(deck_id, ip_address)` - 비로그인 사용자 중복 체크 (유니크)
 
 ## Row Level Security (RLS) 정책
 
@@ -73,5 +79,7 @@ Users (1) ──── (1) Profiles
 ### Likes 테이블
 
 - **SELECT**: 모두
-- **INSERT**: 모두 (IP 중복 체크는 애플리케이션 레벨)
-- **DELETE**: 없음 (좋아요 취소 미지원)
+- **INSERT**: 모두
+  - 로그인: `user_id` + `deck_id` 유니크 제약으로 중복 방지
+  - 비로그인: `ip_address` + `deck_id` 유니크 제약으로 중복 방지
+- **DELETE**: 본인만 (로그인 사용자), 비로그인은 삭제 불가
