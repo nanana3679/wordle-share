@@ -6,10 +6,16 @@ import { redirect } from "next/navigation";
 export async function signInWithGoogle() {
   const supabase = await createClient();
   
+  // 환경변수가 없을 때 기본값 설정
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL 
+  || process.env.VERCEL_URL 
+    ? `https://${process.env.VERCEL_URL}` 
+    : 'http://localhost:3000';
+    
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+      redirectTo: `${siteUrl}/auth/callback`,
     },
   });
 
@@ -36,11 +42,24 @@ export async function signOut() {
 
 export async function getUser() {
   try {
+    // 환경변수 디버그 로깅
+    console.log('Environment check:', {
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'SET' : 'NOT SET',
+      supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'SET' : 'NOT SET',
+      siteUrl: process.env.NEXT_PUBLIC_SITE_URL || 'NOT SET'
+    });
+    
     const supabase = await createClient();
     
     const {
       data: { user },
+      error
     } = await supabase.auth.getUser();
+    
+    if (error) {
+      console.error('Supabase auth error:', error);
+      throw new Error(`인증 오류: ${error.message}`);
+    }
     
     return user;
   } catch (error) {
