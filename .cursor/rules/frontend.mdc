@@ -1,0 +1,16 @@
+---
+description: Frontend specific TypeScript rules
+globs: ["src/components/**/*.{ts,tsx}", "src/pages/**/*.{ts,tsx}"]
+alwaysApply: false
+---
+
+Frontend TypeScript 파일에서는:
+- React 컴포넌트는 PascalCase로 명명
+- Props 인터페이스는 컴포넌트명 + Props 형식 (예: ButtonProps)
+- 상태 관리는 useState나 useReducer 활용
+- 이벤트 핸들러는 handle + 동작명 형식 (예: handleClick)
+
+- 컴포넌트를 직접 생성하지 않고 가능하면 shadcn을 사용
+- Container-Presentational 패턴을 사용
+
+@component-template.tsx

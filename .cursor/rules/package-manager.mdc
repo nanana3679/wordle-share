@@ -1,0 +1,6 @@
+---
+description: 패키지 매니저 명령어를 호출할 때
+alwaysApply: false
+---
+
+- npm을 사용하지 말고 pnpm을 사용
