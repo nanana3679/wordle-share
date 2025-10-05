@@ -1,19 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Deck } from "@/app/actions/deck";
 import { getUserInfo } from "@/app/actions/user";
 import { getLikeCount, isLikedByUser, toggleLike } from "@/app/actions/like";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Play, Share2, Heart, Edit, Trash2, User, ArrowLeft } from "lucide-react";
+import { Play, Share2, Heart, Edit, Trash2, User, ArrowLeft, LogIn, LogOut } from "lucide-react";
 import { useUser } from "@/hook/useUser";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { DeckDialog } from "@/components/DeckDialog";
 import { DeleteDeckDialog } from "@/components/deleteDeckDialog";
 import { toast } from "sonner";
+import { signOut } from "@/app/actions/auth";
 
 interface DeckDetailProps {
   deck: Deck;
@@ -23,6 +25,7 @@ type UserInfo = Awaited<ReturnType<typeof getUserInfo>>;
 
 export function DeckDetail({ deck }: DeckDetailProps) {
   const { user } = useUser();
+  const router = useRouter();
   const [creatorInfo, setCreatorInfo] = useState<UserInfo | null>(null);
   const [likeCount, setLikeCount] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
@@ -30,6 +33,18 @@ export function DeckDetail({ deck }: DeckDetailProps) {
   
   // 현재 사용자가 덱의 생성자인지 확인
   const isCreator = user && deck.creator_id === user.id;
+
+  const handleLogin = () => {
+    router.push("/demo/login");
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error("로그아웃 실패:", error);
+    }
+  };
 
   // 작성자 정보 가져오기
   useEffect(() => {
@@ -103,14 +118,30 @@ export function DeckDetail({ deck }: DeckDetailProps) {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
-      {/* 돌아가기 버튼 */}
-      <div className="mb-6">
+      {/* 돌아가기 버튼 및 로그인/로그아웃 */}
+      <div className="mb-6 flex items-center justify-between">
         <Button variant="ghost" asChild>
           <Link href="/demo/decks">
             <ArrowLeft className="h-4 w-4 mr-2" />
             덱 목록으로 돌아가기
           </Link>
         </Button>
+        
+        <div className="flex items-center gap-4">
+          {user ? (
+            <div className="flex items-center gap-4">
+              <Button variant="outline" onClick={handleLogout}>
+                <LogOut className="w-4 h-4 mr-2" />
+                로그아웃
+              </Button>
+            </div>
+          ) : (
+            <Button onClick={handleLogin}>
+              <LogIn className="w-4 h-4 mr-2" />
+              로그인
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* 헤더 */}
