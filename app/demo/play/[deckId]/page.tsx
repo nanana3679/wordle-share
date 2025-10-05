@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useParams } from "next/navigation";
 import { getDeck } from "@/app/actions/deck";
 import { WordleGrid } from "@/components/WordleGrid";
 import { WordleKeyboard } from "@/components/WordleKeyboard";
 import { CongratulationsModal } from "@/components/CongratulationsModal";
 import { GameOverModal } from "@/components/GameOverModal";
+import Loading from "@/components/Loading";
 import { 
   initializeGame, 
   addLetterToGuess, 
@@ -18,14 +19,11 @@ import {
 } from "@/lib/wordleGame";
 import { Deck } from "@/app/actions/deck";
 
-export default function PlayPage() {
-  const params = useParams();
-  const deckId = params.deckId as string;
-  
+// 게임 데이터를 로드하는 컴포넌트
+function GameLoader({ deckId }: { deckId: string }) {
   const [deck, setDeck] = useState<Deck | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [showCongratsModal, setShowCongratsModal] = useState(false);
   const [showGameOverModal, setShowGameOverModal] = useState(false);
@@ -38,8 +36,7 @@ export default function PlayPage() {
         setDeck(deckData);
         
         if (!deckData.words || deckData.words.length === 0) {
-          setError('이 덱에는 단어가 없습니다.');
-          return;
+          throw new Error('이 덱에는 단어가 없습니다.');
         }
         
         // 랜덤 단어 선택 및 게임 초기화
@@ -47,9 +44,8 @@ export default function PlayPage() {
         const initialGameState = initializeGame(targetWord, 6);
         setGameState(initialGameState);
       } catch (err) {
-        setError(err instanceof Error ? err.message : '덱을 불러오는데 실패했습니다.');
-      } finally {
-        setLoading(false);
+        const error = err instanceof Error ? err : new Error('덱을 불러오는데 실패했습니다.');
+        setError(error);
       }
     };
 
@@ -57,6 +53,11 @@ export default function PlayPage() {
       loadDeck();
     }
   }, [deckId]);
+
+  // 에러가 발생한 경우 throw하여 Error Boundary에서 처리
+  if (error) {
+    throw error;
+  }
 
   // 키보드 입력 처리
   const handleKeyPress = useCallback((key: string) => {
@@ -161,28 +162,8 @@ export default function PlayPage() {
     setShowGameOverModal(false);
   }, [deck]);
 
-  if (loading) {
-    return (
-      <div className="play-page">
-        <div className="loading">
-          <h1>게임을 불러오는 중...</h1>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !deck || !gameState) {
-    return (
-      <div className="play-page">
-        <div className="error">
-          <h1>오류가 발생했습니다</h1>
-          <p>{error || '게임을 시작할 수 없습니다.'}</p>
-          <button onClick={() => window.history.back()} className="back-button">
-            돌아가기
-          </button>
-        </div>
-      </div>
-    );
+  if (!deck || !gameState) {
+    return null; // 데이터가 아직 로드되지 않았거나 에러가 발생한 경우
   }
 
   return (
@@ -282,5 +263,17 @@ export default function PlayPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+// 메인 PlayPage 컴포넌트
+export default function PlayPage() {
+  const params = useParams();
+  const deckId = params.deckId as string;
+
+  return (
+    <Suspense fallback={<Loading />}>
+      <GameLoader deckId={deckId} />
+    </Suspense>
   );
 }
