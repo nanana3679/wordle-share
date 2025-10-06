@@ -90,7 +90,7 @@ export function DeckCard({ deck }: DeckCardProps) {
     >
       <Card className="h-full flex flex-col transition-all duration-200 border-none cursor-pointer relative hover:-translate-y-1 hover:shadow-lg p-0 gap-0">
         {/* 덱 이미지 */}
-        <div className="h-48 md:h-52 overflow-hidden rounded-t-lg bg-gray-50 flex items-center justify-center">
+        <div className="h-52 overflow-hidden rounded-t-lg bg-gray-50 flex items-center justify-center">
           {deck.thumbnail_url ? (
             <Image 
               src={deck.thumbnail_url} 
@@ -98,6 +98,7 @@ export function DeckCard({ deck }: DeckCardProps) {
               width={400}
               height={208}
               className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+              style={{ width: "auto", height: "208px" }}
               priority
             />
           ) : (
