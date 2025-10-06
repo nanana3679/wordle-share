@@ -21,7 +21,7 @@ export function DeckHeaderActions({ deck }: DeckHeaderActionsProps) {
   const handleShare = async () => {
     if (navigator.share) {
       try {
-        const shareData: any = {
+        const shareData: ShareData & { files?: File[] } = {
           title: "wordledecks - " + (deck.name || "Wordle 덱"),
           text: deck.description || "",
           url: window.location.href,
