@@ -88,13 +88,15 @@ export function DeckCard({ deck }: DeckCardProps) {
       href={`/demo/decks/${deck.id}`} 
       className="block no-underline text-inherit"
     >
-      <Card className="h-full flex flex-col transition-all duration-200 border-none cursor-pointer relative hover:-translate-y-1 hover:shadow-lg p-0">
+      <Card className="h-full flex flex-col transition-all duration-200 border-none cursor-pointer relative hover:-translate-y-1 hover:shadow-lg p-0 gap-0">
         {/* 덱 이미지 */}
         <div className="h-48 md:h-52 overflow-hidden rounded-t-lg bg-gray-50 flex items-center justify-center">
           {deck.thumbnail_url ? (
             <Image 
               src={deck.thumbnail_url} 
               alt={deck.name || "덱 이미지"}
+              width={400}
+              height={208}
               className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
             />
           ) : (
@@ -104,9 +106,9 @@ export function DeckCard({ deck }: DeckCardProps) {
           )}
         </div>
 
-        <CardContent className="flex-1 p-4 flex items-center justify-center text-center">
+        <CardContent className="h-14 p-4 flex items-center justify-start text-left">
           {/* 덱 제목 */}
-          <h3 className="text-xl md:text-lg font-normal text-gray-900 leading-tight line-clamp-2 m-0">
+          <h3 className="text-sm md:text-base font-normal text-gray-900 leading-tight line-clamp-2 m-0">
             {deck.name || "이름 없음"}
           </h3>
         </CardContent>
