@@ -12,6 +12,13 @@ export async function signInWithGoogle() {
     ? `https://${process.env.VERCEL_URL}` 
     : 'http://localhost:3000';
     
+    console.log('Environment check:', {
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+      supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      siteUrl: process.env.NEXT_PUBLIC_SITE_UR,
+      vercelUrl: process.env.VERCEL_URL
+    });
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
