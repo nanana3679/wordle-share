@@ -98,6 +98,7 @@ export function DeckCard({ deck }: DeckCardProps) {
               width={400}
               height={208}
               className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+              priority
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600">

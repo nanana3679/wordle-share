@@ -15,7 +15,7 @@ export async function signInWithGoogle() {
     console.log('Environment check:', {
       supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
       supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      siteUrl: process.env.NEXT_PUBLIC_SITE_UR,
+      siteUrl: process.env.NEXT_PUBLIC_SITE_URL,
       vercelUrl: process.env.VERCEL_URL
     });
 

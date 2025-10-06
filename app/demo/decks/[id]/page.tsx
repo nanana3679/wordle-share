@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getDeck } from "@/app/actions/deck";
-import { DeckDetail } from "@/components/DeckDetail";
+import { DeckDetailStatic } from "@/components/DeckDetailStatic";
 
 interface DeckPageProps {
   params: Promise<{
@@ -9,17 +9,12 @@ interface DeckPageProps {
 }
 
 export default async function DeckPage({ params }: DeckPageProps) {
-  try {
-    const { id } = await params;
-    const deck = await getDeck(id);
-    
-    if (!deck) {
-      notFound();
-    }
-
-    return <DeckDetail deck={deck} />;
-  } catch (error) {
-    console.error("덱을 불러오는 중 오류 발생:", error);
+  const { id } = await params;
+  const deck = await getDeck(id);
+  
+  if (!deck) {
     notFound();
   }
+
+  return <DeckDetailStatic deck={deck} />;
 }

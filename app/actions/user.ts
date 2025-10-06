@@ -1,42 +1,23 @@
 "use server";
 
-import { createClient } from "@/lib/supabase-server";
+import { createAdminClient } from "@/lib/supabase-admin";
+import { User } from "@supabase/supabase-js";
 
-export async function getUserInfo(userId: string): Promise<{
-  id: string;
-  email: string | null;
-  name: string;
-  avatar_url: string | null;
-}> {
-  const supabase = await createClient();
+export async function getUserInfo(userId: string): Promise<User | undefined> {
+  const supabase = createAdminClient();
   
   try {
-    // 현재 사용자 정보를 가져와서 요청한 사용자와 비교
-    const { data: { user } } = await supabase.auth.getUser();
+    // Supabase Admin API를 사용하여 특정 사용자 정보 가져오기
+    const { data, error } = await supabase.auth.admin.getUserById(userId);
     
-    if (user && user.id === userId) {
-      return {
-        id: user.id,
-        email: user.email || null,
-        name: user.user_metadata?.full_name || user.user_metadata?.name || 'Unknown',
-        avatar_url: user.user_metadata?.avatar_url || null,
-      };
+    if (error) {
+      console.warn('사용자 정보를 가져오는데 실패했습니다:', error);
+      return undefined;
     }
     
-    // 다른 사용자의 경우 기본 정보만 반환
-    return {
-      id: userId,
-      email: null,
-      name: 'Unknown User',
-      avatar_url: null,
-    };
+    return data.user;
   } catch (error) {
     console.warn('사용자 정보를 가져오는데 실패했습니다:', error);
-    return {
-      id: userId,
-      email: null,
-      name: 'Unknown User',
-      avatar_url: null,
-    };
+    return undefined;
   }
 }

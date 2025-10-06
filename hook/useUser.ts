@@ -17,7 +17,12 @@ export function useUser() {
       setUser(data);
     } catch (err) {
       console.error('useUser error:', err);
-      showBoundary(err);
+      // 세션이 없는 경우는 정상적인 상황이므로 ErrorBoundary를 트리거하지 않음
+      if (err instanceof Error && err.message.includes('Auth session missing')) {
+        setUser(null);
+      } else {
+        showBoundary(err);
+      }
     } finally {
       setLoading(false);
     }

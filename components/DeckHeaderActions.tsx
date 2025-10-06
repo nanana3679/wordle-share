@@ -1,0 +1,103 @@
+"use client";
+
+import { Deck } from "@/app/actions/deck";
+import { Button } from "@/components/ui/button";
+import { Share2, Heart } from "lucide-react";
+import { useEffect, useState } from "react";
+import { isLikedByUser, toggleLike } from "@/app/actions/like";
+import { toast } from "sonner";
+import { useUser } from "@/hook/useUser";
+
+interface DeckHeaderActionsProps {
+  deck: Deck;
+  initialLikeCount: number;
+}
+
+export function DeckHeaderActions({ deck, initialLikeCount }: DeckHeaderActionsProps) {
+  const { user } = useUser();
+  const [likeCount, setLikeCount] = useState(initialLikeCount);
+  const [isLiked, setIsLiked] = useState(false);
+  const [isLikeLoading, setIsLikeLoading] = useState(false);
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: deck.name || "Wordle 덱",
+          text: deck.description || "",
+          url: window.location.href,
+        });
+      } catch {
+        console.log("공유 취소됨");
+      }
+    } else {
+      // 클립보드에 복사
+      await navigator.clipboard.writeText(window.location.href);
+      // TODO: 토스트 메시지 표시
+    }
+  };
+
+  const handleLike = async () => {
+    if (!user) {
+      toast.error("로그인이 필요합니다.");
+      return;
+    }
+
+    setIsLikeLoading(true);
+    
+    try {
+      const result = await toggleLike(deck.id);
+      
+      if (result.action === "added") {
+        setLikeCount(prev => prev + 1);
+        setIsLiked(true);
+        toast.success("좋아요를 눌렀습니다!");
+      } else {
+        setLikeCount(prev => prev - 1);
+        setIsLiked(false);
+        toast.success("좋아요를 취소했습니다.");
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "좋아요 처리에 실패했습니다.");
+    } finally {
+      setIsLikeLoading(false);
+    }
+  };
+
+  // 좋아요 정보 가져오기
+  useEffect(() => {
+    const loadLikeInfo = async () => {
+      try {
+        // 현재 사용자의 좋아요 상태만 확인
+        if (user) {
+          const liked = await isLikedByUser(deck.id, user.id);
+          setIsLiked(liked);
+        }
+      } catch (error) {
+        console.error('좋아요 정보를 가져오는데 실패했습니다:', error);
+      }
+    };
+
+    loadLikeInfo();
+  }, [deck.id, user]);
+
+  return (
+    <div className="flex gap-2 ml-4">
+      <Button 
+        onClick={handleLike} 
+        variant="outline" 
+        size="sm"
+        disabled={isLikeLoading}
+      >
+        <Heart 
+          className={`h-4 w-4 mr-2 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} 
+        />
+        {likeCount}
+      </Button>
+      <Button onClick={handleShare} variant="outline" size="sm">
+        <Share2 className="h-4 w-4 mr-2" />
+        공유
+      </Button>
+    </div>
+  );
+}

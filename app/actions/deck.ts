@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { Tables, TablesInsert, TablesUpdate } from "@/types/database";
 import { parseWordsString } from "@/lib/wordConstraints";
+import { getUserInfo } from "@/app/actions/user";
+import { User } from "@supabase/supabase-js";
 
 export type Deck = Tables<"decks"> & {
   likes?: Array<{
@@ -12,6 +14,7 @@ export type Deck = Tables<"decks"> & {
     user_id: string;
     created_at: string;
   }>;
+  creator?: User;
 };
 export type DeckInsert = TablesInsert<"decks">;
 export type DeckUpdate = TablesUpdate<"decks">;
@@ -43,7 +46,14 @@ export async function getDeck(id: string) {
   
   const { data, error } = await supabase
     .from("decks")
-    .select("*")
+    .select(`
+      *,
+      likes (
+        deck_id,
+        user_id,
+        created_at
+      )
+    `)
     .eq("id", id)
     .single();
 
@@ -51,7 +61,16 @@ export async function getDeck(id: string) {
     throw new Error(`덱을 가져오는데 실패했습니다: ${error.message}`);
   }
 
-  return data;
+  // 작성자 정보 가져오기
+  let creator: User | undefined;
+  if (data.creator_id) {
+    creator = await getUserInfo(data.creator_id);
+  }
+
+  return {
+    ...data,
+    creator
+  };
 }
 
 
