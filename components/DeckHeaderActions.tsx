@@ -19,35 +19,8 @@ export function DeckHeaderActions({ deck }: DeckHeaderActionsProps) {
   const [isLikeLoading, setIsLikeLoading] = useState(false);
 
   const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        const shareData: ShareData & { files?: File[] } = {
-          title: "wordledecks - " + (deck.name || "Wordle 덱"),
-          text: deck.description || "",
-          url: window.location.href,
-        };
-
-        // 썸네일 이미지가 있으면 파일로 변환해서 추가
-        if (deck.thumbnail_url) {
-          try {
-            const response = await fetch(deck.thumbnail_url);
-            const blob = await response.blob();
-            const file = new File([blob], 'deck-thumbnail.jpg', { type: blob.type });
-            shareData.files = [file];
-          } catch (error) {
-            console.log("썸네일 이미지를 가져오는데 실패했습니다:", error);
-          }
-        }
-
-        await navigator.share(shareData);
-      } catch {
-        console.log("공유 취소됨");
-      }
-    } else {
-      // 클립보드에 복사
-      await navigator.clipboard.writeText(window.location.href);
-      toast.success("공유 링크가 클립보드에 복사되었습니다.");
-    }
+    await navigator.clipboard.writeText(window.location.href);
+    toast.success("공유 링크가 클립보드에 복사되었습니다.");
   };
 
   const handleLike = async () => {
