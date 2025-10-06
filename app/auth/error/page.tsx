@@ -2,6 +2,7 @@
 
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
+import Link from 'next/link';
 
 function AuthErrorContent() {
   const searchParams = useSearchParams();
@@ -18,12 +19,12 @@ function AuthErrorContent() {
             {message}
           </p>
           <div className="mt-8">
-            <a
+            <Link
               href="/"
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               홈으로 돌아가기
-            </a>
+            </Link>
           </div>
         </div>
       </div>
