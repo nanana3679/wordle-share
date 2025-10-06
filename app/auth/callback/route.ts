@@ -4,24 +4,14 @@ import { createClient } from '@/lib/supabase-server';
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get('code');
-  const origin = requestUrl.origin;
-
-  console.log('Callback received:', { code: code ? 'present' : 'missing', origin })
 
   if (code) {
     const supabase = await createClient();
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    await supabase.auth.exchangeCodeForSession(code);
       
-    if (error) {
-      console.error('Session exchange error:', error);
-      return NextResponse.redirect(`${origin}/auth/error?message=${error.message}`);
-    }
-
-      console.log('Session created successfully:', { 
-        userId: data.user?.id,
-        email: data.user?.email 
-      })
+    // 성공적으로 로그인한 후 원래 가려던 페이지로 리디렉션
+    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_SITE_URL}/demo/decks`);
   }
 
-  return NextResponse.redirect(new URL('/demo/decks', requestUrl.origin));
+  NextResponse.redirect(`${process.env.NEXT_PUBLIC_SITE_URL}/auth/error?message=${encodeURIComponent('인증 코드가 없습니다')}`);
 }

@@ -7,32 +7,23 @@ import { cookies } from "next/headers";
 export async function signInWithGoogle() {
   const supabase = await createClient();
   
-  // 환경변수가 없을 때 기본값 설정
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL 
-  || process.env.VERCEL_URL 
-    ? `https://${process.env.VERCEL_URL}` 
-    : 'http://localhost:3000';
-    
-    console.log('Environment check:', {
-      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-      supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      siteUrl: process.env.NEXT_PUBLIC_SITE_URL,
-      vercelUrl: process.env.VERCEL_URL
-    });
-
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${siteUrl}/auth/callback`,
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
     },
   });
 
   if (error) {
+    console.error('OAuth sign in error:', error);
     throw error;
   }
 
   if (data.url) {
+    console.log('Redirecting to:', data.url);
     redirect(data.url);
+  } else {
+    throw new Error('OAuth URL이 생성되지 않았습니다');
   }
 }
 
@@ -45,7 +36,7 @@ export async function signOut() {
     throw error;
   }
 
-  redirect("/");
+  redirect("/demo/decks");
 }
 
 export async function getUser() {
