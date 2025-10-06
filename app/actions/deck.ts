@@ -15,11 +15,12 @@ export type Deck = Tables<"decks"> & {
     created_at: string;
   }>;
   creator?: User;
+  isLiked?: boolean;
 };
 export type DeckInsert = TablesInsert<"decks">;
 export type DeckUpdate = TablesUpdate<"decks">;
 
-export async function getDecks() {
+export async function getDecks(userId: string | null = null) {
   const supabase = await createClient();
   
   const { data, error } = await supabase
@@ -38,10 +39,19 @@ export async function getDecks() {
     throw new Error(`덱 목록을 가져오는데 실패했습니다: ${error.message}`);
   }
 
+  // userId가 제공된 경우 각 덱에 대해 isLiked 정보 추가
+  if (userId && data) {
+    const decksWithLikedStatus = data.map(deck => ({
+      ...deck,
+      isLiked: deck.likes?.some(like => like.user_id === userId) || false
+    }));
+    return decksWithLikedStatus as Deck[];
+  }
+
   return data as Deck[];
 }
 
-export async function getDeck(id: string) {
+export async function getDeck(id: string, userId: string | null = null) {
   const supabase = await createClient();
   
   const { data, error } = await supabase
@@ -67,9 +77,13 @@ export async function getDeck(id: string) {
     creator = await getUserInfo(data.creator_id);
   }
 
+  // userId가 제공된 경우 isLiked 정보 추가
+  const isLiked = userId ? data.likes?.some(like => like.user_id === userId) || false : undefined;
+
   return {
     ...data,
-    creator
+    creator,
+    isLiked
   };
 }
 

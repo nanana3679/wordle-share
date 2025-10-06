@@ -21,7 +21,10 @@ export default function DecksPage() {
   useEffect(() => {
     const loadDecks = async () => {
       try {
-        const decksData = await getDecks();
+        if (loading) {
+          return;
+        }
+        const decksData = await getDecks(user?.id);
         setDecks(decksData);
       } catch (error) {
         console.error("덱 목록 로드 실패:", error);

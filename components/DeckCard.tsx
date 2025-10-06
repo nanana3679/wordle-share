@@ -17,8 +17,8 @@ interface DeckCardProps {
 
 export function DeckCard({ deck }: DeckCardProps) {
   const { user } = useUser();
-  const [likeCount, setLikeCount] = useState(0);
-  const [isLiked, setIsLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(deck.likes?.length || 0);
+  const [isLiked, setIsLiked] = useState(deck.isLiked || false);
   const [isLikeLoading, setIsLikeLoading] = useState(false);
 
   // 좋아요 정보 계산

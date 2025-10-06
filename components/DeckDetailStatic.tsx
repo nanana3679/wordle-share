@@ -63,7 +63,7 @@ export function DeckDetailStatic({ deck }: DeckDetailStaticProps) {
               <p className="text-muted-foreground text-lg">{deck.description}</p>
             )}
           </div>
-          <DeckHeaderActions deck={deck} initialLikeCount={deck.likes?.length || 0} />
+          <DeckHeaderActions deck={deck} />
         </div>
 
         {/* 썸네일 이미지 */}

@@ -10,13 +10,12 @@ import { useUser } from "@/hook/useUser";
 
 interface DeckHeaderActionsProps {
   deck: Deck;
-  initialLikeCount: number;
 }
 
-export function DeckHeaderActions({ deck, initialLikeCount }: DeckHeaderActionsProps) {
+export function DeckHeaderActions({ deck }: DeckHeaderActionsProps) {
   const { user } = useUser();
-  const [likeCount, setLikeCount] = useState(initialLikeCount);
-  const [isLiked, setIsLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(deck.likes?.length || 0);
+  const [isLiked, setIsLiked] = useState(deck.isLiked || false);
   const [isLikeLoading, setIsLikeLoading] = useState(false);
 
   const handleShare = async () => {
@@ -33,7 +32,7 @@ export function DeckHeaderActions({ deck, initialLikeCount }: DeckHeaderActionsP
     } else {
       // 클립보드에 복사
       await navigator.clipboard.writeText(window.location.href);
-      // TODO: 토스트 메시지 표시
+      toast.success("공유 링크가 클립보드에 복사되었습니다.");
     }
   };
 
