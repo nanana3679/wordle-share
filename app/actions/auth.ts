@@ -64,14 +64,41 @@ export async function getUser() {
     
     if (error) {
       console.error('Supabase auth error:', error);
+      // 인증 오류 시 토큰 삭제
+      await clearAuthTokens();
       throw new Error(`인증 오류: ${error.message}`);
     }
     
     return user;
   } catch (error) {
     console.error('getUser error:', error);
+    // 오류 발생 시 토큰 삭제
+    await clearAuthTokens();
     // 네트워크 오류나 기타 오류를 명시적으로 던져서 ErrorBoundary가 잡을 수 있도록 함
     throw new Error(`사용자 정보를 가져오는 중 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
+  }
+}
+
+async function clearAuthTokens() {
+  try {
+    const cookieStore = await cookies();
+    const allCookies = cookieStore.getAll();
+    
+    // Supabase 관련 쿠키들 삭제
+    const supabaseCookies = allCookies.filter(cookie => 
+      cookie.name.startsWith('sb-')
+    );
+    
+    for (const cookie of supabaseCookies) {
+      cookieStore.delete({
+        name: cookie.name,
+        path: '/',
+      });
+    }
+    
+    console.log('Auth tokens cleared due to error');
+  } catch (clearError) {
+    console.error('Error clearing auth tokens:', clearError);
   }
 }
 
