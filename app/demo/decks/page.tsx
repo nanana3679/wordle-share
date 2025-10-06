@@ -34,7 +34,7 @@ export default function DecksPage() {
     };
 
     loadDecks();
-  }, []);
+  }, [loading, user?.id]);
 
   const handleLogin = () => {
     router.push("/demo/login");
