@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase-server";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 
 export async function signInWithGoogle() {
   const supabase = await createClient();
@@ -49,12 +50,19 @@ export async function signOut() {
 
 export async function getUser() {
   try {
-    // 환경변수 디버그 로깅
-    console.log('Environment check:', {
-      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'SET' : 'NOT SET',
-      supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'SET' : 'NOT SET',
-      siteUrl: process.env.NEXT_PUBLIC_SITE_URL || 'NOT SET'
-    });
+    // Supabase auth 쿠키가 있는지 먼저 확인
+    const cookieStore = await cookies();
+    
+    // Supabase 쿠키들을 찾기 (sb-로 시작하는 쿠키들)
+    const allCookies = cookieStore.getAll();
+    const supabaseAuthToken = allCookies.find(cookie => 
+      cookie.name.startsWith('sb-') && cookie.name.includes('auth-token')
+    );
+    
+    // auth 쿠키가 없으면 null 반환
+    if (!supabaseAuthToken) {
+      return null;
+    }
     
     const supabase = await createClient();
     
