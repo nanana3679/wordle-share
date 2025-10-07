@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getDecks } from "@/app/actions/deck";
-import { DeckTable } from "@/components/deckTable";
+import { DeckTable } from "@/components/DeckTable";
 import { DeckDialog } from "@/components/DeckDialog";
 import { Button } from "@/components/ui/button";
 import { Plus, LogIn, LogOut } from "lucide-react";

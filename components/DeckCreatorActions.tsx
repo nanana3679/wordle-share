@@ -4,7 +4,7 @@ import { Deck } from "@/app/actions/deck";
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2 } from "lucide-react";
 import { DeckDialog } from "@/components/DeckDialog";
-import { DeleteDeckDialog } from "@/components/deleteDeckDialog";
+import { DeleteDeckDialog } from "@/components/DeleteDeckDialog";
 import { useUser } from "@/hook/useUser";
 
 interface DeckCreatorActionsProps {
