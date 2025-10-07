@@ -5,8 +5,7 @@ import { useParams } from "next/navigation";
 import { getDeck } from "@/app/actions/deck";
 import { WordleGrid } from "@/components/WordleGrid";
 import { WordleKeyboard } from "@/components/WordleKeyboard";
-import { CongratulationsModal } from "@/components/CongratulationsModal";
-import { GameOverModal } from "@/components/GameOverModal";
+import { GameResultModal } from "@/components/GameResultModal";
 import Loading from "@/components/Loading";
 import { 
   initializeGame, 
@@ -25,8 +24,8 @@ function GameLoader({ deckId }: { deckId: string }) {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [showResult, setShowResult] = useState(false);
-  const [showCongratsModal, setShowCongratsModal] = useState(false);
-  const [showGameOverModal, setShowGameOverModal] = useState(false);
+  const [showGameResultModal, setShowGameResultModal] = useState(false);
+  const [gameResultType, setGameResultType] = useState<'success' | 'failure' | null>(null);
 
   // 덱 로드
   useEffect(() => {
@@ -100,12 +99,13 @@ function GameLoader({ deckId }: { deckId: string }) {
       // 게임이 끝났다면 결과 애니메이션 표시
       if (isGameComplete(newState)) {
         setTimeout(() => setShowResult(true), 600);
-        // 승리한 경우 축하 모달 표시
+        // 게임 결과 모달 표시
         if (newState.gameStatus === 'won') {
-          setTimeout(() => setShowCongratsModal(true), 1200);
+          setGameResultType('success');
+          setTimeout(() => setShowGameResultModal(true), 1200);
         } else if (newState.gameStatus === 'lost') {
-          // 패배한 경우 게임 오버 모달 표시
-          setTimeout(() => setShowGameOverModal(true), 1200);
+          setGameResultType('failure');
+          setTimeout(() => setShowGameResultModal(true), 1200);
         }
       }
       
@@ -158,8 +158,8 @@ function GameLoader({ deckId }: { deckId: string }) {
     const newGameState = initializeGame(targetWord, 6);
     setGameState(newGameState);
     setShowResult(false);
-    setShowCongratsModal(false);
-    setShowGameOverModal(false);
+    setShowGameResultModal(false);
+    setGameResultType(null);
   }, [deck]);
 
   if (!deck || !gameState) {
@@ -183,17 +183,12 @@ function GameLoader({ deckId }: { deckId: string }) {
       />
 
 
-      <CongratulationsModal
-        isOpen={showCongratsModal}
-        onClose={() => setShowCongratsModal(false)}
-        attempts={gameState.guesses.length}
-        onRestart={restartGame}
-      />
-
-      <GameOverModal
-        isOpen={showGameOverModal}
-        onClose={() => setShowGameOverModal(false)}
-        targetWord={gameState.targetWord}
+      <GameResultModal
+        isOpen={showGameResultModal}
+        onClose={() => setShowGameResultModal(false)}
+        type={gameResultType || 'success'}
+        attempts={gameResultType === 'success' ? gameState.guesses.length : undefined}
+        targetWord={gameResultType === 'failure' ? gameState.targetWord : undefined}
         onRestart={restartGame}
       />
 
