@@ -15,7 +15,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DeleteLikeDialog } from "@/components/deleteLikeDialog";
 import { Heart, Search, Filter, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -128,11 +127,6 @@ export function LikeTable({ likes }: LikeTableProps) {
                         >
                           <ExternalLink className="w-4 h-4" />
                         </Button>
-                        <DeleteLikeDialog like={like}>
-                          <Button variant="outline" size="sm">
-                            <Heart className="w-4 h-4" />
-                          </Button>
-                        </DeleteLikeDialog>
                       </div>
                     </TableCell>
                   </TableRow>
