@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Deck } from "@/types/decks";
 
 export function LikeButton({ deck }: { deck: Deck }) {
-  const { optimisticIsLiked, optimisticLikeCounts, toggleLike } = useOptimisticLike(deck);
+  const { optimisticIsLiked, optimisticLikeCounts, toggleLike, isLoading } = useOptimisticLike(deck);
 
   const handleToggleLike = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
@@ -19,6 +19,7 @@ export function LikeButton({ deck }: { deck: Deck }) {
       size="sm"
       onClick={handleToggleLike}
       className="group flex items-center gap-1 bg-white hover:bg-white text-gray-500"
+      disabled={isLoading}
     >
       <Heart
         className={`w-4 h-4 transition-colors group-hover:scale-110 ${
