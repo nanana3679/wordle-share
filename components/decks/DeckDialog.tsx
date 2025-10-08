@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Deck, createDeck, updateDeck } from "@/app/actions/deck";
+import { createDeck, updateDeck } from "@/app/actions/deck";
+import { Deck } from "@/types/decks";
 import { uploadDeckThumbnail } from "@/app/actions/storage";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -110,7 +112,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
           }
           
           const uploadResponse = await actionWithToast(
-            () => uploadDeckThumbnail(selectedFile, createResponse.data.id),
+            () => uploadDeckThumbnail(selectedFile, createResponse.data?.id as string),
             { showOnlyError: true }
           );
           if (!uploadResponse.success || !uploadResponse.data) {
@@ -127,7 +129,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
           updateFormData.set("thumbnail_url", finalThumbnailUrl);
           
           const updateResponse = await actionWithToast(
-            () => updateDeck(createResponse.data.id, updateFormData)
+            () => updateDeck(createResponse.data?.id as string, updateFormData)
           );
           if (!updateResponse.success) {
             throw new Error(updateResponse.message);
@@ -174,6 +176,9 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>
+            {isEditMode ? "덱 정보를 수정하세요." : "새로운 단어 덱을 만들어 보세요."}
+          </DialogDescription>
         </DialogHeader>
         
         <div className="flex-1 overflow-y-auto px-1">
@@ -260,7 +265,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
               rows={4}
               required
             />
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               단어는 쉼표(,)로 구분하여 입력하세요.
             </p>
           </div>
