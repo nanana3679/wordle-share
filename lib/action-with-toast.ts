@@ -63,7 +63,7 @@ export async function actionWithToast<T>(
           // fieldErrors가 있으면 각 필드의 에러도 표시
           if (result.fieldErrors) {
             const errorMessages = Object.entries(result.fieldErrors)
-              .flatMap(([field, errors]) => errors)
+              .flatMap(([fieldName, errors]) => errors.map(error => `[${fieldName}] ${error}`))
               .join(", ");
             toast.error(`${result.message}\n${errorMessages}`);
           } else {
