@@ -4,10 +4,19 @@ import { createClient } from "@/lib/supabase-server";
 import { ActionResponse } from "@/types/action";
 import { safeAction } from "@/lib/safe-action";
 
-export async function createLike(deckId: string, userId: string): Promise<ActionResponse> {
+export async function createLike(deckId: string): Promise<ActionResponse> {
   return safeAction(async () => {
     const supabase = await createClient();
-    const { data, error } = await supabase.from("likes").insert({ deck_id: deckId, user_id: userId });
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return {
+        success: false,
+        message: "로그인이 필요합니다.",
+      };
+    }
+
+    const { data, error } = await supabase.from("likes").insert({ deck_id: deckId, user_id: user.id });
     console.log("createLike", data, error);
     
     if (error) {
@@ -24,10 +33,18 @@ export async function createLike(deckId: string, userId: string): Promise<Action
   });
 }
 
-export async function deleteLike(deckId: string, userId: string): Promise<ActionResponse> {
+export async function deleteLike(deckId: string): Promise<ActionResponse> {
   return safeAction(async () => {
     const supabase = await createClient();
-    const { data, error } = await supabase.from("likes").delete().eq("deck_id", deckId).eq("user_id", userId);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return {
+        success: false,
+        message: "로그인이 필요합니다.",
+      };
+    }
+    const { data, error } = await supabase.from("likes").delete().eq("deck_id", deckId);
     console.log("deleteLike", data, error);
     
     if (error) {

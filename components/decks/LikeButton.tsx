@@ -3,18 +3,15 @@
 import { useOptimisticLike } from "@/hooks/useOptimisticLike";
 import { Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Deck } from "@/app/actions/deck";
+import { Deck } from "@/types/decks";
 
 export function LikeButton({ deck }: { deck: Deck }) {
-  const { optimisticLike, toggleLike } = useOptimisticLike(
-    { likeCount: deck.likes?.length || 0, isLiked: deck.isLiked || false },
-    deck.id
-  );
+  const { optimisticIsLiked, optimisticLikeCounts, toggleLike } = useOptimisticLike(deck);
 
-  const handleToggleLike = async (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleToggleLike = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     e.preventDefault();
-    await toggleLike();
+    toggleLike();
   };
 
   return (
@@ -25,12 +22,12 @@ export function LikeButton({ deck }: { deck: Deck }) {
     >
       <Heart
         className={`w-4 h-4 transition-colors group-hover:scale-110 ${
-          optimisticLike.isLiked
+          optimisticIsLiked
             ? "fill-red-500 text-red-500"
             : "text-gray-500"
         }`}
       />
-      <span className="text-sm">{optimisticLike.likeCount}</span>
+      <span className="text-sm">{optimisticLikeCounts}</span>
     </Button>
   );
 }
