@@ -9,7 +9,6 @@ import { User } from "@supabase/supabase-js";
 interface AppBarProps {
   title: string;
   showBackButton?: boolean;
-  backButtonHref?: string;
   backButtonText?: string;
   onBackClick?: () => void;
   user: User | null;
@@ -18,7 +17,6 @@ interface AppBarProps {
 export function AppBar({ 
   title, 
   showBackButton = false, 
-  backButtonHref, 
   backButtonText = "뒤로 가기",
   onBackClick,
   user
@@ -44,9 +42,8 @@ export function AppBar({
   const handleBackClick = () => {
     if (onBackClick) {
       onBackClick();
-    } else if (backButtonHref) {
-      router.push(backButtonHref);
     } else {
+      // 항상 뒤로가기로 캐싱된 페이지 사용
       router.back();
     }
   };
