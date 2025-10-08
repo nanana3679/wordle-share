@@ -5,6 +5,8 @@ import { LogIn, LogOut, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { signInWithGoogle, signOut } from "@/app/actions/auth";
 import { User } from "@supabase/supabase-js";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface AppBarProps {
   title: string;
@@ -22,7 +24,7 @@ export function AppBar({
   user
 }: AppBarProps) {
   const router = useRouter();
-
+  const queryClient = useQueryClient();
   const handleLogin = async () => {
     try {
       await signInWithGoogle();
@@ -34,6 +36,9 @@ export function AppBar({
   const handleLogout = async () => {
     try {
       await signOut();
+      // useAuth 훅에서 로그아웃 상태 변경
+      queryClient.invalidateQueries({ queryKey: ["auth", "user"] });
+      toast.success("로그아웃 되었습니다.");
     } catch (error) {
       console.error("로그아웃 실패:", error);
     }
