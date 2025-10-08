@@ -3,7 +3,7 @@
 import { useOptimistic, useState, startTransition } from "react";
 import { createLike, deleteLike } from "@/app/actions/like";
 import { useAuth } from "./useAuth";
-import { toast } from "sonner";
+import { actionWithToast } from "@/lib/action-with-toast";
 
 export type Like = {
   likeCount: number;
@@ -37,7 +37,10 @@ export function useOptimisticLike(initialLike: Like, deckId: string) {
 
   const toggleLike = async () => {
     if (!user) {
-      toast.error("로그인이 필요합니다.");
+      await actionWithToast(async () => ({
+        success: false,
+        message: "로그인이 필요합니다.",
+      }));
       return;
     }
 
@@ -52,13 +55,24 @@ export function useOptimisticLike(initialLike: Like, deckId: string) {
     });
 
     try {
-      // 2. 서버에 요청 전송
+      // 2. 서버에 요청 전송 (showToast: false로 자동 toast 비활성화)
+      let response;
       if (newIsLiked) {
-        const { error } = await createLike(deckId, user.id);
-        if (error) throw error;
+        response = await actionWithToast(
+          () => createLike(deckId, user.id),
+          { showToast: false }
+        );
+        console.log("createLike", response);
       } else {
-        const { error } = await deleteLike(deckId, user.id);
-        if (error) throw error;
+        response = await actionWithToast(
+          () => deleteLike(deckId, user.id),
+          { showToast: false }
+        );
+        console.log("deleteLike", response);
+      }
+
+      if (!response.success) {
+        throw new Error(response.message);
       }
 
       // 3. 서버 요청 성공: 실제 상태를 최종 확정
@@ -73,7 +87,10 @@ export function useOptimisticLike(initialLike: Like, deckId: string) {
     } catch (error) {
       // 4. 서버 요청 실패: useOptimistic이 자동으로 낙관적 상태를 초기 상태(likeState)로 롤백
       console.error("좋아요 처리 실패:", error);
-      toast.error("좋아요 처리에 실패했습니다.");
+      await actionWithToast(async () => ({
+        success: false,
+        message: error instanceof Error ? error.message : "좋아요 처리에 실패했습니다.",
+      }));
     }
   };
 

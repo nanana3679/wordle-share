@@ -30,15 +30,18 @@ function GameLoader({ deckId }: { deckId: string }) {
   useEffect(() => {
     const loadDeck = async () => {
       try {
-        const { data: deckData, error } = await getDeck(deckId);
-        setDeck(deckData);
+        const response = await getDeck(deckId);
         
-        if (!deckData || !deckData.words || deckData.words.length === 0) {
-          setError(new Error('이 덱에는 단어가 없습니다.'));
+        if (!response.success || !response.data) {
+          setError(new Error(response.message));
           return;
         }
-        if (error) {
-          setError(error);
+        
+        const deckData = response.data;
+        setDeck(deckData);
+        
+        if (!deckData.words || deckData.words.length === 0) {
+          setError(new Error('이 덱에는 단어가 없습니다.'));
           return;
         }
         

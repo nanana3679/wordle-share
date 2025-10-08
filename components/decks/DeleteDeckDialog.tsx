@@ -11,7 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import { actionWithToast } from "@/lib/action-with-toast";
 
 interface DeleteDeckDialogProps {
   deck: Deck;
@@ -26,11 +26,10 @@ export function DeleteDeckDialog({ deck, children }: DeleteDeckDialogProps) {
     setIsLoading(true);
     
     try {
-      await deleteDeck(deck.id);
-      toast.success("덱이 성공적으로 삭제되었습니다!");
+      // actionWithToast가 자동으로 toast를 표시하고 에러를 처리합니다
+      await actionWithToast(() => deleteDeck(deck.id));
+      // deleteDeck은 성공하면 redirect를 호출하므로, 여기까지 오지 않습니다
       setOpen(false);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "덱 삭제에 실패했습니다.");
     } finally {
       setIsLoading(false);
     }

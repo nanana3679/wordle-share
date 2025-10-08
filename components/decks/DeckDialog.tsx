@@ -19,6 +19,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
 import Image from "next/image";
+import { actionWithToast } from "@/lib/action-with-toast";
 
 interface DeckDialogProps {
   deck?: Deck; // deck이 있으면 수정 모드, 없으면 생성 모드
@@ -90,11 +91,32 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
       if (selectedFile) {
         if (isEditMode && deck) {
           // 수정 모드: 기존 deckId 사용
-          finalThumbnailUrl = await uploadDeckThumbnail(selectedFile, deck.id);
+          const uploadResponse = await actionWithToast(
+            () => uploadDeckThumbnail(selectedFile, deck.id),
+            { showOnlyError: true }
+          );
+          if (!uploadResponse.success || !uploadResponse.data) {
+            throw new Error(uploadResponse.message);
+          }
+          finalThumbnailUrl = uploadResponse.data;
         } else {
           // 생성 모드: 먼저 덱을 생성한 후 이미지 업로드
-          const createdDeck = await createDeck(formData);
-          finalThumbnailUrl = await uploadDeckThumbnail(selectedFile, createdDeck.id);
+          const createResponse = await actionWithToast(
+            () => createDeck(formData),
+            { showOnlyError: true }
+          );
+          if (!createResponse.success || !createResponse.data) {
+            throw new Error(createResponse.message);
+          }
+          
+          const uploadResponse = await actionWithToast(
+            () => uploadDeckThumbnail(selectedFile, createResponse.data.id),
+            { showOnlyError: true }
+          );
+          if (!uploadResponse.success || !uploadResponse.data) {
+            throw new Error(uploadResponse.message);
+          }
+          finalThumbnailUrl = uploadResponse.data;
           
           // 이미지 URL로 덱 업데이트
           const updateFormData = new FormData();
@@ -104,9 +126,15 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
           updateFormData.set("is_public", formData.get("is_public") as string);
           updateFormData.set("thumbnail_url", finalThumbnailUrl);
           
-          await updateDeck(createdDeck.id, updateFormData);
-          toast.success("덱이 성공적으로 생성되었습니다!");
+          const updateResponse = await actionWithToast(
+            () => updateDeck(createResponse.data.id, updateFormData)
+          );
+          if (!updateResponse.success) {
+            throw new Error(updateResponse.message);
+          }
+          
           setOpen(false);
+          router.refresh();
           return;
         }
       }
@@ -117,8 +145,10 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
       }
       
       if (isEditMode && deck) {
-        await updateDeck(deck.id, formData);
-        toast.success("덱이 성공적으로 수정되었습니다!");
+        const response = await actionWithToast(() => updateDeck(deck.id, formData));
+        if (!response.success) {
+          throw new Error(response.message);
+        }
         
         // 수정 후 페이지 새로고침
         setTimeout(() => {
@@ -129,8 +159,8 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
       setOpen(false);
     } catch (error) {
       console.error("덱 처리 중 오류 발생:", error);
-      const errorMessage = isEditMode ? "덱 수정에 실패했습니다." : "덱 생성에 실패했습니다.";
-      toast.error(error instanceof Error ? error.message : errorMessage);
+      const errorMessage = error instanceof Error ? error.message : (isEditMode ? "덱 수정에 실패했습니다." : "덱 생성에 실패했습니다.");
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

@@ -1,30 +1,27 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase-admin";
-import { AuthError, User } from "@supabase/supabase-js";
+import { User } from "@supabase/supabase-js";
+import { ActionResponse } from "@/types/action";
+import { safeAction } from "@/lib/safe-action";
 
-type ActionResponse<T> = {
-  data: T | null;
-  error: AuthError | null;
-  message: string | null;
-};
-
-export async function getUserInfo(userId: string) {
-  const supabase = createAdminClient();
-  
-  const { data, error } = await supabase.auth.admin.getUserById(userId);
+export async function getUserInfo(userId: string): Promise<ActionResponse<User>> {
+  return safeAction(async () => {
+    const supabase = createAdminClient();
     
-  if (error) {
+    const { data, error } = await supabase.auth.admin.getUserById(userId);
+      
+    if (error) {
+      return {
+        success: false,
+        message: `사용자 정보를 가져오는데 실패했습니다: ${error.message}`,
+      };
+    }
+      
     return {
-      data: null,
-      error,
-      message: `사용자 정보를 가져오는데 실패했습니다: ${error.message}`
-    } as ActionResponse<User>;
-  }
-    
-  return {
-    data: data.user as User,
-    error: null,
-    message: null
-  } as ActionResponse<User>;
+      success: true,
+      data: data.user as User,
+      message: "사용자 정보를 가져왔습니다.",
+    };
+  });
 }
