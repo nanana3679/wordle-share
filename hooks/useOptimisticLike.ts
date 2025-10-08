@@ -53,7 +53,9 @@ export function useOptimisticLike(deck: Deck) {
       }
 
       // 3. 서버 요청 성공: 실제 상태를 최종 확정
-      setIsLikedState(newIsLiked);
+      startTransition(() => {
+        setIsLikedState(newIsLiked);
+      });
       setIsLoading(false);
     } catch (error) {
       // 4. 서버 요청 실패: useOptimistic이 자동으로 낙관적 상태를 초기 상태(likeState)로 롤백
