@@ -9,6 +9,7 @@ export type Deck = Tables<"decks"> & {
   }>;
   creator?: User;
   isLiked?: boolean;
+  isCreator?: boolean;
 };
 export type DeckInsert = TablesInsert<"decks">;
 export type DeckUpdate = TablesUpdate<"decks">;

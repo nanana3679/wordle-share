@@ -109,6 +109,7 @@ export async function getDeck(deckId: string): Promise<ActionResponse<Deck>> {
       ...deckData,
       creator,
       isLiked,
+      isCreator: deckData?.creator_id === user.id,
     } as Deck;
 
     return {

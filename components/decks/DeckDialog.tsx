@@ -98,7 +98,8 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
             { showOnlyError: true }
           );
           if (!uploadResponse.success || !uploadResponse.data) {
-            throw new Error(uploadResponse.message);
+            toast.error(uploadResponse.message || "이미지 업로드에 실패했습니다.");
+            return;
           }
           finalThumbnailUrl = uploadResponse.data;
         } else {
@@ -108,7 +109,8 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
             { showOnlyError: true }
           );
           if (!createResponse.success || !createResponse.data) {
-            throw new Error(createResponse.message);
+            toast.error(createResponse.message || "덱 생성에 실패했습니다.");
+            return;
           }
           
           const uploadResponse = await actionWithToast(
@@ -116,7 +118,8 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
             { showOnlyError: true }
           );
           if (!uploadResponse.success || !uploadResponse.data) {
-            throw new Error(uploadResponse.message);
+            toast.error(uploadResponse.message || "이미지 업로드에 실패했습니다.");
+            return;
           }
           finalThumbnailUrl = uploadResponse.data;
           
@@ -132,7 +135,8 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
             () => updateDeck(createResponse.data?.id as string, updateFormData)
           );
           if (!updateResponse.success) {
-            throw new Error(updateResponse.message);
+            toast.error(updateResponse.message || "덱 업데이트에 실패했습니다.");
+            return;
           }
           
           setOpen(false);
@@ -149,13 +153,23 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
       if (isEditMode && deck) {
         const response = await actionWithToast(() => updateDeck(deck.id, formData));
         if (!response.success) {
-          throw new Error(response.message);
+          toast.error(response.message || "덱 수정에 실패했습니다.");
+          return;
         }
         
         // 수정 후 페이지 새로고침
         setTimeout(() => {
           router.refresh();
         }, 1000);
+      } else if (!isEditMode) {
+        // 생성 모드 && 이미지 없음
+        const response = await actionWithToast(() => createDeck(formData));
+        if (!response.success) {
+          toast.error(response.message || "덱 생성에 실패했습니다.");
+          return;
+        }
+        
+        router.refresh();
       }
       
       setOpen(false);

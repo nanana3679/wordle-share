@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { getDeck } from "@/app/actions/deck";
 import { DeckDetailStatic } from "@/components/decks/DeckDetailStatic";
 import { Metadata } from "next";
-import { supabase } from "@/lib/supabase";
 
 interface DeckPageProps {
   params: Promise<{
@@ -64,12 +63,10 @@ export async function generateMetadata({ params }: DeckPageProps): Promise<Metad
 export default async function DeckPage({ params }: DeckPageProps) {
   const { id } = await params;
   const { data: deck } = await getDeck(id);
-  const { data: { user } } = await supabase.auth.getUser();
-  const isCreator = deck?.creator_id === user?.id;
 
   if (!deck) {
     notFound();
   }
 
-  return <DeckDetailStatic deck={deck} isCreator={isCreator} />;
+  return <DeckDetailStatic deck={deck} />;
 }

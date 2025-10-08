@@ -12,10 +12,9 @@ import { DeckCreatorActions } from "@/components/decks/DeckCreatorActions";
 
 interface DeckDetailStaticProps {
   deck: Deck;
-  isCreator: boolean;
 }
 
-export function DeckDetailStatic({ deck, isCreator }: DeckDetailStaticProps) {
+export function DeckDetailStatic({ deck }: DeckDetailStaticProps) {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl relative">
@@ -101,7 +100,7 @@ export function DeckDetailStatic({ deck, isCreator }: DeckDetailStaticProps) {
       </Card>
 
       {/* 작성자 액션 버튼들 */}
-      {isCreator && <DeckCreatorActions deck={deck} />}
+      {deck.isCreator && <DeckCreatorActions deck={deck} />}
     </div>
   );
 }
