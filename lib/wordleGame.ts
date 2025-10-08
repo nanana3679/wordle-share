@@ -18,16 +18,20 @@ export interface GameState {
   gameStatus: 'playing' | 'won' | 'lost';
   maxGuesses: number;
   keyboardState: Record<string, LetterState>;
+  validWords?: string[]; // 유효한 단어 목록
+  errorMessage?: string; // 에러 메시지
 }
 
-export function initializeGame(targetWord: string, maxGuesses: number = 6): GameState {
+export function initializeGame(targetWord: string, maxGuesses: number = 6, validWords?: string[]): GameState {
   return {
     targetWord: targetWord.toLowerCase(),
     guesses: [],
     currentGuess: '',
     gameStatus: 'playing',
     maxGuesses,
-    keyboardState: {}
+    keyboardState: {},
+    validWords: validWords?.map(w => w.toLowerCase()),
+    errorMessage: undefined
   };
 }
 
@@ -40,7 +44,8 @@ export function addLetterToGuess(gameState: GameState, letter: string): GameStat
   
   return {
     ...gameState,
-    currentGuess: gameState.currentGuess + letter.toLowerCase()
+    currentGuess: gameState.currentGuess + letter.toLowerCase(),
+    errorMessage: undefined // 입력 시 에러 메시지 초기화
   };
 }
 
@@ -56,6 +61,17 @@ export function removeLetterFromGuess(gameState: GameState): GameState {
 export function submitGuess(gameState: GameState): GameState {
   if (gameState.gameStatus !== 'playing') return gameState;
   if (gameState.currentGuess.length !== gameState.targetWord.length) return gameState;
+  
+  // 유효한 단어 목록이 있는 경우 검증
+  if (gameState.validWords && gameState.validWords.length > 0) {
+    const currentGuessLower = gameState.currentGuess.toLowerCase();
+    if (!gameState.validWords.includes(currentGuessLower)) {
+      return {
+        ...gameState,
+        errorMessage: '단어 목록에 없는 단어입니다.'
+      };
+    }
+  }
   
   const newGuess = evaluateGuess(gameState.currentGuess, gameState.targetWord);
   const newGuesses = [...gameState.guesses, newGuess];
@@ -89,7 +105,8 @@ export function submitGuess(gameState: GameState): GameState {
     guesses: newGuesses,
     currentGuess: '', // 다음 줄로 넘어가기 위해 초기화
     gameStatus,
-    keyboardState: newKeyboardState
+    keyboardState: newKeyboardState,
+    errorMessage: undefined
   };
 }
 
