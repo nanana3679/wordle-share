@@ -17,7 +17,7 @@ export async function getDecks(): Promise<ActionResponse<Deck[]>> {
 
     const { data: { user } } = await supabase.auth.getUser();
     
-    let { data: decks, error }: PostgrestSingleResponse<Deck[]> = await supabase
+    const { data: decks, error }: PostgrestSingleResponse<Deck[]> = await supabase
       .from("decks")
       .select(`
         *,
@@ -36,9 +36,11 @@ export async function getDecks(): Promise<ActionResponse<Deck[]>> {
       };
     }
 
+    let newDecks = decks;
+
     // userId가 제공된 경우 isLiked 정보 추가
     if (user && decks) {
-      decks = decks.map(deck => ({
+      newDecks = decks.map(deck => ({
         ...deck,
         isLiked: deck.likes?.some(like => like.user_id === user.id) || false
       }));
@@ -46,7 +48,7 @@ export async function getDecks(): Promise<ActionResponse<Deck[]>> {
 
     return {
       success: true,
-      data: decks as Deck[],
+      data: newDecks as Deck[],
       message: "덱 목록을 가져왔습니다.",
     };
   });
