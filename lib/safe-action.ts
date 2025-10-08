@@ -16,6 +16,18 @@ export async function safeAction<T = void>(
     // 실제 서버 액션 로직 실행
     return await actionFn();
   } catch (error) {
+    // Next.js의 redirect()와 notFound()는 정상 동작이므로 다시 던짐
+    // digest가 NEXT_REDIRECT 또는 NEXT_NOT_FOUND로 시작하는 에러는 Next.js가 처리해야 함
+    if (
+      error &&
+      typeof error === "object" &&
+      "digest" in error &&
+      typeof error.digest === "string" &&
+      (error.digest.startsWith("NEXT_REDIRECT") || error.digest.startsWith("NEXT_NOT_FOUND"))
+    ) {
+      throw error;
+    }
+    
     // 오류 포착 및 로깅
     console.error("[Server Action Error]", error);
     
