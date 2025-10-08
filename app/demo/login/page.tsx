@@ -10,6 +10,14 @@ import { Badge } from '@/components/ui/badge';
 function TestLoginContent() {
   const { user } = useAuth();
 
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
+  const handleSignInWithGoogle = async () => {
+    await signInWithGoogle();
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
@@ -56,7 +64,7 @@ function TestLoginContent() {
                 </CardContent>
               </Card>
 
-              <form action={signOut}>
+              <form action={handleSignOut}>
                 <Button 
                   type="submit" 
                   variant="destructive" 
@@ -67,7 +75,7 @@ function TestLoginContent() {
               </form>
             </div>
           ) : (
-            <form action={signInWithGoogle}>
+            <form action={handleSignInWithGoogle}>
               <Button 
                 type="submit" 
                 variant="outline" 
