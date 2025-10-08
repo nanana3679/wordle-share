@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Deck, deleteDeck } from "@/app/actions/deck";
+import { deleteDeck } from "@/app/actions/deck";
+import { Deck } from "@/types/decks";
 import {
   Dialog,
   DialogContent,

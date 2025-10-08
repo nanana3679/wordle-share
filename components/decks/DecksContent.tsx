@@ -4,7 +4,7 @@ import { DeckTable } from "@/components/decks/DeckTable";
 import { DeckDialog } from "@/components/decks/DeckDialog";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { Deck } from "@/app/actions/deck";
+import { Deck } from "@/types/decks";
 
 interface DecksContentProps {
   initialDecks: Deck[];

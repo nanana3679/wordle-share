@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Deck } from "@/app/actions/deck";
+import { Deck } from "@/types/decks";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

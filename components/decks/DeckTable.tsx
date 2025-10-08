@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Deck } from "@/app/actions/deck";
+import { Deck } from "@/types/decks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

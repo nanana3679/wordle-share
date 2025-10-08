@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Deck } from "@/app/actions/deck";
+import { Deck } from "@/types/decks";
 import { Card, CardContent } from "@/components/ui/card";
 import { LikeButton } from "./LikeButton";
 import Image from 'next/image';

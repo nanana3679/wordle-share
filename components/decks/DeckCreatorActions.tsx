@@ -1,6 +1,6 @@
 "use client";
 
-import { Deck } from "@/app/actions/deck";
+import { Deck } from "@/types/decks";
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2 } from "lucide-react";
 import { DeckDialog } from "@/components/decks/DeckDialog";
