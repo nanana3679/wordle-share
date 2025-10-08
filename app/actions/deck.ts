@@ -7,6 +7,8 @@ import { Tables, TablesInsert, TablesUpdate } from "@/types/database";
 import { parseWordsString } from "@/lib/wordConstraints";
 import { getUserInfo } from "@/app/actions/user";
 import { User } from "@supabase/supabase-js";
+import { PostgrestError, AuthError } from "@supabase/supabase-js";
+import { PostgrestSingleResponse } from "@supabase/supabase-js";
 
 export type Deck = Tables<"decks"> & {
   likes?: Array<{
@@ -20,10 +22,18 @@ export type Deck = Tables<"decks"> & {
 export type DeckInsert = TablesInsert<"decks">;
 export type DeckUpdate = TablesUpdate<"decks">;
 
-export async function getDecks(userId: string | null = null) {
+type ActionResponse<T> = {
+  data: T | null;
+  error: PostgrestError | null;
+  message: string | null;
+};
+
+export async function getDecks() {
   const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
   
-  const { data, error } = await supabase
+  let { data: decks, error }: PostgrestSingleResponse<Deck[]> = await supabase
     .from("decks")
     .select(`
       *,
@@ -36,25 +46,34 @@ export async function getDecks(userId: string | null = null) {
     .order("created_at", { ascending: false });
 
   if (error) {
-    throw new Error(`덱 목록을 가져오는데 실패했습니다: ${error.message}`);
+    return {
+      data: null,
+      error,
+      message: `덱 목록을 가져오는데 실패했습니다: ${error.message}`
+    } as ActionResponse<Deck[]>;
   }
 
-  // userId가 제공된 경우 각 덱에 대해 isLiked 정보 추가
-  if (userId && data) {
-    const decksWithLikedStatus = data.map(deck => ({
+  // userId가 제공된 경우 isLiked 정보 추가
+  if (user && decks) {
+    decks = decks.map(deck => ({
       ...deck,
-      isLiked: deck.likes?.some(like => like.user_id === userId) || false
+      isLiked: deck.likes?.some(like => like.user_id === user.id) || false
     }));
-    return decksWithLikedStatus as Deck[];
   }
 
-  return data as Deck[];
+  return {
+    data: decks as Deck[],
+    error: null,
+    message: null
+  } as ActionResponse<Deck[]>;
 }
 
-export async function getDeck(id: string, userId: string | null = null) {
+export async function getDeck(deckId: string) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  let message: string | null = null;
   
-  const { data, error } = await supabase
+  const { data: deckData, error: deckError } = await supabase
     .from("decks")
     .select(`
       *,
@@ -64,27 +83,50 @@ export async function getDeck(id: string, userId: string | null = null) {
         created_at
       )
     `)
-    .eq("id", id)
+    .eq("id", deckId)
     .single();
 
-  if (error) {
-    throw new Error(`덱을 가져오는데 실패했습니다: ${error.message}`);
+  if (deckError) {
+    message = `덱을 가져오는데 실패했습니다: ${deckError.message}`;
   }
+
+  if (!user) {
+    return {
+      data: deckData as Deck,
+      error: deckError,
+      message: message
+    } as ActionResponse<Deck>;
+  }
+  
+  // userId가 제공된 경우 isLiked 정보 추가
+  const isLiked = deckData?.likes?.some(like => like.user_id === user.id);
 
   // 작성자 정보 가져오기
-  let creator: User | undefined;
-  if (data.creator_id) {
-    creator = await getUserInfo(data.creator_id);
+  let creator: User | null = null;
+  let creatorErrorData: AuthError | null = null;
+  // creator_id가 제공된 경우 작성자 정보 추가
+  if (!deckData?.creator_id) {
+    creator = null;
+  } else {
+    const { data: creatorData, error: creatorError } = await getUserInfo(deckData.creator_id);
+    creator = creatorData as User;
+    creatorErrorData = creatorError;
+    if (creatorError) {
+      message = `작성자 정보를 가져오는데 실패했습니다: ${creatorError.message}`;
+    }
   }
 
-  // userId가 제공된 경우 isLiked 정보 추가
-  const isLiked = userId ? data.likes?.some(like => like.user_id === userId) || false : undefined;
+  const newDeck = {
+    ...deckData,
+    creator,
+    isLiked,
+  } as Deck;
 
   return {
-    ...data,
-    creator,
-    isLiked
-  };
+    data: newDeck,
+    error: creatorErrorData,
+    message
+  } as ActionResponse<Deck>;
 }
 
 

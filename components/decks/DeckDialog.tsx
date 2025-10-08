@@ -7,7 +7,6 @@ import { uploadDeckThumbnail } from "@/app/actions/storage";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -36,9 +35,6 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
   
   const isEditMode = !!deck;
   const title = isEditMode ? "덱 수정" : "새 덱 만들기";
-  const description = isEditMode 
-    ? "덱 정보를 수정하세요. 단어는 쉼표로 구분하여 입력하세요."
-    : "Wordle 게임용 단어 덱을 생성하세요. 단어는 쉼표로 구분하여 입력하세요.";
   const submitButtonText = isEditMode ? "덱 수정" : "덱 생성";
   const loadingText = isEditMode ? "수정 중..." : "생성 중...";
 
@@ -148,9 +144,6 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>
-            {description}
-          </DialogDescription>
         </DialogHeader>
         
         <div className="flex-1 overflow-y-auto px-1">
@@ -212,7 +205,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
               </div>
             )}
             <p className="text-xs text-muted-foreground">
-              이미지 크기는 5MB 이하여야 합니다. 폼 제출 시 업로드됩니다.
+              이미지 크기는 5MB 이하여야 합니다.
             </p>
           </div>
           
@@ -246,7 +239,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
             <Switch 
               id="is_public" 
               name="is_public" 
-              defaultChecked={deck?.is_public || false}
+              defaultChecked={deck?.is_public ?? true}
             />
             <Label htmlFor="is_public">공개 덱으로 만들기</Label>
           </div>

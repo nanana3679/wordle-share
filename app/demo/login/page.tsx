@@ -1,19 +1,14 @@
 'use client';
 
 import { signInWithGoogle, signOut } from '@/app/actions/auth';
-import { useUser } from '@/hook/useUser';
-import Loading from '@/components/Loading';
+import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 
 function TestLoginContent() {
-  const { user, loading } = useUser();
-
-  if (loading) {
-    return <Loading />;
-  }
+  const { user } = useAuth();
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">

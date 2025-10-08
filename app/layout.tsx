@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
-import Loading from "@/components/Loading";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
+import Loading from "@/components/common/Loading";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { Suspense } from "react";
 

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getDeck } from "@/app/actions/deck";
-import { DeckDetailStatic } from "@/components/DeckDetailStatic";
+import { DeckDetailStatic } from "@/components/decks/DeckDetailStatic";
 import { Metadata } from "next";
 
 interface DeckPageProps {
@@ -12,13 +12,10 @@ interface DeckPageProps {
 // 동적 메타데이터 생성
 export async function generateMetadata({ params }: DeckPageProps): Promise<Metadata> {
   const { id } = await params;
-  const deck = await getDeck(id);
+  const { data: deck } = await getDeck(id);
   
   if (!deck) {
-    return {
-      title: "덱을 찾을 수 없습니다",
-      description: "요청하신 덱을 찾을 수 없습니다.",
-    };
+    notFound();
   }
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
@@ -65,7 +62,7 @@ export async function generateMetadata({ params }: DeckPageProps): Promise<Metad
 
 export default async function DeckPage({ params }: DeckPageProps) {
   const { id } = await params;
-  const deck = await getDeck(id);
+  const { data: deck } = await getDeck(id);
   
   if (!deck) {
     notFound();

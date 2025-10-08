@@ -5,55 +5,19 @@ import { Deck } from "@/app/actions/deck";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Play, ArrowLeft, User } from "lucide-react";
+import { Play, User } from "lucide-react";
 import Image from "next/image";
-import { UserAuthButtons } from "@/components/UserAuthButtons";
-import { DeckHeaderActions } from "@/components/DeckHeaderActions";
-import { DeckCreatorActions } from "@/components/DeckCreatorActions";
-import { useUser } from "@/hook/useUser";
-import { useRouter } from "next/navigation";
-import { signOut } from "@/app/actions/auth";
+import { DeckHeaderActions } from "@/components/decks/DeckHeaderActions";
+import { DeckCreatorActions } from "@/components/decks/DeckCreatorActions";
 
 interface DeckDetailStaticProps {
   deck: Deck;
 }
 
 export function DeckDetailStatic({ deck }: DeckDetailStaticProps) {
-  const { user } = useUser();
-  const router = useRouter();
 
-  const handleLogin = () => {
-    router.push("/demo/login");
-  };
-
-  const handleLogout = async () => {
-    try {
-      await signOut();
-    } catch (error) {
-      console.error("로그아웃 실패:", error);
-    }
-  };
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl relative">
-      {/* 사용자 인증 버튼 */}
-      <div className="absolute top-8 right-4">
-        <UserAuthButtons 
-          user={user} 
-          onLogin={handleLogin} 
-          onLogout={handleLogout} 
-        />
-      </div>
-
-      {/* 돌아가기 버튼 */}
-      <div className="mb-6 flex items-center justify-between">
-        <Button variant="ghost" asChild>
-          <Link href="/demo/decks">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            덱 목록으로 돌아가기
-          </Link>
-        </Button>
-      </div>
-
       {/* 헤더 */}
       <div className="mb-8">
         <div className="flex items-start justify-between mb-4">

@@ -3,10 +3,10 @@
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useParams } from "next/navigation";
 import { getDeck } from "@/app/actions/deck";
-import { WordleGrid } from "@/components/WordleGrid";
-import { WordleKeyboard } from "@/components/WordleKeyboard";
-import { GameResultModal } from "@/components/GameResultModal";
-import Loading from "@/components/Loading";
+import { WordleGrid } from "@/components/games/WordleGrid";
+import { WordleKeyboard } from "@/components/games/WordleKeyboard";
+import { GameResultModal } from "@/components/games/GameResultModal";
+import Loading from "@/components/common/Loading";
 import { 
   initializeGame, 
   addLetterToGuess, 
@@ -17,7 +17,6 @@ import {
   type GameState 
 } from "@/lib/wordleGame";
 import { Deck } from "@/app/actions/deck";
-
 // 게임 데이터를 로드하는 컴포넌트
 function GameLoader({ deckId }: { deckId: string }) {
   const [deck, setDeck] = useState<Deck | null>(null);
@@ -31,11 +30,16 @@ function GameLoader({ deckId }: { deckId: string }) {
   useEffect(() => {
     const loadDeck = async () => {
       try {
-        const deckData = await getDeck(deckId);
+        const { data: deckData, error } = await getDeck(deckId);
         setDeck(deckData);
         
-        if (!deckData.words || deckData.words.length === 0) {
-          throw new Error('이 덱에는 단어가 없습니다.');
+        if (!deckData || !deckData.words || deckData.words.length === 0) {
+          setError(new Error('이 덱에는 단어가 없습니다.'));
+          return;
+        }
+        if (error) {
+          setError(error);
+          return;
         }
         
         // 랜덤 단어 선택 및 게임 초기화
