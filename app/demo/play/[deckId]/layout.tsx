@@ -8,11 +8,12 @@ export default async function PlayLayout({
   params,
 }: {
   children: React.ReactNode;
-  params: { deckId: string };
+  params: Promise<{ deckId: string }>;
 }) {
+  const { deckId } = await params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const { data: deck } = await getDeck(params.deckId);
+  const { data: deck } = await getDeck(deckId);
 
   if (!deck) {
     notFound();

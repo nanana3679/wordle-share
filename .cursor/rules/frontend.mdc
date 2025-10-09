@@ -1,6 +1,6 @@
 ---
 description: Frontend specific TypeScript rules
-globs: ["src/components/**/*.{ts,tsx}", "src/pages/**/*.{ts,tsx}"]
+globs: ["src/components/**/*.{ts,tsx}", "src/pages/**/*.{ts,tsx}", "app/**/*.{ts,tsx}"]
 alwaysApply: false
 ---
 
@@ -12,5 +12,13 @@ Frontend TypeScript 파일에서는:
 
 - 컴포넌트를 직접 생성하지 않고 가능하면 shadcn을 사용
 - Container-Presentational 패턴을 사용
+
+## Next.js 15 App Router
+- params, searchParams는 Promise 타입
+- 사용 전 반드시 await로 unwrap
+```typescript
+// params: Promise<{ id: string }>;
+const { id } = await params;
+```
 
 @component-template.tsx
