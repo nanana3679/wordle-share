@@ -79,20 +79,8 @@ export async function getDeck(deckId: string): Promise<ActionResponse<Deck>> {
       };
     }
 
-    if (!user) {
-      return {
-        success: true,
-        data: deckData as Deck,
-        message: "덱을 가져왔습니다.",
-      };
-    }
-    
-    // userId가 제공된 경우 isLiked 정보 추가
-    const isLiked = deckData?.likes?.some(like => like.user_id === user.id);
-
-    // 작성자 정보 가져오기
+    // 작성자 정보 가져오기 (모든 사용자에게 표시)
     let creator: User | null = null;
-    // creator_id가 제공된 경우 작성자 정보 추가
     if (deckData?.creator_id) {
       const userInfoResponse = await getUserInfo(deckData.creator_id);
       if (userInfoResponse.success && userInfoResponse.data) {
@@ -104,6 +92,23 @@ export async function getDeck(deckId: string): Promise<ActionResponse<Deck>> {
         };
       }
     }
+
+    // 인증되지 않은 사용자의 경우
+    if (!user) {
+      return {
+        success: true,
+        data: {
+          ...deckData,
+          creator,
+          isLiked: false,
+          isCreator: false,
+        } as Deck,
+        message: "덱을 가져왔습니다.",
+      };
+    }
+    
+    // 인증된 사용자의 경우 - isLiked와 isCreator 정보 추가
+    const isLiked = deckData?.likes?.some(like => like.user_id === user.id);
 
     const newDeck = {
       ...deckData,
