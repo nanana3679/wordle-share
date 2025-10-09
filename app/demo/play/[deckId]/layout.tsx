@@ -14,7 +14,6 @@ export default async function PlayLayout({
       <AppBar 
         title="Wordle 게임" 
         showBackButton 
-        backButtonText="덱 상세로"
         user={user}
       />
       {children}

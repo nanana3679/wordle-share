@@ -7,6 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Filter } from "lucide-react";
 import { DeckCard } from "@/components/decks/DeckCard";
+import { DeckDialog } from "@/components/decks/DeckDialog";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 interface DeckTableProps {
   decks: Deck[];
@@ -29,9 +32,8 @@ export function DeckTable({ decks }: DeckTableProps) {
   });
 
   return (
-    <Card>
+    <Card className="max-[600px]:border-0">
       <CardHeader>
-        <CardTitle>덱 목록 ({filteredDecks.length}개)</CardTitle>
         <div className="flex gap-4 mt-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
@@ -43,9 +45,8 @@ export function DeckTable({ decks }: DeckTableProps) {
             />
           </div>
           <Select value={filterPublic} onValueChange={setFilterPublic}>
-            <SelectTrigger className="w-40">
-              <Filter className="w-4 h-4 mr-2" />
-              <SelectValue />
+            <SelectTrigger className="w-10 h-10 [&>svg:last-child]:hidden">
+              <Filter className="w-4 h-4" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">전체</SelectItem>
@@ -53,6 +54,11 @@ export function DeckTable({ decks }: DeckTableProps) {
               <SelectItem value="private">비공개</SelectItem>
             </SelectContent>
           </Select>
+          <DeckDialog>
+            <Button size="icon">
+              <Plus className="w-4 h-4" />
+            </Button>
+          </DeckDialog>
         </div>
       </CardHeader>
       <CardContent>

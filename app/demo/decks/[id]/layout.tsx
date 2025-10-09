@@ -15,7 +15,6 @@ export default async function DeckDetailLayout({
         title="덱 상세" 
         user={user} 
         showBackButton
-        backButtonText="덱 목록으로"
       />
       {children}
     </>

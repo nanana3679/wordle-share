@@ -19,7 +19,6 @@ interface AppBarProps {
 export function AppBar({ 
   title, 
   showBackButton = false, 
-  backButtonText = "뒤로 가기",
   onBackClick,
   user
 }: AppBarProps) {
@@ -55,9 +54,9 @@ export function AppBar({
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center justify-between px-4">
+      <div className="container relative flex h-14 items-center justify-between px-4">
         {/* 왼쪽: 뒤로 가기 버튼 */}
-        <div className="flex items-center">
+        <div className="flex items-center z-10">
           {showBackButton && (
             <Button 
               variant="ghost" 
@@ -66,20 +65,19 @@ export function AppBar({
               className="flex items-center gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
-              {backButtonText}
             </Button>
           )}
         </div>
 
-        {/* 가운데: 제목 */}
-        <div className="flex-1 flex justify-center">
+        {/* 가운데: 제목 (절대 위치로 중앙 고정) */}
+        <div className="absolute left-1/2 transform -translate-x-1/2">
           <h1 className="text-lg font-semibold truncate max-w-xs sm:max-w-md">
             {title}
           </h1>
         </div>
 
         {/* 오른쪽: 로그인/로그아웃 버튼 */}
-        <div className="flex items-center">
+        <div className="flex items-center z-10">
           {user ? (
             <Button variant="outline" size="sm" onClick={handleLogout}>
               <LogOut className="h-4 w-4 mr-2" />

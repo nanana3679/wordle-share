@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Play, User } from "lucide-react";
 import Image from "next/image";
-import { DeckHeaderActions } from "@/components/decks/DeckHeaderActions";
+import { LikeButton } from "@/components/decks/LikeButton";
+import { ShareButton } from "@/components/decks/ShareButton";
 import { DeckCreatorActions } from "@/components/decks/DeckCreatorActions";
 
 interface DeckDetailStaticProps {
@@ -23,11 +24,8 @@ export function DeckDetailStatic({ deck }: DeckDetailStaticProps) {
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
             <h1 className="text-3xl font-bold mb-2">{deck.name}</h1>
-            {deck.description && (
-              <p className="text-muted-foreground text-lg">{deck.description}</p>
-            )}
+           
           </div>
-          <DeckHeaderActions deck={deck} />
         </div>
 
         {/* 썸네일 이미지 */}
@@ -47,57 +45,48 @@ export function DeckDetailStatic({ deck }: DeckDetailStaticProps) {
         )}
 
         {/* 작성자 정보 */}
-        {deck.creator && (
-          <div className="mb-4 flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-            {deck.creator.user_metadata?.avatar_url ? (
-              <Image
-                src={deck.creator.user_metadata.avatar_url}
-                alt={deck.creator.user_metadata.name || "작성자"}
-                width={40}
-                height={40}
-                className="rounded-full"
-              />
-            ) : (
-              <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
-                <User className="h-5 w-5 text-muted-foreground" />
-              </div>
-            )}
-            <div>
-              <p className="font-medium">{deck.creator.user_metadata?.name || "익명"}</p>
+        <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+          {deck.creator?.user_metadata?.avatar_url ? (
+            <Image
+              src={deck.creator?.user_metadata?.avatar_url}
+              alt={deck.creator?.user_metadata?.name || "작성자"}
+              width={40}
+              height={40}
+              className="rounded-full"
+            />
+          ) : (
+            <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+              <User className="h-5 w-5 text-muted-foreground" />
             </div>
+          )}
+          <div className="flex-1 flex items-center">
+            <p className="font-medium">{deck.creator?.user_metadata?.name || "익명"}</p>
           </div>
-        )}
+          <div className="flex items-center gap-2">
+            <LikeButton deck={deck} />
+            <ShareButton />
+            <Link href={`/demo/play/${deck.id}`}>
+              <Button size="lg" className="">
+                <Play className="h-4 w-4 mr-2" />
+                플레이
+              </Button>
+            </Link>
+          </div>
+        </div>
 
         {/* 메타 정보 */}
-        <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+        <div className="flex flex-wrap gap-4 text-sm text-muted-foreground p-3">
           <span>단어 개수: {deck.words?.length || 0}개</span>
-          <span>좋아요: {deck.likes?.length || 0}개</span>
           <span>생성일: {new Date(deck.created_at).toLocaleDateString()}</span>
           {deck.is_public && <Badge variant="secondary">공개</Badge>}
           {!deck.is_public && <Badge variant="outline">비공개</Badge>}
         </div>
-      </div>
 
-      {/* 게임 시작 버튼 */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Play className="h-5 w-5" />
-            게임 시작
-          </CardTitle>
-          <CardDescription>
-            이 덱의 단어 중 하나를 선택해서 Wordle 게임을 플레이해보세요!
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Link href={`/demo/play/${deck.id}`}>
-            <Button size="lg" className="w-full sm:w-auto">
-              <Play className="h-4 w-4 mr-2" />
-              게임 시작하기
-            </Button>
-          </Link>
-        </CardContent>
-      </Card>
+        {/* 상세 설명 */}
+        {deck.description && (
+          <p className="text-muted-foreground text-lg mb-4 p-3">{deck.description}</p>
+        )}
+      </div>
 
       {/* 작성자 액션 버튼들 */}
       {deck.isCreator && <DeckCreatorActions deck={deck} />}

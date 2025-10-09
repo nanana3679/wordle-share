@@ -1,6 +1,12 @@
 import { createClient } from "@/lib/supabase-server";
 import { ReactNode } from "react";
 
+export const metadata = {
+  icons: {
+    icon: '/favicon.svg',
+  },
+};
+
 export default async function DemoLayout({
   children,
 }: {
