@@ -1,20 +1,29 @@
 import { AppBar } from "@/components/layout/AppBar";
 import { createClient } from "@/lib/supabase-server";
+import { getDeck } from "@/app/actions/deck";
+import { notFound } from "next/navigation";
 
 export default async function PlayLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params: Promise<{ deckId: string }>;
 }) {
+  const { deckId } = await params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  const { data: deck } = await getDeck(deckId);
+
+  if (!deck) {
+    notFound();
+  }
 
   return (
     <>
       <AppBar 
-        title="Wordle 게임" 
+        title={deck?.name || "Wordle 게임"} 
         showBackButton 
-        backButtonText="덱 상세로"
         user={user}
       />
       {children}

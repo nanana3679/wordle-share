@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { getDeck } from "@/app/actions/deck";
 import { 
   initializeGame, 
   addLetterToGuess, 
@@ -13,7 +12,6 @@ import {
 import { Deck } from "@/types/decks";
 
 export interface UseGameReturn {
-  deck: Deck | null;
   gameState: GameState | null;
   showResult: boolean;
   showGameResultModal: boolean;
@@ -25,53 +23,24 @@ export interface UseGameReturn {
   setShowGameResultModal: (show: boolean) => void;
 }
 
-export function useGame(deckId: string): UseGameReturn {
-  const [deck, setDeck] = useState<Deck | null>(null);
+export function useGame(deck: Deck): UseGameReturn {
   const [gameState, setGameState] = useState<GameState | null>(null);
-  const [error, setError] = useState<Error | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [showGameResultModal, setShowGameResultModal] = useState(false);
   const [gameResultType, setGameResultType] = useState<'success' | 'failure' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 덱 로드
+  // 게임 초기화
   useEffect(() => {
-    const loadDeck = async () => {
-      try {
-        const response = await getDeck(deckId);
-        
-        if (!response.success || !response.data) {
-          setError(new Error(response.message));
-          return;
-        }
-        
-        const deckData = response.data;
-        setDeck(deckData);
-        
-        if (!deckData.words || deckData.words.length === 0) {
-          setError(new Error('이 덱에는 단어가 없습니다.'));
-          return;
-        }
-        
-        // 랜덤 단어 선택 및 게임 초기화
-        const targetWord = selectRandomWord(deckData.words);
-        const initialGameState = initializeGame(targetWord, 6, deckData.words);
-        setGameState(initialGameState);
-      } catch (err) {
-        const error = err instanceof Error ? err : new Error('덱을 불러오는데 실패했습니다.');
-        setError(error);
-      }
-    };
-
-    if (deckId) {
-      loadDeck();
+    if (!deck.words || deck.words.length === 0) {
+      throw new Error('이 덱에는 단어가 없습니다.');
     }
-  }, [deckId]);
-
-  // 에러가 발생한 경우 throw하여 Error Boundary에서 처리
-  if (error) {
-    throw error;
-  }
+    
+    // 랜덤 단어 선택 및 게임 초기화
+    const targetWord = selectRandomWord(deck.words);
+    const initialGameState = initializeGame(targetWord, 6, deck.words);
+    setGameState(initialGameState);
+  }, [deck]);
 
   // 키보드 입력 처리
   const handleKeyPress = useCallback((key: string) => {
@@ -190,7 +159,6 @@ export function useGame(deckId: string): UseGameReturn {
   }, [deck]);
 
   return {
-    deck,
     gameState,
     showResult,
     showGameResultModal,

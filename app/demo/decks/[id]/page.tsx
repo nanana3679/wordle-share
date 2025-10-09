@@ -25,9 +25,12 @@ export async function generateMetadata({ params }: DeckPageProps): Promise<Metad
   const description = deck.description || 
     `${deck.name} - ${deck.words?.length || 0}개의 단어가 포함된 Wordle 덱입니다. 지금 플레이해보세요!`;
   
-  // 썸네일 이미지가 있으면 사용하고, 없으면 기본 이미지
-  const ogImage = deck.thumbnail_url || 
-    `${siteUrl}/api/og?title=${encodeURIComponent(deck.name || 'Wordle Deck')}&words=${deck.words?.length || 0}`;
+  // 썸네일 이미지가 있으면 사용하고, 없으면 favicon 사용
+  const ogImage = deck.thumbnail_url || `${siteUrl}/favicon.svg`;
+  
+  // 썸네일이 없을 때는 favicon을 사용하므로 작은 크기
+  const imageWidth = deck.thumbnail_url ? 1200 : 512;
+  const imageHeight = deck.thumbnail_url ? 630 : 512;
 
   return {
     title: `${deck.name} - Wordle Deck`,
@@ -40,8 +43,8 @@ export async function generateMetadata({ params }: DeckPageProps): Promise<Metad
       images: [
         {
           url: ogImage,
-          width: 1200,
-          height: 630,
+          width: imageWidth,
+          height: imageHeight,
           alt: `${deck.name} 덱 미리보기`,
         },
       ],
@@ -49,7 +52,7 @@ export async function generateMetadata({ params }: DeckPageProps): Promise<Metad
       type: "website",
     },
     twitter: {
-      card: "summary_large_image",
+      card: deck.thumbnail_url ? "summary_large_image" : "summary",
       title: `${deck.name} - Wordle Deck`,
       description,
       images: [ogImage],

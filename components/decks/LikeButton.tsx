@@ -26,7 +26,7 @@ export function LikeButton({ deck }: { deck: Deck }) {
     <Button
       size="sm"
       onClick={handleToggleLike}
-      className={`group flex items-center gap-1 bg-white hover:bg-white text-gray-500 ${isLoading ? "opacity-50" : ""}`}
+      className={`group flex items-center gap-1 bg-white hover:bg-white text-gray-500 px-0 ${isLoading ? "opacity-50" : ""}`}
     >
       <Heart
         className={`w-4 h-4 transition-colors group-hover:scale-110 ${
