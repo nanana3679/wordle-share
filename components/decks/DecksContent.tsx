@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Deck } from "@/types/decks";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,16 +9,33 @@ import { Search, Filter, Plus } from "lucide-react";
 import { DeckCard } from "@/components/decks/DeckCard";
 import { DeckDialog } from "@/components/decks/DeckDialog";
 import { Button } from "@/components/ui/button";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from "@/components/ui/pagination";
 
 interface DecksContentProps {
   initialDecks: Deck[];
+  total: number;
+  currentPage: number;
+  totalPages: number;
 }
 
-export function DecksContent({ initialDecks }: DecksContentProps) {
+export function DecksContent({ initialDecks, total, currentPage, totalPages }: DecksContentProps) {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterPublic, setFilterPublic] = useState<string>("all");
 
   const decks = initialDecks || [];
+
+  const handlePageChange = (page: number) => {
+    router.push(`/demo/decks?page=${page}`);
+  };
 
   // 검색 및 필터링
   const filteredDecks = decks.filter((deck) => {
@@ -67,11 +85,76 @@ export function DecksContent({ initialDecks }: DecksContentProps) {
             : "아직 생성된 덱이 없습니다. 새 덱을 만들어보세요!"}
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6 p-2">
-          {filteredDecks.map((deck) => (
-            <DeckCard key={deck.id} deck={deck} />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6 p-2">
+            {filteredDecks.map((deck) => (
+              <DeckCard key={deck.id} deck={deck} />
+            ))}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="mt-8 flex justify-center">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      href={currentPage > 1 ? `/demo/decks?page=${currentPage - 1}` : "#"}
+                      onClick={(e) => {
+                        if (currentPage <= 1) {
+                          e.preventDefault();
+                        }
+                      }}
+                      className={currentPage <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                    // 현재 페이지 주변의 페이지만 표시
+                    if (
+                      page === 1 ||
+                      page === totalPages ||
+                      (page >= currentPage - 1 && page <= currentPage + 1)
+                    ) {
+                      return (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            href={`/demo/decks?page=${page}`}
+                            isActive={currentPage === page}
+                            className="cursor-pointer"
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    } else if (
+                      page === currentPage - 2 ||
+                      page === currentPage + 2
+                    ) {
+                      return (
+                        <PaginationItem key={page}>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      );
+                    }
+                    return null;
+                  })}
+
+                  <PaginationItem>
+                    <PaginationNext 
+                      href={currentPage < totalPages ? `/demo/decks?page=${currentPage + 1}` : "#"}
+                      onClick={(e) => {
+                        if (currentPage >= totalPages) {
+                          e.preventDefault();
+                        }
+                      }}
+                      className={currentPage >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

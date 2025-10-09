@@ -11,11 +11,27 @@ import { ActionResponse } from "@/types/action";
 import { Deck } from "@/types/decks";
 import { safeAction } from "@/lib/safe-action";
 
-export async function getDecks(): Promise<ActionResponse<Deck[]>> {
+export async function getDecks(page: number = 1, pageSize: number = 24): Promise<ActionResponse<Deck[]> & { total?: number; page?: number; pageSize?: number; totalPages?: number }> {
   return safeAction(async () => {
     const supabase = await createClient();
 
     const { data: { user } } = await supabase.auth.getUser();
+    
+    // 전체 개수 가져오기
+    const { count, error: countError } = await supabase
+      .from("decks")
+      .select("*", { count: "exact", head: true });
+
+    if (countError) {
+      return {
+        success: false,
+        message: `덱 개수를 가져오는데 실패했습니다: ${countError.message}`,
+      };
+    }
+
+    const total = count || 0;
+    const totalPages = Math.ceil(total / pageSize);
+    const offset = (page - 1) * pageSize;
     
     const { data: decks, error }: PostgrestSingleResponse<Deck[]> = await supabase
       .from("decks")
@@ -27,7 +43,8 @@ export async function getDecks(): Promise<ActionResponse<Deck[]>> {
           created_at
         )
       `)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .range(offset, offset + pageSize - 1);
 
     if (error) {
       return {
@@ -50,6 +67,10 @@ export async function getDecks(): Promise<ActionResponse<Deck[]>> {
       success: true,
       data: newDecks as Deck[],
       message: "덱 목록을 가져왔습니다.",
+      total,
+      page,
+      pageSize,
+      totalPages,
     };
   });
 }
