@@ -217,6 +217,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
                   src={previewUrl || thumbnailUrl}
                   alt="덱 썸네일"
                   fill
+                  sizes="(max-width: 640px) 100vw, 600px"
                   className="object-cover"
                 />
                 <Button
