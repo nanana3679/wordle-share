@@ -30,12 +30,6 @@ export function GameLoader({ deck }: GameLoaderProps) {
 
   return (
     <div className="min-h-screen bg-gray-50 p-5 max-[480px]:p-2.5">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl max-[480px]:text-2xl mb-2.5 text-gray-800">
-          {deck.name}
-        </h1>
-      </div>
-
       <WordleGrid gameState={gameState} showResult={showResult} />
 
       <WordleKeyboard
