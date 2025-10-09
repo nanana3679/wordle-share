@@ -1,5 +1,7 @@
 import { AppBar } from "@/components/layout/AppBar";
 import { createClient } from "@/lib/supabase-server";
+import { getDeck } from "@/app/actions/deck";
+import { notFound } from "next/navigation";
 
 export default async function PlayLayout({
   children,
@@ -10,13 +12,11 @@ export default async function PlayLayout({
 }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  const { data: deck } = await getDeck(params.deckId);
 
-  // deck 정보 가져오기 (이름만 필요)
-  const { data: deck } = await supabase
-    .from("decks")
-    .select("name")
-    .eq("id", params.deckId)
-    .single();
+  if (!deck) {
+    notFound();
+  }
 
   return (
     <>
