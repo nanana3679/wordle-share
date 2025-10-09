@@ -77,7 +77,7 @@ export function DeckDetailStatic({ deck }: DeckDetailStaticProps) {
         {/* 메타 정보 */}
         <div className="flex flex-wrap gap-4 text-sm text-muted-foreground p-3">
           <span>단어 개수: {deck.words?.length || 0}개</span>
-          <span>생성일: {new Date(deck.created_at).toLocaleDateString()}</span>
+          <span>생성일: {new Date(deck.created_at).toLocaleDateString('ko-KR')}</span>
           {deck.is_public && <Badge variant="secondary">공개</Badge>}
           {!deck.is_public && <Badge variant="outline">비공개</Badge>}
         </div>
