@@ -23,7 +23,7 @@ export function DeckDetailStatic({ deck }: DeckDetailStaticProps) {
       <div className="mb-8">
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
-            <h1 className="text-3xl font-bold mb-2">{deck.name}</h1>
+            <h1 className="text-3xl font-bold mb-4">{deck.name}</h1>
            
           </div>
         </div>
