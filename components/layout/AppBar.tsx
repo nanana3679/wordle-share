@@ -54,7 +54,7 @@ export function AppBar({
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container relative flex h-14 items-center justify-between px-4">
+      <div className="relative flex h-14 items-center justify-between px-4 w-full max-w-full">
         {/* 왼쪽: 뒤로 가기 버튼 */}
         <div className="flex items-center z-10">
           {showBackButton && (
