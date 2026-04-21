@@ -1,0 +1,68 @@
+import { z } from "zod";
+
+export const ReviewStatus = z.enum(["pending", "approved", "rejected"]);
+
+export const TopicSourceSchema = z.object({
+  url: z.string().url(),
+  title: z.string().optional(),
+  publishedAt: z.string().optional(),
+});
+
+export const TopicCandidateSchema = z.object({
+  id: z.string(),
+  topic: z.string().min(1),
+  description: z.string().min(1),
+  rationale: z.string().optional(),
+  viralitySignals: z.array(z.string()).default([]),
+  sources: z.array(TopicSourceSchema).default([]),
+  status: ReviewStatus.default("pending"),
+  reviewNote: z.string().optional(),
+});
+
+export const TopicsArtifactSchema = z.object({
+  runId: z.string(),
+  generatedAt: z.string(),
+  category: z.string(),
+  model: z.string(),
+  candidates: z.array(TopicCandidateSchema).min(1),
+});
+
+export const DeckDraftSchema = z.object({
+  id: z.string(),
+  topicId: z.string(),
+  topic: z.string(),
+  name: z.string().min(1),
+  description: z.string().min(1),
+  words: z.array(z.string().regex(/^[a-zA-Z]+$/)).min(10),
+  authorHandle: z.string().default("TBD"),
+  status: ReviewStatus.default("pending"),
+  reviewNote: z.string().optional(),
+});
+
+export const DecksArtifactSchema = z.object({
+  runId: z.string(),
+  generatedAt: z.string(),
+  model: z.string(),
+  sourceTopicsRunId: z.string(),
+  drafts: z.array(DeckDraftSchema).min(1),
+});
+
+export type TopicCandidate = z.infer<typeof TopicCandidateSchema>;
+export type TopicsArtifact = z.infer<typeof TopicsArtifactSchema>;
+export type DeckDraft = z.infer<typeof DeckDraftSchema>;
+export type DecksArtifact = z.infer<typeof DecksArtifactSchema>;
+
+export const TOPIC_CATEGORIES = [
+  "global-trends",
+  "korean-community",
+  "entertainment",
+  "news",
+  "memes",
+  "sports",
+  "games",
+  "food",
+  "science",
+  "books",
+] as const;
+
+export type TopicCategory = (typeof TOPIC_CATEGORIES)[number];
