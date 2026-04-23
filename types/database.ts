@@ -16,6 +16,8 @@ export type Database = {
     Tables: {
       decks: {
         Row: {
+          author_handle: string | null
+          author_password_hash: string | null
           created_at: string
           creator_id: string | null
           description: string | null
@@ -27,6 +29,8 @@ export type Database = {
           words: string[] | null
         }
         Insert: {
+          author_handle?: string | null
+          author_password_hash?: string | null
           created_at?: string
           creator_id?: string | null
           description?: string | null
@@ -38,6 +42,8 @@ export type Database = {
           words?: string[] | null
         }
         Update: {
+          author_handle?: string | null
+          author_password_hash?: string | null
           created_at?: string
           creator_id?: string | null
           description?: string | null

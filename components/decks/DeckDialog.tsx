@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { createDeck, updateDeck } from "@/app/actions/deck";
+import { createDeck, createAnonymousDeck, updateDeck } from "@/app/actions/deck";
 import { Deck } from "@/types/decks";
 import { uploadDeckThumbnail } from "@/app/actions/storage";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Dialog,
   DialogContent,
@@ -30,14 +31,16 @@ interface DeckDialogProps {
 
 export function DeckDialog({ deck, children }: DeckDialogProps) {
   const router = useRouter();
+  const { isAuthenticated } = useAuth();
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [thumbnailUrl, setThumbnailUrl] = useState(deck?.thumbnail_url || "");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
-  
+
   const isEditMode = !!deck;
-  const title = isEditMode ? "덱 수정" : "새 덱 만들기";
+  const isAnonymousCreate = !isEditMode && !isAuthenticated;
+  const title = isEditMode ? "덱 수정" : isAnonymousCreate ? "익명으로 덱 만들기" : "새 덱 만들기";
   const submitButtonText = isEditMode ? "덱 수정" : "덱 생성";
   const loadingText = isEditMode ? "수정 중..." : "생성 중...";
 
@@ -85,10 +88,22 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
 
   async function handleSubmit(formData: FormData) {
     setIsLoading(true);
-    
+
     try {
+      // 익명 덱 생성: 썸네일·공개 토글 없이 바로 생성
+      if (isAnonymousCreate) {
+        const response = await actionWithToast(() => createAnonymousDeck(formData));
+        if (!response.success) {
+          toast.error(response.message || "익명 덱 생성에 실패했습니다.");
+          return;
+        }
+        setOpen(false);
+        router.refresh();
+        return;
+      }
+
       let finalThumbnailUrl = thumbnailUrl;
-      
+
       // 새로 선택된 이미지가 있으면 업로드
       if (selectedFile) {
         if (isEditMode && deck) {
@@ -208,7 +223,8 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
             />
           </div>
 
-          {/* 이미지 업로드 */}
+          {/* 이미지 업로드 (익명 생성은 미지원) */}
+          {!isAnonymousCreate && (
           <div className="space-y-2">
             <Label>썸네일 이미지</Label>
             {(thumbnailUrl || previewUrl) ? (
@@ -258,7 +274,8 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
               이미지 크기는 5MB 이하여야 합니다.
             </p>
           </div>
-          
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="description">설명</Label>
             <Textarea
@@ -285,15 +302,46 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
             </p>
           </div>
           
-          <div className="flex items-center space-x-2">
-            <Switch 
-              id="is_public" 
-              name="is_public" 
-              defaultChecked={deck?.is_public ?? true}
-            />
-            <Label htmlFor="is_public">공개 덱으로 만들기</Label>
-          </div>
-          
+          {isAnonymousCreate ? (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="author_handle">표시 이름 *</Label>
+                <Input
+                  id="author_handle"
+                  name="author_handle"
+                  placeholder="덱에 표시될 이름 (2~20자)"
+                  minLength={2}
+                  maxLength={20}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">비밀번호 *</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder="수정/삭제 시 필요 (4자 이상)"
+                  minLength={4}
+                  maxLength={64}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  익명 덱은 항상 공개되며, 비밀번호를 분실하면 수정/삭제할 수 없습니다.
+                </p>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="is_public"
+                name="is_public"
+                defaultChecked={deck?.is_public ?? true}
+              />
+              <Label htmlFor="is_public">공개 덱으로 만들기</Label>
+            </div>
+          )}
+
             <div className="flex justify-end space-x-2 pt-4">
               <Button
                 type="button"

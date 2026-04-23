@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase-server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import bcrypt from "bcryptjs";
 import { parseWordsString } from "@/lib/wordConstraints";
 import { getUserInfo } from "@/app/actions/user";
 import { User } from "@supabase/supabase-js";
@@ -10,6 +11,16 @@ import { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { ActionResponse } from "@/types/action";
 import { Deck } from "@/types/decks";
 import { safeAction } from "@/lib/safe-action";
+
+const ANON_HANDLE_MIN = 2;
+const ANON_HANDLE_MAX = 20;
+const ANON_PASSWORD_MIN = 4;
+const ANON_PASSWORD_MAX = 64;
+const BCRYPT_ROUNDS = 10;
+
+// author_password_hash 노출 방지용 화이트리스트
+const DECK_PUBLIC_COLUMNS =
+  "id, name, description, words, thumbnail_url, is_public, created_at, updated_at, creator_id, author_handle";
 
 export async function getDecks(page: number = 1, pageSize: number = 24): Promise<ActionResponse<Deck[]> & { total?: number; page?: number; pageSize?: number; totalPages?: number }> {
   return safeAction(async () => {
@@ -36,7 +47,7 @@ export async function getDecks(page: number = 1, pageSize: number = 24): Promise
     const { data: decks, error }: PostgrestSingleResponse<Deck[]> = await supabase
       .from("decks")
       .select(`
-        *,
+        ${DECK_PUBLIC_COLUMNS},
         likes (
           deck_id,
           user_id,
@@ -83,7 +94,7 @@ export async function getDeck(deckId: string): Promise<ActionResponse<Deck>> {
     const { data: deckData, error: deckError } = await supabase
       .from("decks")
       .select(`
-        *,
+        ${DECK_PUBLIC_COLUMNS},
         likes (
           deck_id,
           user_id,
@@ -217,6 +228,88 @@ export async function createDeck(formData: FormData): Promise<ActionResponse<Dec
       success: true,
       data: data as Deck,
       message: "덱을 생성했습니다.",
+    };
+  });
+}
+
+export async function createAnonymousDeck(formData: FormData): Promise<ActionResponse<Deck>> {
+  return safeAction(async () => {
+    const supabase = await createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      return {
+        success: false,
+        message: "로그인 상태에서는 익명 덱을 만들 수 없습니다.",
+      };
+    }
+
+    const name = formData.get("name") as string;
+    const description = formData.get("description") as string;
+    const wordsString = formData.get("words") as string;
+    const authorHandle = (formData.get("author_handle") as string)?.trim();
+    const password = formData.get("password") as string;
+
+    const fieldErrors: { [key: string]: string[] } = {};
+    if (!name) fieldErrors.name = ["이름은 필수입니다."];
+    if (!wordsString) fieldErrors.words = ["단어는 필수입니다."];
+    if (!authorHandle) {
+      fieldErrors.author_handle = ["표시 이름은 필수입니다."];
+    } else if (authorHandle.length < ANON_HANDLE_MIN || authorHandle.length > ANON_HANDLE_MAX) {
+      fieldErrors.author_handle = [`표시 이름은 ${ANON_HANDLE_MIN}~${ANON_HANDLE_MAX}자여야 합니다.`];
+    }
+    if (!password) {
+      fieldErrors.password = ["비밀번호는 필수입니다."];
+    } else if (password.length < ANON_PASSWORD_MIN || password.length > ANON_PASSWORD_MAX) {
+      fieldErrors.password = [`비밀번호는 ${ANON_PASSWORD_MIN}~${ANON_PASSWORD_MAX}자여야 합니다.`];
+    }
+
+    if (Object.keys(fieldErrors).length > 0) {
+      return {
+        success: false,
+        message: "입력값을 확인해주세요.",
+        fieldErrors,
+      };
+    }
+
+    const { normalizedWords: words, validation } = parseWordsString(wordsString);
+    if (!validation.isValid) {
+      return {
+        success: false,
+        message: `단어 검증 실패: ${validation.errors.join(", ")}`,
+        fieldErrors: { words: validation.errors },
+      };
+    }
+
+    const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+
+    const { data, error } = await supabase
+      .from("decks")
+      .insert({
+        name,
+        description: description || null,
+        words,
+        is_public: true,
+        creator_id: null,
+        author_handle: authorHandle,
+        author_password_hash: passwordHash,
+        thumbnail_url: null,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      return {
+        success: false,
+        message: `덱 생성에 실패했습니다: ${error.message}`,
+      };
+    }
+
+    revalidatePath("/demo/decks");
+    return {
+      success: true,
+      data: data as Deck,
+      message: "익명 덱을 생성했습니다.",
     };
   });
 }

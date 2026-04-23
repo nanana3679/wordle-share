@@ -59,7 +59,10 @@ export function DeckDetailStatic({ deck }: DeckDetailStaticProps) {
             </div>
           )}
           <div className="flex-1 flex items-center">
-            <p className="font-medium">{deck.creator?.user_metadata?.name || "익명"}</p>
+            <p className="font-medium">
+              {deck.creator?.user_metadata?.name
+                ?? (deck.author_handle ? `익명 · ${deck.author_handle}` : "익명")}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <LikeButton deck={deck} />
