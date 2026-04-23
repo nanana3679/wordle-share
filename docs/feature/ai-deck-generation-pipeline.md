@@ -22,15 +22,19 @@
 
 ```text
 propose-topics (LLM + web_search)
-  ↓  scripts/ai/artifacts/topics/topics-<runId>.json
+  ↓  topics-<runId>.json (검수용) + topics-<runId>.trace.json (실행 로그)
 👤 관리자가 JSON 편집 (status: pending → approved/rejected)
   ↓
 generate-decks (LLM + web_search, 태그 포함)
-  ↓  scripts/ai/artifacts/decks/decks-<runId>.json
+  ↓  decks-<runId>.json + decks-<runId>.trace.json
 👤 관리자가 단어/태그/이름/설명 검수 (status: approved)
   ↓
 (보류) upload-decks — 익명 덱 작성 기능 + words jsonb 마이그레이션 후 구현
 ```
+
+## 트레이스 파일
+
+각 실행마다 `<runId>.trace.json`이 같이 생성됨 (thinking, 검색 쿼리, fetch URL, 토큰 사용량). 검수자가 검색 품질·소스 신뢰성·추론 근거를 역추적해 AI 동작 품질을 평가하는 용도. 자세한 체크포인트는 `scripts/ai/README.md` 참고.
 
 ## 덱 단어 포맷: 태그 기반
 

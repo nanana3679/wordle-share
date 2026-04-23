@@ -23,7 +23,9 @@ pnpm ai:propose-topics
 
 카테고리: `global-trends`, `korean-community`, `entertainment`, `news`, `memes`, `sports`, `games`, `food`, `science`, `books`
 
-출력 파일: `scripts/ai/artifacts/topics/topics-<runId>.json`
+출력 파일:
+- `scripts/ai/artifacts/topics/topics-<runId>.json` — 검수 대상 (후보 목록)
+- `scripts/ai/artifacts/topics/topics-<runId>.trace.json` — 실행 트레이스 (thinking, 웹서치 쿼리/URL, 토큰 사용량). 검수자가 "AI가 어떤 과정으로 이 주제를 뽑았는지" 평가할 때 참고.
 
 ### 2) 주제 검수 (사람)
 
@@ -40,7 +42,9 @@ pnpm ai:generate-decks scripts/ai/artifacts/topics/topics-<runId>.json
 기준으로 a-z만 통과 — 비허용 문자가 섞인 토큰은 경고 로그와 함께 해당 단어만 드롭됩니다
 (전체 재시도 아님). 파싱·API 오류 등 전체 실패만 최대 3회 재시도 후 스킵.
 
-출력 파일: `scripts/ai/artifacts/decks/decks-<runId>.json`
+출력 파일:
+- `scripts/ai/artifacts/decks/decks-<runId>.json` — 검수 대상 (덱 초안 목록)
+- `scripts/ai/artifacts/decks/decks-<runId>.trace.json` — 덱별 실행 트레이스
 
 각 단어는 `{ word, tags[] }` 구조. 태그는 플레이어가 게임 시작 전에 선택해서 난이도·범위를
 조절하는 데 쓰이므로, 검수 시 태그 일관성(같은 덱 안에서 taxonomy 통일)을 확인하는 게 중요.
@@ -68,6 +72,21 @@ pnpm ai:generate-decks scripts/ai/artifacts/topics/topics-<runId>.json
 - 주제 선정·덱 초안 모두 `web_search_20260209` + `web_fetch_20260209` 서버사이드 도구 사용
 - 덱 초안은 공식 로스터/리스트를 먼저 확인한 뒤 단어 구성 (할루시네이션 방지)
 - Adaptive thinking 사용 — `budget_tokens` 별도 지정 안 함
+
+## 트레이스 파일로 AI 동작 평가
+
+`*.trace.json`에 다음이 기록됨:
+- `thinking[]` — 모델의 사고 과정 요약
+- `webSearches[]` — 실행한 검색 쿼리와 결과 수, 상위 5개 URL
+- `webFetches[]` — 실제 fetch한 URL + 본문 미리보기 200자
+- `usage` — 입/출력 토큰, 캐시 사용량
+- `finalText` — 최종 응답 원본
+
+검수 시 체크포인트:
+- 검색 쿼리가 주제에 맞게 구체적인가 (`"hololive members 2026"` vs `"vtuber"` 같은 모호한 것)
+- fetch한 URL이 공식 소스인가 (위키, 공식 사이트 vs 블로그/커뮤니티 잡글)
+- thinking에 주제 적합성 판단 근거가 있는가
+- 토큰 과소비 패턴 — 한 번 실행에 50k 이상 input이면 뭔가 반복 fetch 중
 
 ## 트러블슈팅
 

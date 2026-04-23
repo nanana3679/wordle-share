@@ -93,7 +93,7 @@ async function main() {
   const recentTopics = await loadRecentTopics();
   console.log(`[propose-topics] loaded ${recentTopics.length} recent topics to avoid`);
 
-  const candidates = await selectTopics({
+  const { candidates, trace } = await selectTopics({
     category,
     candidateCount,
     recentTopics,
@@ -118,7 +118,16 @@ async function main() {
     flag: "wx",
   });
 
+  const tracePath = path.join(TOPICS_DIR, `topics-${runId}.trace.json`);
+  await writeFile(tracePath, JSON.stringify(trace, null, 2) + "\n", {
+    encoding: "utf8",
+    flag: "wx",
+  });
+
   console.log(`[propose-topics] wrote ${candidates.length} candidates to ${outputPath}`);
+  console.log(
+    `[propose-topics] trace: ${trace.webSearches.length} search(es), ${trace.webFetches.length} fetch(es), ${trace.usage.inputTokens}/${trace.usage.outputTokens} tokens → ${tracePath}`,
+  );
   console.log('[propose-topics] Next: review the file, set `"status": "approved"` on ones you want, then run `pnpm ai:generate-decks <path>`.');
 }
 

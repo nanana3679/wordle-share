@@ -1,4 +1,11 @@
-import { AI_MODEL, createAnthropicClient, extractJsonPayload, extractText } from "./client";
+import {
+  AI_MODEL,
+  createAnthropicClient,
+  extractJsonPayload,
+  extractText,
+  extractTrace,
+  type AITrace,
+} from "./client";
 import {
   DeckDraftSchema,
   type DeckDraft,
@@ -141,7 +148,9 @@ function normalizeTaggedWords(raw: z.infer<typeof RawDeckSchema>["words"]): {
   return { words, rejected, merged };
 }
 
-export async function buildDeck(input: DeckBuilderInput): Promise<DeckDraft> {
+export async function buildDeck(
+  input: DeckBuilderInput,
+): Promise<{ draft: DeckDraft; trace: AITrace }> {
   const client = createAnthropicClient();
   const maxRetries = input.maxRetries ?? 3;
   let lastError: string | undefined;
@@ -166,6 +175,7 @@ export async function buildDeck(input: DeckBuilderInput): Promise<DeckDraft> {
       });
 
       const finalMessage = await stream.finalMessage();
+      const trace = extractTrace(finalMessage);
       const text = extractText(finalMessage.content);
 
       const payload = extractJsonPayload(text);
@@ -201,7 +211,7 @@ export async function buildDeck(input: DeckBuilderInput): Promise<DeckDraft> {
         status: "pending" as const,
       };
 
-      return DeckDraftSchema.parse(draft);
+      return { draft: DeckDraftSchema.parse(draft), trace };
     } catch (err) {
       lastError = (err as Error).message;
     }

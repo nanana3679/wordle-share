@@ -1,4 +1,11 @@
-import { AI_MODEL, createAnthropicClient, extractJsonPayload, extractText } from "./client";
+import {
+  AI_MODEL,
+  createAnthropicClient,
+  extractJsonPayload,
+  extractText,
+  extractTrace,
+  type AITrace,
+} from "./client";
 import { TopicCandidateSchema, type TopicCandidate, type TopicCategory } from "@/scripts/ai/schemas";
 import { z } from "zod";
 
@@ -129,7 +136,7 @@ function buildUserPrompt(input: TopicSelectorInput): string {
 
 export async function selectTopics(
   input: TopicSelectorInput,
-): Promise<TopicCandidate[]> {
+): Promise<{ candidates: TopicCandidate[]; trace: AITrace }> {
   const client = createAnthropicClient();
 
   const stream = client.messages.stream({
@@ -145,11 +152,12 @@ export async function selectTopics(
   });
 
   const finalMessage = await stream.finalMessage();
+  const trace = extractTrace(finalMessage);
   const text = extractText(finalMessage.content);
   const payload = extractJsonPayload(text);
   const parsed = RawResponseSchema.parse(payload);
 
-  return parsed.candidates.map((raw, index) => {
+  const candidates = parsed.candidates.map((raw, index) => {
     const candidate = {
       id: `${input.runId}-c${index + 1}`,
       topic: raw.topic,
@@ -161,6 +169,8 @@ export async function selectTopics(
     };
     return TopicCandidateSchema.parse(candidate);
   });
+
+  return { candidates, trace };
 }
 
 function isHttpUrl(value: string): boolean {

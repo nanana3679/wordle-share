@@ -4,7 +4,7 @@ import { parseArgs } from "node:util";
 import { config as loadEnv } from "dotenv";
 
 import { buildDeck } from "@/lib/ai/deck-builder";
-import { AI_MODEL } from "@/lib/ai/client";
+import { AI_MODEL, type AITrace } from "@/lib/ai/client";
 import {
   DecksArtifactSchema,
   TopicsArtifactSchema,
@@ -61,17 +61,21 @@ async function main() {
   const now = new Date();
   const runId = buildRunId(now);
   const drafts: DeckDraft[] = [];
+  const traces: Array<{ draftId: string; topic: string; trace: AITrace }> = [];
 
   for (let i = 0; i < approved.length; i++) {
     const topic = approved[i];
     console.log(`[generate-decks] (${i + 1}/${approved.length}) topic="${topic.topic}"`);
     try {
-      const draft = await buildDeck({ topic, runId, index: i });
+      const { draft, trace } = await buildDeck({ topic, runId, index: i });
       drafts.push(draft);
+      traces.push({ draftId: draft.id, topic: draft.topic, trace });
       const preview = draft.words.slice(0, 5).map((w) => w.word).join(", ");
       const allTags = new Set<string>();
       for (const w of draft.words) w.tags.forEach((t) => allTags.add(t));
-      console.log(`  ✓ ${draft.words.length} words (${allTags.size} unique tags): ${preview}…`);
+      console.log(
+        `  ✓ ${draft.words.length} words (${allTags.size} unique tags), ${trace.webSearches.length} search(es), ${trace.webFetches.length} fetch(es): ${preview}…`,
+      );
     } catch (err) {
       console.error(`  ✗ failed: ${(err as Error).message}`);
     }
@@ -99,7 +103,15 @@ async function main() {
     flag: "wx",
   });
 
+  const tracePath = path.join(DECKS_DIR, `decks-${runId}.trace.json`);
+  await writeFile(
+    tracePath,
+    JSON.stringify({ runId, generatedAt: now.toISOString(), drafts: traces }, null, 2) + "\n",
+    { encoding: "utf8", flag: "wx" },
+  );
+
   console.log(`[generate-decks] wrote ${drafts.length} draft deck(s) to ${outputPath}`);
+  console.log(`[generate-decks] trace: ${tracePath}`);
   console.log('[generate-decks] Next: review the file, edit words/name/description as needed, set `"status": "approved"` on the keepers, then upload manually (익명 덱 작성 기능이 추가되면 업로드 스크립트 연결).');
 }
 
