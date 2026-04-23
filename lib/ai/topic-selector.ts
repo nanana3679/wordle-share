@@ -80,7 +80,7 @@ function buildSystemPrompt(): string {
     "",
     "Constraints on final topics:",
     "- Must yield at least 10-15 distinct roman-alphabet words (a-z only) related to the topic.",
-    "- Word length is flexible — no strict 5-letter rule. Any length from 3 to ~12 letters is fine.",
+    "- Word length is completely flexible — no minimum or maximum. Short (2-letter 'rm', 'iu') and long words are both fine.",
     "- Words can be English OR romanized proper nouns from any language (e.g. 'minji', 'tokyo', 'hatsune', 'kimchi', 'oppa', 'ramen'). This means Korean/Japanese/Chinese topics are totally fine — lean into romanization.",
     "- Prefer topics with strong recent virality signals (recent publishing dates, cross-source appearance, comment/share spikes).",
     "- Avoid politically divisive, tragic, or sensitive news topics.",
