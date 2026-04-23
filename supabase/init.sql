@@ -19,6 +19,11 @@ CREATE TABLE public.decks (
     (creator_id IS NOT NULL AND author_handle IS NULL AND author_password_hash IS NULL)
     OR
     (creator_id IS NULL AND author_handle IS NOT NULL AND author_password_hash IS NOT NULL)
+  ),
+  -- anon 키로 평문이 해시 칼럼에 들어가 compare가 예측 불가하게 실패하는 것을 막음
+  CONSTRAINT decks_author_password_hash_format CHECK (
+    author_password_hash IS NULL
+    OR author_password_hash ~ '^\$2[aby]\$\d{2}\$.{53}$'
   )
 );
 
