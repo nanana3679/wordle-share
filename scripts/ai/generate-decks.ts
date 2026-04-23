@@ -20,7 +20,7 @@ const DECKS_DIR = path.join(ARTIFACTS_DIR, "decks");
 
 function buildRunId(now: Date): string {
   const pad = (n: number) => n.toString().padStart(2, "0");
-  return `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}-${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}`;
+  return `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}-${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}`;
 }
 
 async function main() {
@@ -94,7 +94,10 @@ async function main() {
 
   await mkdir(DECKS_DIR, { recursive: true });
   const outputPath = path.join(DECKS_DIR, `decks-${runId}.json`);
-  await writeFile(outputPath, JSON.stringify(artifact, null, 2) + "\n", "utf8");
+  await writeFile(outputPath, JSON.stringify(artifact, null, 2) + "\n", {
+    encoding: "utf8",
+    flag: "wx",
+  });
 
   console.log(`[generate-decks] wrote ${drafts.length} draft deck(s) to ${outputPath}`);
   console.log('[generate-decks] Next: review the file, edit words/name/description as needed, set `"status": "approved"` on the keepers, then upload manually (익명 덱 작성 기능이 추가되면 업로드 스크립트 연결).');

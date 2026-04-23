@@ -3,7 +3,7 @@ import { z } from "zod";
 export const ReviewStatus = z.enum(["pending", "approved", "rejected"]);
 
 export const TopicSourceSchema = z.object({
-  url: z.string().url(),
+  url: z.url(),
   title: z.string().optional(),
   publishedAt: z.string().optional(),
 });
@@ -32,6 +32,8 @@ export const DeckWordSchema = z.object({
   tags: z.array(z.string().min(1)).default([]),
 });
 
+// Language of the deck's WORDS (what the Wordle game uses), not of name/description.
+// Current pipeline only produces "en" (a-z). "ko"/"ja" reserved for future 꼬들/히라가나 modes.
 export const DeckLanguageSchema = z.enum(["en", "ko", "ja"]);
 
 export const DeckDraftSchema = z.object({

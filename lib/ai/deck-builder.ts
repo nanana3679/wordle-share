@@ -89,12 +89,20 @@ function buildUserPrompt(topic: TopicCandidate): string {
 
 function normalizeTaggedWords(raw: z.infer<typeof RawDeckSchema>["words"]): {
   words: DeckWord[];
-  validationErrors: string[];
+  rejected: string[];
 } {
   const seen = new Map<string, string[]>();
+  const rejected: string[] = [];
+
   for (const { word, tags } of raw) {
     const normalized = word.trim().toLowerCase();
     if (!normalized) continue;
+    // Drop tokens with non-a-z chars (hyphens, apostrophes, digits, spaces) per-word
+    // rather than failing the whole attempt. Rejected originals are logged for the reviewer.
+    if (!/^[a-z]+$/.test(normalized)) {
+      rejected.push(word);
+      continue;
+    }
     if (!seen.has(normalized)) {
       const uniqueTags = Array.from(
         new Set((tags ?? []).map((t) => t.trim().toLowerCase()).filter(Boolean)),
@@ -103,15 +111,16 @@ function normalizeTaggedWords(raw: z.infer<typeof RawDeckSchema>["words"]): {
     }
   }
 
+  // Sanity check via shared validator — should always pass since we pre-filtered.
   const flatWords = Array.from(seen.keys());
-  const { validation } = processWords(flatWords);
+  processWords(flatWords);
 
   const words: DeckWord[] = Array.from(seen.entries()).map(([word, tags]) => ({
     word,
     tags,
   }));
 
-  return { words, validationErrors: validation.isValid ? [] : validation.errors };
+  return { words, rejected };
 }
 
 export async function buildDeck(input: DeckBuilderInput): Promise<DeckDraft> {
@@ -125,29 +134,30 @@ export async function buildDeck(input: DeckBuilderInput): Promise<DeckDraft> {
         ? buildUserPrompt(input.topic)
         : `${buildUserPrompt(input.topic)}\n\nPrevious attempt failed validation: ${lastError}\nFix the issues and try again.`;
 
-    const stream = client.messages.stream({
-      model: AI_MODEL,
-      max_tokens: 16000,
-      thinking: { type: "adaptive" },
-      system: buildSystemPrompt(),
-      messages: [{ role: "user", content: userPrompt }],
-      tools: [
-        { type: "web_search_20260209", name: "web_search" },
-        { type: "web_fetch_20260209", name: "web_fetch" },
-      ],
-    });
-
-    const finalMessage = await stream.finalMessage();
-    const text = extractText(finalMessage.content);
-
     try {
+      const stream = client.messages.stream({
+        model: AI_MODEL,
+        max_tokens: 16000,
+        thinking: { type: "adaptive" },
+        system: buildSystemPrompt(),
+        messages: [{ role: "user", content: userPrompt }],
+        tools: [
+          { type: "web_search_20260209", name: "web_search" },
+          { type: "web_fetch_20260209", name: "web_fetch" },
+        ],
+      });
+
+      const finalMessage = await stream.finalMessage();
+      const text = extractText(finalMessage.content);
+
       const payload = extractJsonPayload(text);
       const raw = RawDeckSchema.parse(payload);
-      const { words, validationErrors } = normalizeTaggedWords(raw.words);
+      const { words, rejected } = normalizeTaggedWords(raw.words);
 
-      if (validationErrors.length > 0) {
-        lastError = validationErrors.join("; ");
-        continue;
+      if (rejected.length > 0) {
+        console.warn(
+          `[deck-builder] topic="${input.topic.topic}" dropped ${rejected.length} invalid token(s): ${rejected.join(", ")}`,
+        );
       }
 
       if (words.length === 0) {

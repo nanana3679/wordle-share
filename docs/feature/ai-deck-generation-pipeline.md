@@ -15,12 +15,12 @@
 | `scripts/ai/generate-decks.ts` | 승인된 주제로 덱 초안 JSON 생성 |
 | `lib/ai/client.ts` | Anthropic SDK 클라이언트 + 응답 파싱 유틸 |
 | `lib/ai/topic-selector.ts` | 웹서치 + LLM으로 주제 후보 생성 |
-| `lib/ai/deck-builder.ts` | 주제 → 덱 초안(이름/설명/단어 배열) 변환 + `parseWordsString` 검증 |
+| `lib/ai/deck-builder.ts` | 주제 → 덱 초안(이름/설명/단어 배열) 변환 + `processWords` 검증 |
 | `scripts/ai/README.md` | 사용법, 검수 가이드 |
 
 ## 파이프라인 흐름
 
-```
+```text
 propose-topics (LLM + web_search)
   ↓  scripts/ai/artifacts/topics/topics-<runId>.json
 👤 관리자가 JSON 편집 (status: pending → approved/rejected)

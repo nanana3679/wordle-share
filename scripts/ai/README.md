@@ -36,8 +36,9 @@ pnpm ai:propose-topics
 pnpm ai:generate-decks scripts/ai/artifacts/topics/topics-<runId>.json
 ```
 
-`status: "approved"`인 주제만 덱으로 변환. 단어 배열은 `parseWordsString` 검증을 통과해야 하며,
-실패 시 최대 3회 재시도 후 스킵.
+`status: "approved"`인 주제만 덱으로 변환. 단어는 `processWords`(`lib/wordConstraints.ts`)
+기준으로 a-z만 통과 — 비허용 문자가 섞인 토큰은 경고 로그와 함께 해당 단어만 드롭됩니다
+(전체 재시도 아님). 파싱·API 오류 등 전체 실패만 최대 3회 재시도 후 스킵.
 
 출력 파일: `scripts/ai/artifacts/decks/decks-<runId>.json`
 
@@ -64,12 +65,13 @@ pnpm ai:generate-decks scripts/ai/artifacts/topics/topics-<runId>.json
 ## 비용/모델
 
 - 모델: `claude-sonnet-4-6` (`lib/ai/client.ts:AI_MODEL`)
-- 주제 선정은 `web_search_20260209` + `web_fetch_20260209` 서버사이드 도구 사용
-- 덱 초안은 검색 없이 LLM 단독 (토큰 절약)
+- 주제 선정·덱 초안 모두 `web_search_20260209` + `web_fetch_20260209` 서버사이드 도구 사용
+- 덱 초안은 공식 로스터/리스트를 먼저 확인한 뒤 단어 구성 (할루시네이션 방지)
 - Adaptive thinking 사용 — `budget_tokens` 별도 지정 안 함
 
 ## 트러블슈팅
 
 - **`ANTHROPIC_API_KEY is not set`** — `.env.local` 확인
 - **`Model response did not contain a JSON object`** — LLM이 포맷을 어김. 스크립트 재실행
-- **덱 3회 모두 검증 실패** — 주제가 영단어로 풀어내기 어려울 가능성. 주제를 `rejected`로 바꾸고 다시
+- **덱 3회 모두 검증 실패** — 주제가 영단어로 풀어내기 어려울 가능성. 주제를 `rejected`로 바꾸고 다른 주제로 재실행.
+- **`EEXIST` — 파일이 이미 존재** — 같은 초에 재실행하면 발생. 몇 초 뒤 다시 실행하거나 기존 산출물을 정리.

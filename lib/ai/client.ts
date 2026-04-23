@@ -21,14 +21,14 @@ export function extractText(content: Anthropic.ContentBlock[]): string {
 }
 
 export function extractJsonPayload(text: string): unknown {
-  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  const candidate = fenceMatch ? fenceMatch[1] : text;
-  const start = candidate.indexOf("{");
-  const end = candidate.lastIndexOf("}");
-  if (start === -1 || end === -1 || end <= start) {
+  const fences = Array.from(text.matchAll(/```(json)?\s*([\s\S]*?)```/g));
+  const jsonFences = fences.filter((m) => m[1] === "json");
+  const chosenFence = jsonFences.at(-1) ?? fences.at(-1);
+  const candidate = chosenFence ? chosenFence[2] : text;
+  const slice = extractBalancedObject(candidate);
+  if (!slice) {
     throw new Error(`Model response did not contain a JSON object:\n${text}`);
   }
-  const slice = candidate.slice(start, end + 1);
   try {
     return JSON.parse(slice);
   } catch (err) {
@@ -36,4 +36,34 @@ export function extractJsonPayload(text: string): unknown {
       `Failed to parse JSON from model response: ${(err as Error).message}\n---\n${slice}`,
     );
   }
+}
+
+function extractBalancedObject(text: string): string | null {
+  const start = text.indexOf("{");
+  if (start === -1) return null;
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (escape) {
+      escape = false;
+      continue;
+    }
+    if (ch === "\\") {
+      escape = true;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+    if (ch === "{") depth++;
+    else if (ch === "}") {
+      depth--;
+      if (depth === 0) return text.slice(start, i + 1);
+    }
+  }
+  return null;
 }

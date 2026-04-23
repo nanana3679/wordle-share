@@ -65,21 +65,28 @@ async function loadRecentTopics(): Promise<string[]> {
 
 function buildRunId(now: Date): string {
   const pad = (n: number) => n.toString().padStart(2, "0");
-  return `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}-${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}`;
+  return `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}-${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}`;
 }
 
 async function main() {
   const { values } = parseArgs({
     options: {
       category: { type: "string" },
-      count: { type: "string", default: "10" },
+      count: { type: "string" },
     },
   });
 
   const now = new Date();
   const runId = buildRunId(now);
   const category = pickCategory(values.category, runId);
-  const candidateCount = Math.max(3, Math.min(15, Number(values.count) || 10));
+
+  const rawCount = values.count ?? "10";
+  const parsedCount = Number(rawCount);
+  if (!Number.isInteger(parsedCount)) {
+    console.error(`--count must be an integer between 3 and 15, got "${rawCount}"`);
+    process.exit(1);
+  }
+  const candidateCount = Math.max(3, Math.min(15, parsedCount));
 
   console.log(`[propose-topics] runId=${runId} category=${category} count=${candidateCount}`);
 
@@ -106,7 +113,10 @@ async function main() {
 
   await mkdir(TOPICS_DIR, { recursive: true });
   const outputPath = path.join(TOPICS_DIR, `topics-${runId}.json`);
-  await writeFile(outputPath, JSON.stringify(artifact, null, 2) + "\n", "utf8");
+  await writeFile(outputPath, JSON.stringify(artifact, null, 2) + "\n", {
+    encoding: "utf8",
+    flag: "wx",
+  });
 
   console.log(`[propose-topics] wrote ${candidates.length} candidates to ${outputPath}`);
   console.log('[propose-topics] Next: review the file, set `"status": "approved"` on ones you want, then run `pnpm ai:generate-decks <path>`.');

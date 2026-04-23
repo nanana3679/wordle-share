@@ -156,9 +156,18 @@ export async function selectTopics(
       description: raw.description,
       rationale: raw.rationale,
       viralitySignals: raw.viralitySignals ?? [],
-      sources: (raw.sources ?? []).filter((s) => s.url.startsWith("http")),
+      sources: (raw.sources ?? []).filter((s) => isHttpUrl(s.url)),
       status: "pending" as const,
     };
     return TopicCandidateSchema.parse(candidate);
   });
+}
+
+function isHttpUrl(value: string): boolean {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
