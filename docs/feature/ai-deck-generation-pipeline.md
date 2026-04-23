@@ -42,11 +42,13 @@ generate-decks (LLM + web_search, 태그 포함)
 {
   "language": "en",
   "words": [
-    { "word": "pikachu",   "tags": ["gen1", "electric", "mascot"] },
-    { "word": "charizard", "tags": ["gen1", "fire", "starter-evolution"] }
+    { "word": "pikachu",   "tags": ["gen1", "electric-type"] },
+    { "word": "charizard", "tags": ["gen1", "fire-type", "flying-type"] }
   ]
 }
 ```
+
+태그는 **Wikipedia/나무위키 infobox 수준의 객관적 대분류**만 허용. `mascot`, `iconic`, `popular`, `active` 같은 편집자 주관 태그는 금지. 세대·타입·지부·소속·정식 분류만 사용.
 
 ## 설계 결정
 
