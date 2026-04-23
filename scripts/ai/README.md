@@ -41,9 +41,12 @@ pnpm ai:generate-decks scripts/ai/artifacts/topics/topics-<runId>.json
 
 출력 파일: `scripts/ai/artifacts/decks/decks-<runId>.json`
 
+각 단어는 `{ word, tags[] }` 구조. 태그는 플레이어가 게임 시작 전에 선택해서 난이도·범위를
+조절하는 데 쓰이므로, 검수 시 태그 일관성(같은 덱 안에서 taxonomy 통일)을 확인하는 게 중요.
+
 ### 4) 덱 검수 (사람)
 
-단어 목록, 이름, 설명을 직접 확인. 필요하면 편집. `status`를 `"approved"`로 변경.
+단어 목록, 태그, 이름, 설명을 직접 확인. 필요하면 편집. `status`를 `"approved"`로 변경.
 
 ### 5) 업로드 (임시 수동)
 

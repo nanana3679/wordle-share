@@ -68,7 +68,10 @@ async function main() {
     try {
       const draft = await buildDeck({ topic, runId, index: i });
       drafts.push(draft);
-      console.log(`  ✓ ${draft.words.length} words: ${draft.words.slice(0, 5).join(", ")}…`);
+      const preview = draft.words.slice(0, 5).map((w) => w.word).join(", ");
+      const allTags = new Set<string>();
+      for (const w of draft.words) w.tags.forEach((t) => allTags.add(t));
+      console.log(`  ✓ ${draft.words.length} words (${allTags.size} unique tags): ${preview}…`);
     } catch (err) {
       console.error(`  ✗ failed: ${(err as Error).message}`);
     }

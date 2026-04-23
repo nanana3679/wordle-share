@@ -25,11 +25,27 @@ propose-topics (LLM + web_search)
   ↓  scripts/ai/artifacts/topics/topics-<runId>.json
 👤 관리자가 JSON 편집 (status: pending → approved/rejected)
   ↓
-generate-decks (LLM, 검색 없음)
+generate-decks (LLM + web_search, 태그 포함)
   ↓  scripts/ai/artifacts/decks/decks-<runId>.json
-👤 관리자가 단어/이름/설명 검수 (status: approved)
+👤 관리자가 단어/태그/이름/설명 검수 (status: approved)
   ↓
-(보류) upload-decks — 익명 덱 작성 기능 머지 후 구현
+(보류) upload-decks — 익명 덱 작성 기능 + words jsonb 마이그레이션 후 구현
+```
+
+## 덱 단어 포맷: 태그 기반
+
+단어마다 카테고리 태그가 붙습니다. **플레이어가 게임 시작 전 태그를 선택해 난이도/범위를
+능동적으로 조절**하는 용도. 덱 크기 자체에는 상한이 없음 — 포켓몬처럼 큰 세트도 그대로 담고,
+플레이어가 "1세대만" 같은 필터로 좁혀서 플레이.
+
+```json
+{
+  "language": "en",
+  "words": [
+    { "word": "pikachu",   "tags": ["gen1", "electric", "mascot"] },
+    { "word": "charizard", "tags": ["gen1", "fire", "starter-evolution"] }
+  ]
+}
 ```
 
 ## 설계 결정
@@ -43,8 +59,10 @@ generate-decks (LLM, 검색 없음)
 ## 모델/도구
 
 - `claude-sonnet-4-6` (비용/품질 균형)
-- 주제 선정: `web_search_20260209` + `web_fetch_20260209` (dynamic filtering 내장)
-- 덱 초안: 검색 없이 LLM 단독
+- 주제 선정·덱 초안 모두 `web_search_20260209` + `web_fetch_20260209` 사용
+- 덱 초안은 공식 로스터/리스트 페이지를 먼저 확인한 뒤 단어 구성 — 할루시네이션 방지
+- 로컬라이즈된 이름(포켓몬 등)은 **글로벌 공식 로마자 표기** 사용 (피카츄 → `pikachu`)
+- 졸업/은퇴 멤버는 제외하지 않고 canonical로 포함 (BTS, 홀로라이브 등)
 - `thinking: { type: "adaptive" }`
 
 ## 카테고리 로테이션
@@ -54,21 +72,22 @@ generate-decks (LLM, 검색 없음)
 
 ## 단어 검증
 
-`lib/wordConstraints.ts`의 `processWords`를 그대로 재사용. 규칙: a-z 전용, 최소 1글자, 중복 제거.
-초안에선 12~20개 단어를 요청하고 검증 실패 시 오류 메시지 첨부하여 3회까지 재시도.
+`lib/wordConstraints.ts`의 `processWords`를 그대로 재사용 (a-z 전용, 중복 제거). 단어 개수
+제한은 없고, 검증 실패 시 오류 메시지 첨부하여 3회까지 재시도. 태그는 lowercase·hyphenated로
+정규화 후 중복 제거.
 
 ## 업로드 단계 (미구현)
 
-익명 덱 작성 기능이 필요로 하는 것:
-- `decks.creator_id` nullable 전환
-- `author_handle`, `author_password_hash` 컬럼 추가
-- `createAnonymousDeck` 서버 액션
+연결되어야 할 두 가지:
+1. **익명 덱 작성 기능**: `decks.creator_id` nullable, `author_handle`/`author_password_hash` 추가, `createAnonymousDeck` 서버 액션
+2. **단어 태그 DB 스키마**: 현재 `decks.words text[]` → `jsonb` 전환. 또는 `deck_words` 별도 테이블 신설.
+   파이프라인이 태그 포함 구조를 내므로, 게임 쪽 카테고리 선택기가 동작하려면 이 변경 필수.
 
-이 기능이 머지되면 `scripts/ai/upload-decks.ts`는 `decks-<runId>.json`에서 `approved`만 모아
-익명 API로 순차 POST. `authorHandle`은 그때 봇별 고정값 or 랜덤값으로 채움.
+둘 다 머지된 뒤 `scripts/ai/upload-decks.ts`가 `approved` 덱을 일괄 POST.
 
-## 향후 확장
+## 향후 확장 (파이프라인 밖 기능)
 
+- 게임 플레이 페이지: 덱 선택 후 **태그 선택기** — 플레이어가 원하는 범위만 필터링
+- 꼬들(한글)·히라가나 모드: 단어 검증 로직 + 키보드 컴포넌트 분리. `DeckLanguageSchema`가 `en`/`ko`/`ja` 지원
 - AI 덱만 추적하는 sidecar 테이블(`deck_ai_metadata`) — 통계/롤백용
 - Vercel Cron으로 매일 `propose-topics`만 자동 실행, 관리자에게 알림
-- 덱 편집 UI에서 산출물 JSON 직접 불러와 검수

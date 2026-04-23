@@ -27,13 +27,21 @@ export const TopicsArtifactSchema = z.object({
   candidates: z.array(TopicCandidateSchema).min(1),
 });
 
+export const DeckWordSchema = z.object({
+  word: z.string().regex(/^[a-zA-Z]+$/),
+  tags: z.array(z.string().min(1)).default([]),
+});
+
+export const DeckLanguageSchema = z.enum(["en", "ko", "ja"]);
+
 export const DeckDraftSchema = z.object({
   id: z.string(),
   topicId: z.string(),
   topic: z.string(),
   name: z.string().min(1),
   description: z.string().min(1),
-  words: z.array(z.string().regex(/^[a-zA-Z]+$/)).min(10),
+  language: DeckLanguageSchema.default("en"),
+  words: z.array(DeckWordSchema).min(1),
   authorHandle: z.string().default("TBD"),
   status: ReviewStatus.default("pending"),
   reviewNote: z.string().optional(),
@@ -49,6 +57,8 @@ export const DecksArtifactSchema = z.object({
 
 export type TopicCandidate = z.infer<typeof TopicCandidateSchema>;
 export type TopicsArtifact = z.infer<typeof TopicsArtifactSchema>;
+export type DeckWord = z.infer<typeof DeckWordSchema>;
+export type DeckLanguage = z.infer<typeof DeckLanguageSchema>;
 export type DeckDraft = z.infer<typeof DeckDraftSchema>;
 export type DecksArtifact = z.infer<typeof DecksArtifactSchema>;
 
