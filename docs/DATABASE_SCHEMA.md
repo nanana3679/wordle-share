@@ -1,79 +1,76 @@
 # 데이터베이스 스키마
 
-## Users 테이블 (Supabase Auth에서 자동 생성)
+## 인증 구조 (이중 신원)
 
-Supabase의 `auth.users` 테이블을 직접 사용합니다.
+### 세션 신원: `auth.users` (Supabase Anonymous Auth)
 
-### Supabase User 타입 구조
+사이트 방문 시 자동으로 익명 사용자 레코드가 생성됩니다. `is_anonymous = true` 이며, 향후 Google/Discord OAuth 로 업그레이드 가능합니다.
 
-```typescript
-interface User {
-  id: string;                    // UUID (Primary Key)
-  aud: string;                   // 오디언스 클레임
-  role?: string;                 // Postgres RLS 역할
-  email?: string;                // 이메일 주소 (Google 계정)
-  email_confirmed_at?: string;   // 이메일 확인 타임스탬프
-  phone?: string;                // 전화번호
-  phone_confirmed_at?: string;   // 전화번호 확인 타임스탬프
-  confirmed_at?: string;         // 이메일 또는 전화번호 확인 타임스탬프
-  last_sign_in_at?: string;      // 마지막 로그인 타임스탬프
-  app_metadata: Record<string, any>;     // 앱 메타데이터
-  user_metadata: Record<string, any>;    // 사용자 메타데이터 (Google OAuth 정보)
-  identities: any[];             // 인증 방법들 배열
-  created_at: string;            // 계정 생성일시
-  updated_at: string;            // 정보 수정일시
-  is_anonymous: boolean;         // 익명 사용자 여부
-}
-```
+- **용도**: 게임 기록, 좋아요 중복 방지, (향후) 개인 랭킹
+- **생명 주기**: 쿠키 기반 세션. 계정 업그레이드 전까지 기기 단위로 존재
+- **RLS**: `auth.uid()` 가 세션 신원으로 사용됨
+
+### 덱 편집 신원: `decks.password_hash`
+
+덱 자체에 비밀번호 해시를 저장하고, 수정/삭제 시 Server Action 에서 검증합니다.
+
+- **용도**: 기기/세션과 무관하게 덱 편집 가능
+- **저장**: bcrypt 해시 (평문 금지)
+- **검증**: Server Action 에서 수동 검증 (RLS 로는 처리 불가)
 
 ## Decks 테이블
 
-- `id`: UUID (Primary Key)
+- `id`: UUID (PK)
 - `name`: 덱 이름
 - `description`: 덱 설명
 - `words`: 단어 배열 (text[])
 - `thumbnail_url`: 썸네일 이미지 URL
 - `is_public`: 공개 여부
-- `created_at`: 생성일시
-- `updated_at`: 수정일시
-- `creator_id`: 생성자 ID (Users.id와 연결)
+- `created_at` / `updated_at`: 타임스탬프
+- `nickname`: 작성자 닉네임
+- `password_hash`: 덱 편집 비밀번호 (bcrypt)
+- `creator_session_id`: 최초 생성 시 `auth.uid()` (익명 세션 추적용, nullable)
 
 ## Likes 테이블
 
-- `deck_id`: 덱 ID (Foreign Key, Decks.id)
-- `user_id`: 사용자 ID (auth.users.id - 로그인 사용자만)
-- `created_at`: 좋아요 누른 시간
+- `deck_id`: 덱 ID (FK → Decks.id)
+- `user_id`: `auth.users.id` (익명 세션 포함)
+- `created_at`: 타임스탬프
 
-**Primary Key:**
-- `(deck_id, user_id)` 복합키
+**Primary Key**: `(deck_id, user_id)` 복합키
+
+## (향후) GameRecords 테이블
+
+Phase 3 랭킹 도입 시 추가 예정:
+
+- `id`, `deck_id`, `user_id` (auth.uid), `attempts`, `duration_ms`, `success`, `created_at`
 
 ## 관계
 
 ```
-Users (1) ──── (N) Decks
-               │
-               └── (1) ──── (N) Likes
+auth.users (1) ──── (N) Likes
+                    (N) GameRecords (향후)
+
+Decks (1) ──── (N) Likes
+          ───── (N) GameRecords (향후)
 ```
 
-## 인덱스 (성능 최적화)
+## 인덱스
 
-- `decks.creator_id` - 사용자별 덱 조회
-- `decks.is_public` - 공개 덱 필터링
-- `decks.created_at` - 최신순 정렬
-- `likes.deck_id` - 덱별 좋아요 개수
-- `likes(deck_id, user_id)` - Primary Key (복합키)
+- `decks.is_public`, `decks.created_at`
+- `decks.creator_session_id` — "내가 만든 덱" 조회용 (localStorage 백업)
+- `likes.deck_id` — 덱별 좋아요 집계
 
-## Row Level Security (RLS) 정책
+## Row Level Security (RLS)
 
-### Decks 테이블
+### Decks
 
-- **SELECT**: 공개 덱 OR 소유자
-- **INSERT**: 인증된 사용자
-- **UPDATE**: 소유자만
-- **DELETE**: 소유자만
+- **SELECT**: `is_public = true` OR `creator_session_id = auth.uid()`
+- **INSERT**: 누구나 (익명 세션 포함). `nickname` / `password_hash` 필수
+- **UPDATE / DELETE**: RLS 로 차단 → **Server Action 에서 비밀번호 해시 검증 후 service_role 로 수행**
 
-### Likes 테이블
+### Likes
 
 - **SELECT**: 모두
-- **INSERT**: 인증된 사용자만 (`user_id` 필수)
-- **DELETE**: 본인만
+- **INSERT**: `auth.uid() IS NOT NULL` (익명 세션도 OK), `user_id = auth.uid()`
+- **DELETE**: `user_id = auth.uid()`

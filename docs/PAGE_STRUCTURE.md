@@ -10,13 +10,7 @@
 
 ### 2. 인증 페이지
 
-- **경로**: `/login`
-- **기능**: Google 소셜 로그인
-- **접근 권한**: 비로그인 사용자
-
-- **경로**: `/auth/callback`
-- **기능**: OAuth 콜백 처리
-- **접근 권한**: 시스템
+별도의 로그인 페이지 없음. Supabase Anonymous Auth 세션은 미들웨어/루트 레이아웃에서 자동 발급됩니다. 향후 계정 업그레이드 기능 도입 시 `/auth/upgrade` 를 추가할 예정입니다.
 
 ### 3. 덱 관련 페이지
 
@@ -25,16 +19,16 @@
 - **접근 권한**: 모두
 
 - **경로**: `/decks/create`
-- **기능**: 새 덱 만들기
-- **접근 권한**: 로그인 사용자
+- **기능**: 새 덱 만들기 (닉네임 + 비밀번호 입력 포함)
+- **접근 권한**: 누구나
 
 - **경로**: `/decks/[id]`
 - **기능**: 덱 상세 보기 (플레이 시작, 정보 확인, 좋아요)
-- **접근 권한**: 모두 (비공개 덱은 소유자만)
+- **접근 권한**: 누구나 (비공개 덱은 URL 을 아는 사람만)
 
 - **경로**: `/decks/[id]/edit`
-- **기능**: 덱 수정
-- **접근 권한**: 소유자만
+- **기능**: 덱 수정 (비밀번호 검증 후 편집 UI 노출)
+- **접근 권한**: 덱 비밀번호를 아는 사람만 (Server Action 에서 해시 검증)
 
 ### 4. 게임 페이지
 
@@ -46,19 +40,17 @@
 - **기능**: 게임 결과 확인 및 공유
 - **접근 권한**: 모두
 
-### 5. 사용자 페이지
+### 5. 내 활동 페이지
 
-- **경로**: `/profile`
-- **기능**: 내 프로필 (내가 만든 덱, 게임 통계)
-- **접근 권한**: 로그인 사용자
+회원 계정 대신 **브라우저 localStorage + 익명 세션** 기준으로 개인 데이터를 보여줍니다.
 
-- **경로**: `/profile/decks`
-- **기능**: 내가 만든 덱 관리
-- **접근 권한**: 로그인 사용자
+- **경로**: `/my/decks`
+- **기능**: 내가 만든/편집한 덱 목록 (localStorage 기반 + `creator_session_id` 백업)
+- **접근 권한**: 누구나 (각자 브라우저 기준)
 
-- **경로**: `/profile/history`
-- **기능**: 게임 히스토리
-- **접근 권한**: 로그인 사용자
+- **경로**: `/my/history`
+- **기능**: 게임 히스토리 (익명 세션 `auth.uid()` 기준)
+- **접근 권한**: 누구나 (각자 세션 기준)
 
 ### 6. 기타 페이지
 
@@ -78,16 +70,13 @@
 
 ```
 /
-├── (auth)
-│   ├── login
-│   └── auth/callback
 ├── decks
 │   ├── [id]
 │   │   └── edit
 │   └── create
 ├── play/[deckId]
 │   └── result
-├── profile
+├── my
 │   ├── decks
 │   └── history
 ├── about
@@ -97,11 +86,11 @@
 
 ## 향후 확장 가능 페이지 (Phase 3-4)
 
+- `/auth/upgrade` - 익명 세션을 Google/Discord 계정으로 업그레이드
+- `/leaderboard` - 전체/덱별 랭킹
+- `/decks/daily` - 데일리 챌린지
 - `/decks/trending` - 트렌딩 덱
-- `/decks/popular` - 인기 덱
 - `/collections/[category]` - 카테고리별 덱 모음
-- `/users/[id]` - 다른 사용자 프로필
-- `/settings` - 계정 설정
 
 ## 페이지별 주요 컴포넌트
 
@@ -134,9 +123,12 @@
 - GameStats
 - GuessHistory
 
-### `/profile` (프로필)
+### `/my/decks` (내 덱)
 
-- UserInfo
-- DeckList
-- GameStats
+- MyDeckList (localStorage + creator_session_id 기반)
+- EmptyState (첫 방문자용 안내)
+
+### `/my/history` (내 기록)
+
+- GameStats (익명 세션 기준)
 - HistoryTimeline

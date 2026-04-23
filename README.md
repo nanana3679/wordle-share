@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Wordle 덱 공유 사이트
 
-## Getting Started
+관심사 기반 단어 덱을 만들어 링크 한 줄로 쉽게 공유하는 Wordle 플랫폼입니다.
 
-First, run the development server:
+## 🎯 프로젝트 목표
+
+외부 커뮤니티(Discord, Reddit, X/Twitter, 각종 포럼·오픈채팅 등)를 통해 덱이 바이럴되는 것을 핵심 성장 경로로 삼습니다. 따라서 **"관심 주제를 가진 누군가가 덱을 만들고 → 링크를 커뮤니티에 뿌리고 → 본 사람이 즉시 플레이"** 하는 흐름에서 생기는 모든 마찰을 제거하는 것을 최우선으로 합니다.
+
+### 핵심 원칙
+
+1. **진입 장벽 최소화** — 덱을 만들고 플레이하는 데 회원가입이 필요하지 않습니다. 닉네임 + 비밀번호만 입력하면 익명으로 작성 가능하며, 같은 비밀번호로 언제든 수정/삭제할 수 있습니다.
+2. **링크 공유 중심 설계** — 덱의 "존재 단위"는 URL입니다. 링크 하나만으로 제작자·플레이어·편집자가 모두 필요한 작업을 할 수 있어야 합니다.
+3. **언어·문화권 중립** — 특정 국가나 언어에 치우치지 않고, 어떤 커뮤니티/서브컬처/밈이든 자유롭게 덱의 주제가 될 수 있어야 합니다.
+4. **제작 자유도** — 니치한 주제, 내부 밈, 특정 팬덤 전용 단어처럼 "우리끼리만 아는 것"을 덱으로 만드는 것을 적극 장려합니다.
+
+### 타깃 사용자
+
+- **덱 제작자**: 자기 커뮤니티에 공유할 주제별 단어 세트를 만들고 싶은 사람
+- **덱 플레이어**: 커뮤니티에서 공유된 링크를 타고 들어와 가볍게 즐기는 사람
+- **커뮤니티 운영자**: 이벤트·밈·팬덤 활동용 콘텐츠로 활용하려는 사람
+
+### 예상 사용 사례
+
+- Discord 서버 운영자가 서버 인사이드 조크·밈 기반 덱을 만들어 채널에 공유
+- Reddit의 특정 서브레딧이 해당 주제(게임, 영화, 과학 등) 단어 덱을 제작·공유
+- 팬덤이 아티스트/작품 관련 단어 덱을 만들어 X(Twitter)·팬 포럼에 공유
+- 스터디 그룹·학급이 학습용 단어 덱을 만들어 채팅방에 공유
+- 친구들끼리 내부 밈·별명 기반 덱을 만들어 DM으로 공유
+
+## 🔑 인증 방식
+
+**회원가입 없이** 누구나 덱을 만들고 플레이할 수 있습니다. 마찰은 최소화하면서 향후 랭킹/기록 기능까지 확장 가능하도록 **이중 신원 시스템**을 사용합니다.
+
+- **덱 편집 신원 (닉네임 + 비밀번호)**: 덱 생성 시 닉네임과 비밀번호(덱 전용 PIN)를 입력합니다. 같은 비밀번호를 입력하면 어떤 기기/브라우저에서든 해당 덱을 수정/삭제할 수 있습니다.
+- **세션 신원 (Supabase Anonymous Auth)**: 사이트 방문 시 익명 세션이 자동으로 발급됩니다. 게임 기록·좋아요·(향후) 개인 랭킹이 이 세션에 연결되며, 사용자 액션은 필요 없습니다.
+- **향후 계정 업그레이드**: 랭킹·모드 같은 기능 도입 시, 익명 세션을 Google/Discord 계정으로 업그레이드해 여러 기기에서 기록을 이어볼 수 있도록 할 예정입니다. **기존 데이터는 그대로 보존**됩니다.
+
+> ⚠️ 덱 비밀번호는 **해당 덱 전용 PIN**입니다. 다른 서비스의 비밀번호를 재사용하지 마세요.
+
+## 📚 문서
+
+프로젝트의 상세 기획 및 개발 가이드는 [`/docs`](./docs) 디렉터리를 참고하세요.
+
+- [프로젝트 개요](./docs/PROJECT_OVERVIEW.md)
+- [주요 기능](./docs/FEATURES.md)
+- [기술 스택](./docs/TECH_STACK.md)
+- [데이터베이스 스키마](./docs/DATABASE_SCHEMA.md)
+- [페이지 구조](./docs/PAGE_STRUCTURE.md)
+- [코딩 규칙](./docs/CODING_STANDARDS.md)
+
+## 🛠 기술 스택
+
+Next.js · TypeScript · Tailwind CSS · shadcn/ui · Supabase · Vercel
+
+## 🚀 개발 시작하기
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+브라우저에서 [http://localhost:3000](http://localhost:3000) 을 열어 확인합니다.
