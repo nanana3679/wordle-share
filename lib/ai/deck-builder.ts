@@ -101,9 +101,11 @@ function buildUserPrompt(topic: TopicCandidate): string {
 function normalizeTaggedWords(raw: z.infer<typeof RawDeckSchema>["words"]): {
   words: DeckWord[];
   rejected: string[];
+  merged: number;
 } {
-  const seen = new Map<string, string[]>();
+  const seen = new Map<string, Set<string>>();
   const rejected: string[] = [];
+  let merged = 0;
 
   for (const { word, tags } of raw) {
     const normalized = word.trim().toLowerCase();
@@ -114,11 +116,16 @@ function normalizeTaggedWords(raw: z.infer<typeof RawDeckSchema>["words"]): {
       rejected.push(word);
       continue;
     }
-    if (!seen.has(normalized)) {
-      const uniqueTags = Array.from(
-        new Set((tags ?? []).map((t) => t.trim().toLowerCase()).filter(Boolean)),
-      );
-      seen.set(normalized, uniqueTags);
+    const incoming = (tags ?? [])
+      .map((t) => t.trim().toLowerCase())
+      .filter(Boolean);
+    const existing = seen.get(normalized);
+    if (existing) {
+      // Duplicate word — merge tag sets instead of silently dropping later occurrences.
+      for (const t of incoming) existing.add(t);
+      merged++;
+    } else {
+      seen.set(normalized, new Set(incoming));
     }
   }
 
@@ -126,12 +133,12 @@ function normalizeTaggedWords(raw: z.infer<typeof RawDeckSchema>["words"]): {
   const flatWords = Array.from(seen.keys());
   processWords(flatWords);
 
-  const words: DeckWord[] = Array.from(seen.entries()).map(([word, tags]) => ({
+  const words: DeckWord[] = Array.from(seen.entries()).map(([word, tagSet]) => ({
     word,
-    tags,
+    tags: Array.from(tagSet),
   }));
 
-  return { words, rejected };
+  return { words, rejected, merged };
 }
 
 export async function buildDeck(input: DeckBuilderInput): Promise<DeckDraft> {
@@ -163,11 +170,17 @@ export async function buildDeck(input: DeckBuilderInput): Promise<DeckDraft> {
 
       const payload = extractJsonPayload(text);
       const raw = RawDeckSchema.parse(payload);
-      const { words, rejected } = normalizeTaggedWords(raw.words);
+      const { words, rejected, merged } = normalizeTaggedWords(raw.words);
 
       if (rejected.length > 0) {
         console.warn(
           `[deck-builder] topic="${input.topic.topic}" dropped ${rejected.length} invalid token(s): ${rejected.join(", ")}`,
+        );
+      }
+
+      if (merged > 0) {
+        console.warn(
+          `[deck-builder] topic="${input.topic.topic}" merged ${merged} duplicate word(s); tag sets unioned.`,
         );
       }
 
