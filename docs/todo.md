@@ -2,6 +2,7 @@
 
 완료된 기능은 `docs/feature/*.md`에, 이슈 복기는 `docs/issue/*.md`에 작성.
 이 파일은 진행 중 / 예정 작업의 단일 진입점.
+기여·PR 규모 가이드는 [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## 개발 규칙
 
