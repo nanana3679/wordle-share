@@ -20,12 +20,14 @@
 - [에러바운더리 비동기 에러 처리](./feature/errorboundary-async-error-handling.md)
 - [메타데이터/OG 최적화](./feature/metadata-og-optimization.md)
 - [AI 덱 생성 파이프라인](./feature/ai-deck-generation-pipeline.md)
+- [익명 덱 작성](./feature/anonymous-deck-creation.md)
 
 ## 진행 예정 — 핵심 기능
 
-- [ ] 익명 덱 작성 (`decks.creator_id` nullable, `author_handle`, `author_password_hash`, `createAnonymousDeck`)
 - [ ] `decks.words` `text[]` → `jsonb` 마이그레이션 (AI 파이프라인 태그 저장)
-- [ ] 덱 수정·삭제 권한 체크 (익명은 password, 로그인은 owner)
+- [ ] 익명 덱 수정·삭제 (비밀번호 프롬프트 모달, `updateDeck`/`deleteDeck` 익명 분기)
+- [ ] 익명 덱 썸네일 업로드 (Storage RLS 설계 포함)
+- [ ] 익명 생성 경로 레이트리밋/캡차 (IP·쿠키 기반, Upstash/Vercel KV 등)
 - [ ] 이미지 업로드 시 용량 초과하면 자동 리사이징
 
 ## 진행 예정 — AI 파이프라인 후속
