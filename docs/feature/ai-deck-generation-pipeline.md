@@ -6,41 +6,44 @@
 관리자가 검수 후 업로드하는 반자동 플로우. 사용자가 봤을 때 AI 덱과 일반 덱은 구분 불가(같은 `decks` 테이블,
 같은 목록/플레이 경로).
 
+## 실행 방식: Claude Code Skill
+
+기존 `@anthropic-ai/sdk` 기반 CLI 스크립트(`scripts/ai/*.ts`, `lib/ai/*.ts`)는 제거. 현재는 Claude Code
+**Skill** 2개로 동작하며 실행 시 API 토큰 비용이 들지 않음 (Claude Code 구독 내 무료).
+
+```text
+/propose-topics            (Skill, WebSearch + WebFetch)
+  ↓  topics-<runId>.json (검수용) + topics-<runId>.trace.json (실행 로그)
+👤 관리자가 JSON 편집 (status: pending → approved/rejected)
+  ↓
+/generate-decks <path>     (Skill, WebSearch + WebFetch)
+  ↓  decks-<runId>.json + decks-<runId>.trace.json
+👤 관리자가 단어/태그/이름/설명 검수 (status: approved)
+  ↓
+(보류) upload-decks — 익명 덱 작성 + words jsonb 마이그레이션 후 구현
+```
+
 ## 구성 요소
 
 | 파일 | 역할 |
 |---|---|
-| `scripts/ai/schemas.ts` | zod 기반 산출물 포맷(topics, decks, 카테고리) 정의 |
-| `scripts/ai/propose-topics.ts` | 주제 후보 JSON 생성 |
-| `scripts/ai/generate-decks.ts` | 승인된 주제로 덱 초안 JSON 생성 |
-| `lib/ai/client.ts` | Anthropic SDK 클라이언트 + 응답 파싱 유틸 |
-| `lib/ai/topic-selector.ts` | 웹서치 + LLM으로 주제 후보 생성 |
-| `lib/ai/deck-builder.ts` | 주제 → 덱 초안(이름/설명/단어 배열) 변환 + `processWords` 검증 |
+| `.claude/skills/propose-topics/SKILL.md` | 주제 후보 생성 Skill (프롬프트·규칙·출력 포맷) |
+| `.claude/skills/generate-decks/SKILL.md` | 덱 초안 생성 Skill (태그 taxonomy 포함) |
+| `scripts/ai/schemas.ts` | zod 기반 산출물 포맷 정의 (검증 + 향후 upload 스크립트 공용) |
 | `scripts/ai/README.md` | 사용법, 검수 가이드 |
-
-## 파이프라인 흐름
-
-```text
-propose-topics (LLM + web_search)
-  ↓  topics-<runId>.json (검수용) + topics-<runId>.trace.json (실행 로그)
-👤 관리자가 JSON 편집 (status: pending → approved/rejected)
-  ↓
-generate-decks (LLM + web_search, 태그 포함)
-  ↓  decks-<runId>.json + decks-<runId>.trace.json
-👤 관리자가 단어/태그/이름/설명 검수 (status: approved)
-  ↓
-(보류) upload-decks — 익명 덱 작성 기능 + words jsonb 마이그레이션 후 구현
-```
 
 ## 트레이스 파일
 
-각 실행마다 `<runId>.trace.json`이 같이 생성됨 (thinking, 검색 쿼리, fetch URL, 토큰 사용량). 검수자가 검색 품질·소스 신뢰성·추론 근거를 역추적해 AI 동작 품질을 평가하는 용도. 자세한 체크포인트는 `scripts/ai/README.md` 참고.
+각 실행마다 `<runId>.trace.json`이 같이 생성됨 (검색 쿼리, fetch URL + 200자 프리뷰, 판단 노트).
+검수자가 검색 품질·소스 신뢰성·추론 근거를 역추적해 AI 동작 품질을 평가하는 용도. 자세한 체크포인트는
+`scripts/ai/README.md` 참고. Skill 기반이라 API 메시지 구조화 로그(`server_tool_use` 블록)는 없고,
+Skill이 직접 기록한 요약 형태.
 
 ## 덱 단어 포맷: 태그 기반
 
-단어마다 카테고리 태그가 붙습니다. **플레이어가 게임 시작 전 태그를 선택해 난이도/범위를
-능동적으로 조절**하는 용도. 덱 크기 자체에는 상한이 없음 — 포켓몬처럼 큰 세트도 그대로 담고,
-플레이어가 "1세대만" 같은 필터로 좁혀서 플레이.
+단어마다 카테고리 태그가 붙음. **플레이어가 게임 시작 전 태그를 선택해 난이도/범위를 능동적으로 조절**
+하는 용도. 덱 크기 자체에는 상한이 없음 — 포켓몬처럼 큰 세트도 그대로 담고, 플레이어가 "1세대만" 같은
+필터로 좁혀서 플레이.
 
 ```json
 {
@@ -52,24 +55,18 @@ generate-decks (LLM + web_search, 태그 포함)
 }
 ```
 
-태그는 **Wikipedia/나무위키 infobox 수준의 객관적 대분류**만 허용. `mascot`, `iconic`, `popular`, `active` 같은 편집자 주관 태그는 금지. 세대·타입·지부·소속·정식 분류만 사용.
+태그는 **Wikipedia/나무위키 infobox 수준의 객관적 대분류**만 허용. `mascot`, `iconic`, `popular`,
+`active` 같은 편집자 주관 태그는 금지. 세대·타입·지부·소속·정식 분류만 사용.
 
 ## 설계 결정
 
+- **Skill 전환 이유**: API 직접 호출은 실행마다 토큰 비용 발생. Claude Code 구독 내에서 돌리면 사실상 무료.
+  트레이드오프는 재현성 — Skill은 실행마다 Claude가 재해석하므로 결과가 약간씩 달라질 수 있음.
 - **테이블 분리 안 함**: 사용자 구분 없이 동일 테이블. AI 흔적은 내부 메타(추후 sidecar 테이블)에만.
 - **계정 불필요**: 익명 덱 작성 기능이 일회성 핸들/비번으로 동작하므로 봇 계정 관리 제거.
 - **사람 검수 게이트 2개**: 주제 단계, 덱 단계 각각. 초기 단계라 자동화보다 품질 우선.
 - **산출물은 JSON 파일**: 스테이지 테이블(과투자) 대신 가볍게. `.gitignore`에 포함(로컬 보관).
-- **주제 중복 회피**: 실행 시 최근 4주 `topics/*.json`에서 `rejected`가 아닌 주제를 읽어 프롬프트에 주입.
-
-## 모델/도구
-
-- `claude-sonnet-4-6` (비용/품질 균형)
-- 주제 선정·덱 초안 모두 `web_search_20260209` + `web_fetch_20260209` 사용
-- 덱 초안은 공식 로스터/리스트 페이지를 먼저 확인한 뒤 단어 구성 — 할루시네이션 방지
-- 로컬라이즈된 이름(포켓몬 등)은 **글로벌 공식 로마자 표기** 사용 (피카츄 → `pikachu`)
-- 졸업/은퇴 멤버는 제외하지 않고 canonical로 포함 (BTS, 홀로라이브 등)
-- `thinking: { type: "adaptive" }`
+- **주제 중복 회피**: 실행 시 최근 4주 `topics/*.json`에서 `rejected`가 아닌 주제를 읽어 avoid 리스트로.
 
 ## 카테고리 로테이션
 
@@ -79,21 +76,19 @@ generate-decks (LLM + web_search, 태그 포함)
 ## 단어 검증
 
 `lib/wordConstraints.ts`의 `processWords`를 그대로 재사용 (a-z 전용, 중복 제거). 단어 개수
-제한은 없고, 검증 실패 시 오류 메시지 첨부하여 3회까지 재시도. 태그는 lowercase·hyphenated로
+제한은 없고, Skill이 검증 실패 시 단어만 drop하여 trace에 기록. 태그는 lowercase·hyphenated로
 정규화 후 중복 제거.
 
 ## 업로드 단계 (미구현)
 
 연결되어야 할 두 가지:
-1. **익명 덱 작성 기능**: `decks.creator_id` nullable, `author_handle`/`author_password_hash` 추가, `createAnonymousDeck` 서버 액션
+1. **익명 덱 작성 기능**: 이미 PR #4에서 머지됨 (`decks.creator_id` nullable, `author_handle`/`author_password_hash`).
 2. **단어 태그 DB 스키마**: 현재 `decks.words text[]` → `jsonb` 전환. 또는 `deck_words` 별도 테이블 신설.
-   파이프라인이 태그 포함 구조를 내므로, 게임 쪽 카테고리 선택기가 동작하려면 이 변경 필수.
 
-둘 다 머지된 뒤 `scripts/ai/upload-decks.ts`가 `approved` 덱을 일괄 POST.
+둘 다 반영된 뒤 `scripts/ai/upload-decks.ts`가 `approved` 덱을 일괄 POST.
 
 ## 향후 확장 (파이프라인 밖 기능)
 
 - 게임 플레이 페이지: 덱 선택 후 **태그 선택기** — 플레이어가 원하는 범위만 필터링
 - 꼬들(한글)·히라가나 모드: 단어 검증 로직 + 키보드 컴포넌트 분리. `DeckLanguageSchema`가 `en`/`ko`/`ja` 지원
 - AI 덱만 추적하는 sidecar 테이블(`deck_ai_metadata`) — 통계/롤백용
-- Vercel Cron으로 매일 `propose-topics`만 자동 실행, 관리자에게 알림
