@@ -34,10 +34,8 @@
 
 ## 트레이스 파일
 
-각 실행마다 `<runId>.trace.json`이 같이 생성됨 (검색 쿼리, fetch URL + 200자 프리뷰, 판단 노트).
-검수자가 검색 품질·소스 신뢰성·추론 근거를 역추적해 AI 동작 품질을 평가하는 용도. 자세한 체크포인트는
-`scripts/ai/README.md` 참고. Skill 기반이라 API 메시지 구조화 로그(`server_tool_use` 블록)는 없고,
-Skill이 직접 기록한 요약 형태.
+각 실행마다 `<runId>.trace.json` 생성 (검색 쿼리, fetch URL + 200자 프리뷰, 판단 노트). 검수자가
+검색 품질·소스 신뢰성·추론 근거를 역추적해 평가. 자세한 건 `scripts/ai/README.md` 참고.
 
 ## 덱 단어 포맷: 태그 기반
 
@@ -74,9 +72,12 @@ Skill이 직접 기록한 요약 형태.
 `kpop`, `vtuber`, `anime-manga`, `videogames`, `film-tv`, `sports`, `character-brands`,
 `literature`, `tabletop-rpg`, `mythology-history`. `--category` 미지정 시 runId 해시로 자동 선택.
 
-방향성: 한 달 뒤 죽을 수 있는 신규 트렌드가 아니라, 1년 후에도 같은 팬이 같은 캐릭터를 검색할
-canonical IP만 선정. 위키·팬덤 사이트·정기 이벤트·다년 활동·머천다이징 같은 견고한 팬덤 신호를
-판단 기준으로 사용.
+방향성:
+- 한 달 뒤 죽을 수 있는 신규 트렌드가 아니라, 1년 후에도 같은 팬이 같은 캐릭터를 검색할
+  canonical IP만 선정 (견고한 팬덤 신호: 위키·팬덤 사이트·정기 이벤트·다년 활동·머천다이징).
+- **타겟 사용자 10~20대 디지털 네이티브**. 중장년층 위주 IP는 회피 (1·2세대 K-pop 단독, 8090
+  시트콤, 고전 문학·추리, 정사 역사 등). TikTok/BookTok/Discord/위버스·디시 같은 젊은층
+  플랫폼 활성도를 판단 기준으로 사용.
 
 ## 단어 검증
 
