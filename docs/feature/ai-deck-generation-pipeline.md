@@ -70,8 +70,13 @@ Skill이 직접 기록한 요약 형태.
 
 ## 카테고리 로테이션
 
-10개 카테고리(`global-trends`, `korean-community`, `entertainment`, `news`, `memes`, `sports`,
-`games`, `food`, `science`, `books`). `--category` 미지정 시 runId 해시로 자동 선택 → 자연스런 분산.
+10개 카테고리 — 모두 **견고한 팬덤이 있는 IP/프랜차이즈** 중심 (바이럴/트렌드 추종 X):
+`kpop`, `vtuber`, `anime-manga`, `videogames`, `film-tv`, `sports`, `character-brands`,
+`literature`, `tabletop-rpg`, `mythology-history`. `--category` 미지정 시 runId 해시로 자동 선택.
+
+방향성: 한 달 뒤 죽을 수 있는 신규 트렌드가 아니라, 1년 후에도 같은 팬이 같은 캐릭터를 검색할
+canonical IP만 선정. 위키·팬덤 사이트·정기 이벤트·다년 활동·머천다이징 같은 견고한 팬덤 신호를
+판단 기준으로 사용.
 
 ## 단어 검증
 

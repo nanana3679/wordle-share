@@ -13,7 +13,7 @@ export const TopicCandidateSchema = z.object({
   topic: z.string().min(1),
   description: z.string().min(1),
   rationale: z.string().optional(),
-  viralitySignals: z.array(z.string()).default([]),
+  fandomSignals: z.array(z.string()).default([]),
   sources: z.array(TopicSourceSchema).default([]),
   status: ReviewStatus.default("pending"),
   reviewNote: z.string().optional(),
@@ -65,16 +65,16 @@ export type DeckDraft = z.infer<typeof DeckDraftSchema>;
 export type DecksArtifact = z.infer<typeof DecksArtifactSchema>;
 
 export const TOPIC_CATEGORIES = [
-  "global-trends",
-  "korean-community",
-  "entertainment",
-  "news",
-  "memes",
+  "kpop",
+  "vtuber",
+  "anime-manga",
+  "videogames",
+  "film-tv",
   "sports",
-  "games",
-  "food",
-  "science",
-  "books",
+  "character-brands",
+  "literature",
+  "tabletop-rpg",
+  "mythology-history",
 ] as const;
 
 export type TopicCategory = (typeof TOPIC_CATEGORIES)[number];

@@ -19,7 +19,7 @@ Skill 정의는 `.claude/skills/propose-topics/SKILL.md`, `.claude/skills/genera
 ```
 
 자연어 또는 옵션으로 인자 전달 가능:
-- `category`: `global-trends`, `korean-community`, `entertainment`, `news`, `memes`, `sports`, `games`, `food`, `science`, `books` 중 하나 (기본: runId 해시로 로테이션)
+- `category`: `kpop`, `vtuber`, `anime-manga`, `videogames`, `film-tv`, `sports`, `character-brands`, `literature`, `tabletop-rpg`, `mythology-history` 중 하나 (기본: runId 해시로 로테이션). 견고한 팬덤이 있는 IP/프랜차이즈 중심 카테고리.
 - `count`: 후보 개수 (기본 10, 범위 3~15)
 
 출력:
