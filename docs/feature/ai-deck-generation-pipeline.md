@@ -20,7 +20,7 @@
   ↓  decks-<runId>.json + decks-<runId>.trace.json
 👤 관리자가 단어/태그/이름/설명 검수 (status: approved)
   ↓
-(보류) upload-decks — 익명 덱 작성 + words jsonb 마이그레이션 후 구현
+(보류) upload-decks — `decks.words` jsonb 마이그레이션 후 구현
 ```
 
 ## 구성 요소

@@ -118,7 +118,7 @@ pnpm tsx -e "const { DecksArtifactSchema } = require('./scripts/ai/schemas'); co
 
 ## 완료 메시지
 
-```
+```text
 [generate-decks] wrote N draft deck(s) to scripts/ai/artifacts/decks/decks-<runId>.json
 Next: review words/tags/name/description, set "status": "approved" on keepers.
 ```

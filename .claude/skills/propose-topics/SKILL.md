@@ -147,7 +147,7 @@ pnpm tsx -e "const { TopicsArtifactSchema } = require('./scripts/ai/schemas'); c
 
 ## 완료 메시지
 
-```
+```text
 [propose-topics] wrote N candidates to scripts/ai/artifacts/topics/topics-<runId>.json
 Next: review the file, set "status": "approved"/"rejected", then run /generate-decks <path>.
 ```

@@ -14,7 +14,7 @@ Skill 정의는 `.claude/skills/propose-topics/SKILL.md`, `.claude/skills/genera
 
 ### 1) 주제 후보 생성
 
-```
+```text
 /propose-topics
 ```
 
@@ -33,7 +33,7 @@ JSON을 열고 각 후보의 `status`를 `"pending"` → `"approved"` 또는 `"r
 
 ### 3) 덱 초안 생성
 
-```
+```text
 /generate-decks scripts/ai/artifacts/topics/topics-<runId>.json
 ```
 
