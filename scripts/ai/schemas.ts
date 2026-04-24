@@ -69,10 +69,10 @@ export const TOPIC_CATEGORIES = [
   "vtuber",
   "anime-manga",
   "videogames",
+  "mobile-gacha",
   "film-tv",
   "sports",
   "character-brands",
-  "literature",
   "tabletop-rpg",
   "mythology-history",
 ] as const;

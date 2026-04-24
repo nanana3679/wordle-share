@@ -68,16 +68,16 @@
 
 ## 카테고리 로테이션
 
-10개 카테고리 — 모두 **견고한 팬덤이 있는 IP/프랜차이즈** 중심 (바이럴/트렌드 추종 X):
-`kpop`, `vtuber`, `anime-manga`, `videogames`, `film-tv`, `sports`, `character-brands`,
-`literature`, `tabletop-rpg`, `mythology-history`. `--category` 미지정 시 runId 해시로 자동 선택.
+10개 카테고리: `kpop`, `vtuber`, `anime-manga`, `videogames`, `mobile-gacha`, `film-tv`,
+`sports`, `character-brands`, `tabletop-rpg`, `mythology-history`. `--category` 미지정 시
+runId 해시로 자동 선택.
 
-방향성:
-- 한 달 뒤 죽을 수 있는 신규 트렌드가 아니라, 1년 후에도 같은 팬이 같은 캐릭터를 검색할
-  canonical IP만 선정 (견고한 팬덤 신호: 위키·팬덤 사이트·정기 이벤트·다년 활동·머천다이징).
-- **타겟 사용자 10~20대 디지털 네이티브**. 중장년층 위주 IP는 회피 (1·2세대 K-pop 단독, 8090
-  시트콤, 고전 문학·추리, 정사 역사 등). TikTok/BookTok/Discord/위버스·디시 같은 젊은층
-  플랫폼 활성도를 판단 기준으로 사용.
+선정 3조건 (모두 충족):
+1. **장기 안정성**: 1년 후에도 같은 팬이 같은 캐릭터를 검색할 IP (위키·팬덤 사이트·정기 이벤트·다년 활동).
+2. **10~20대 디지털 네이티브 핵심층**: 중장년 위주 IP 회피 (1·2세대 K-pop 단독, 8090 시트콤, 고전 문학, 정사 역사 등).
+3. **Roster-first IP**: ≥50 canonical 엔티티 + 2+ 독립 tag axes + 정기 확장 + 멤버별 개별
+   팬 활동. 이상형은 LoL 챔피언·포켓몬·홀로라이브. Story-first(주인공 10~30명 좁은 캐스트)
+   는 회피 — 덱 확장성과 태그 분류의 자연스러움이 떨어지기 때문.
 
 ## 단어 검증
 
