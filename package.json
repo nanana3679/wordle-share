@@ -6,12 +6,9 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint",
-    "ai:propose-topics": "tsx scripts/ai/propose-topics.ts",
-    "ai:generate-decks": "tsx scripts/ai/generate-decks.ts"
+    "lint": "eslint"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.88.0",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-checkbox": "^1.3.3",
@@ -27,7 +24,6 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
-    "dotenv": "^16.4.5",
     "lucide-react": "^0.544.0",
     "next": "15.5.14",
     "next-themes": "^0.4.6",
