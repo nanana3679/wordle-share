@@ -171,42 +171,47 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
     });
   }, []);
 
-  const addCategory = useCallback((name: string) => {
-    const trimmed = name.trim();
-    if (!trimmed) return false;
-    let added = false;
-    setFormState((prev) => {
-      if (prev.categories.includes(trimmed)) {
+  const addCategory = useCallback(
+    (name: string) => {
+      const trimmed = name.trim();
+      if (!trimmed) return false;
+      if (formState.categories.includes(trimmed)) {
         toast.error(`"${trimmed}"는 이미 등록된 카테고리입니다.`);
-        return prev;
+        return false;
       }
-      added = true;
-      return { ...prev, categories: [...prev.categories, trimmed] };
-    });
-    return added;
-  }, []);
+      setFormState((prev) =>
+        prev.categories.includes(trimmed)
+          ? prev
+          : { ...prev, categories: [...prev.categories, trimmed] },
+      );
+      return true;
+    },
+    [formState.categories],
+  );
 
-  const renameCategory = useCallback((oldName: string, newName: string) => {
-    const trimmed = newName.trim();
-    if (!trimmed || trimmed === oldName) return false;
-    let renamed = false;
-    setFormState((prev) => {
-      if (prev.categories.includes(trimmed)) {
+  const renameCategory = useCallback(
+    (oldName: string, newName: string) => {
+      const trimmed = newName.trim();
+      if (!trimmed || trimmed === oldName) return false;
+      if (formState.categories.includes(trimmed)) {
         toast.error(`"${trimmed}"는 이미 등록된 카테고리입니다.`);
-        return prev;
+        return false;
       }
-      renamed = true;
-      return {
-        ...prev,
-        categories: prev.categories.map((c) => (c === oldName ? trimmed : c)),
-        words: prev.words.map((row) => ({
-          ...row,
-          tags: row.tags.map((t) => (t === oldName ? trimmed : t)),
-        })),
-      };
-    });
-    return renamed;
-  }, []);
+      setFormState((prev) => {
+        if (prev.categories.includes(trimmed)) return prev;
+        return {
+          ...prev,
+          categories: prev.categories.map((c) => (c === oldName ? trimmed : c)),
+          words: prev.words.map((row) => ({
+            ...row,
+            tags: row.tags.map((t) => (t === oldName ? trimmed : t)),
+          })),
+        };
+      });
+      return true;
+    },
+    [formState.categories],
+  );
 
   const deleteCategory = useCallback((name: string) => {
     setFormState((prev) => ({

@@ -42,6 +42,8 @@ export function WordRow({
   onEnter,
   inputRef,
 }: WordRowProps) {
+  const hasError = hasInvalidChars || isDuplicate;
+  const errorId = `word-row-${value.id}-error`;
   return (
     <div className="space-y-1">
       <div className="flex items-start gap-2">
@@ -64,9 +66,10 @@ export function WordRow({
             spellCheck={false}
             className={cn(
               "h-7 flex-1 min-w-[120px] border-0 bg-transparent px-1 shadow-none focus-visible:ring-0",
-              (hasInvalidChars || isDuplicate) && "text-destructive"
+              hasError && "text-destructive"
             )}
-            aria-invalid={hasInvalidChars || isDuplicate}
+            aria-invalid={hasError}
+            aria-describedby={hasError ? errorId : undefined}
           />
           {showCategoryPicker && (
             <TagPicker
@@ -88,8 +91,8 @@ export function WordRow({
           <X className="size-4" />
         </Button>
       </div>
-      {(hasInvalidChars || isDuplicate) && (
-        <p className="pl-9 text-xs text-destructive">
+      {hasError && (
+        <p id={errorId} className="pl-9 text-xs text-destructive">
           {hasInvalidChars && "영문자(a-z)만 사용할 수 있습니다."}
           {hasInvalidChars && isDuplicate && " "}
           {isDuplicate && "중복된 단어입니다."}

@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { validateDeckWords } from "@/lib/wordConstraints";
-import { normalizeCategories } from "@/lib/deckCategories";
+import { MAX_TAGS_PER_WORD, normalizeCategories } from "@/lib/deckCategories";
 import type { DeckWord } from "@/types/decks";
 import { getUserInfo } from "@/app/actions/user";
 import { User } from "@supabase/supabase-js";
@@ -89,15 +89,19 @@ function parseDeckPayload(formData: FormData): DeckPayloadResult {
     };
   }
 
-  // 카테고리 팔레트에 없는 태그는 잘라낸다 (UI에서 이미 막지만 서버에서도 보강)
+  // 카테고리 팔레트에 없는 태그는 잘라내고, 중복 제거 후 단어당 상한을 적용한다
+  // (UI에서 이미 막지만 서버에서도 보강)
   const allowed = new Set(categoriesValidation.ok);
-  const filteredWords = wordsValidation.ok.map((w) => ({
-    word: w.word,
-    tags:
+  const filteredWords = wordsValidation.ok.map((w) => {
+    const tags =
       categoriesValidation.ok.length === 0
         ? []
-        : w.tags.filter((tag) => allowed.has(tag)),
-  }));
+        : Array.from(new Set(w.tags.filter((tag) => allowed.has(tag)))).slice(
+            0,
+            MAX_TAGS_PER_WORD,
+          );
+    return { word: w.word, tags };
+  });
 
   return {
     ok: true,

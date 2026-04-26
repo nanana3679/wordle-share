@@ -61,6 +61,10 @@ export function TagPicker({
   };
 
   const handleCreate = () => {
+    if (selected.length >= MAX_TAGS_PER_WORD) {
+      toast.error(`태그는 단어당 최대 ${MAX_TAGS_PER_WORD}개까지 선택할 수 있습니다.`);
+      return;
+    }
     const trimmed = search.trim();
     const validation = validateCategoryName(trimmed);
     if (!validation.isValid) {
@@ -69,11 +73,7 @@ export function TagPicker({
     }
     const created = onCreateCategory(trimmed);
     if (!created) return;
-    if (selected.length < MAX_TAGS_PER_WORD) {
-      onChange([...selected, trimmed]);
-    } else {
-      toast.error(`태그는 단어당 최대 ${MAX_TAGS_PER_WORD}개까지 선택할 수 있습니다.`);
-    }
+    onChange([...selected, trimmed]);
     setSearch("");
   };
 
@@ -84,7 +84,8 @@ export function TagPicker({
   const canCreate =
     normalizedSearch.length > 0 &&
     !exactMatch &&
-    normalizedSearch.length <= MAX_CATEGORY_NAME_LENGTH;
+    normalizedSearch.length <= MAX_CATEGORY_NAME_LENGTH &&
+    selected.length < MAX_TAGS_PER_WORD;
 
   return (
     <div className="flex flex-wrap items-center gap-1">

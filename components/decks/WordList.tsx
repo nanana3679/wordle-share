@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,20 @@ export function WordList({
   onCreateCategory,
 }: WordListProps) {
   const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
+  const pendingFocusAfterIdRef = useRef<string | null>(null);
+
+  // onAddRow가 부모 상태를 비동기로 갱신하므로, 보류된 포커스 대상을 ref에 저장해두고
+  // 새 rows가 도착한 다음 effect에서 다음 행을 찾아 포커스한다.
+  useEffect(() => {
+    const afterId = pendingFocusAfterIdRef.current;
+    if (!afterId) return;
+    const idx = rows.findIndex((row) => row.id === afterId);
+    const nextRow = idx >= 0 ? rows[idx + 1] : undefined;
+    if (nextRow) {
+      inputRefs.current.get(nextRow.id)?.focus();
+    }
+    pendingFocusAfterIdRef.current = null;
+  }, [rows]);
 
   const duplicates = useMemo(() => {
     const counts = new Map<string, number>();
@@ -42,14 +56,8 @@ export function WordList({
   }, [rows]);
 
   const handleEnter = (id: string) => {
+    pendingFocusAfterIdRef.current = id;
     onAddRow(id);
-    requestAnimationFrame(() => {
-      const idx = rows.findIndex((row) => row.id === id);
-      const nextRow = rows[idx + 1];
-      if (nextRow) {
-        inputRefs.current.get(nextRow.id)?.focus();
-      }
-    });
   };
 
   return (

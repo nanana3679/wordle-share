@@ -32,6 +32,7 @@ export function normalizeCategories(input: unknown): {
   if (!Array.isArray(input)) {
     return { ok: [], errors: ["카테고리 목록은 배열이어야 합니다."] };
   }
+  // UI(`TagPicker`)가 대소문자 무시 비교를 쓰므로 서버도 동일 정책을 적용한다.
   const seen = new Set<string>();
   const ok: string[] = [];
   for (const raw of input) {
@@ -46,8 +47,9 @@ export function normalizeCategories(input: unknown): {
       errors.push(validation.error ?? "카테고리 이름이 올바르지 않습니다.");
       continue;
     }
-    if (seen.has(trimmed)) continue;
-    seen.add(trimmed);
+    const key = trimmed.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
     ok.push(trimmed);
   }
   return { ok, errors };
