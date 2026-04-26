@@ -4,7 +4,9 @@ import { createClient } from "@/lib/supabase-server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
-import { parseWordsString, toDeckWords } from "@/lib/wordConstraints";
+import { validateDeckWords } from "@/lib/wordConstraints";
+import { normalizeCategories } from "@/lib/deckCategories";
+import type { DeckWord } from "@/types/decks";
 import { getUserInfo } from "@/app/actions/user";
 import { User } from "@supabase/supabase-js";
 import { PostgrestSingleResponse } from "@supabase/supabase-js";
@@ -21,6 +23,88 @@ const BCRYPT_ROUNDS = 10;
 // author_password_hash 노출 방지용 화이트리스트
 const DECK_PUBLIC_COLUMNS =
   "id, name, description, words, categories, thumbnail_url, is_public, created_at, updated_at, creator_id, author_handle";
+
+type DeckPayloadResult =
+  | { ok: true; words: DeckWord[]; categories: string[] }
+  | { ok: false; message: string; fieldErrors?: { [key: string]: string[] } };
+
+function parseDeckPayload(formData: FormData): DeckPayloadResult {
+  const wordsJson = formData.get("words_json");
+  if (typeof wordsJson !== "string" || !wordsJson.trim()) {
+    return {
+      ok: false,
+      message: "단어 목록이 비어있습니다.",
+      fieldErrors: { words: ["단어는 필수입니다."] },
+    };
+  }
+
+  let rawWords: unknown;
+  try {
+    rawWords = JSON.parse(wordsJson);
+  } catch {
+    return {
+      ok: false,
+      message: "단어 목록 형식이 올바르지 않습니다.",
+      fieldErrors: { words: ["단어 목록 JSON 파싱에 실패했습니다."] },
+    };
+  }
+
+  if (!Array.isArray(rawWords)) {
+    return {
+      ok: false,
+      message: "단어 목록은 배열이어야 합니다.",
+      fieldErrors: { words: ["단어 목록은 배열이어야 합니다."] },
+    };
+  }
+
+  const wordsValidation = validateDeckWords(rawWords as DeckWord[]);
+  if (wordsValidation.errors.length > 0) {
+    return {
+      ok: false,
+      message: `단어 검증 실패: ${wordsValidation.errors.join(", ")}`,
+      fieldErrors: { words: wordsValidation.errors },
+    };
+  }
+
+  const categoriesJson = formData.get("categories");
+  let rawCategories: unknown = [];
+  if (typeof categoriesJson === "string" && categoriesJson.trim()) {
+    try {
+      rawCategories = JSON.parse(categoriesJson);
+    } catch {
+      return {
+        ok: false,
+        message: "카테고리 목록 형식이 올바르지 않습니다.",
+        fieldErrors: { categories: ["카테고리 목록 JSON 파싱에 실패했습니다."] },
+      };
+    }
+  }
+
+  const categoriesValidation = normalizeCategories(rawCategories);
+  if (categoriesValidation.errors.length > 0) {
+    return {
+      ok: false,
+      message: `카테고리 검증 실패: ${categoriesValidation.errors.join(", ")}`,
+      fieldErrors: { categories: categoriesValidation.errors },
+    };
+  }
+
+  // 카테고리 팔레트에 없는 태그는 잘라낸다 (UI에서 이미 막지만 서버에서도 보강)
+  const allowed = new Set(categoriesValidation.ok);
+  const filteredWords = wordsValidation.ok.map((w) => ({
+    word: w.word,
+    tags:
+      categoriesValidation.ok.length === 0
+        ? []
+        : w.tags.filter((tag) => allowed.has(tag)),
+  }));
+
+  return {
+    ok: true,
+    words: filteredWords,
+    categories: categoriesValidation.ok,
+  };
+}
 
 export async function getDecks(page: number = 1, pageSize: number = 24): Promise<ActionResponse<Deck[]> & { total?: number; page?: number; pageSize?: number; totalPages?: number }> {
   return safeAction(async () => {
@@ -174,32 +258,23 @@ export async function createDeck(formData: FormData): Promise<ActionResponse<Dec
 
     const name = formData.get("name") as string;
     const description = formData.get("description") as string;
-    const wordsString = formData.get("words") as string;
     const isPublic = formData.get("is_public") === "on";
     const thumbnailUrl = formData.get("thumbnail_url") as string;
 
-    if (!name || !wordsString) {
-      const fieldErrors: { [key: string]: string[] } = {};
-      if (!name) fieldErrors.name = ["이름은 필수입니다."];
-      if (!wordsString) fieldErrors.words = ["단어는 필수입니다."];
-      
+    if (!name) {
       return {
         success: false,
-        message: "이름과 단어는 필수입니다.",
-        fieldErrors,
+        message: "이름은 필수입니다.",
+        fieldErrors: { name: ["이름은 필수입니다."] },
       };
     }
 
-    // 단어 문자열 파싱 및 유효성 검사
-    const { normalizedWords: words, validation } = parseWordsString(wordsString);
-
-    if (!validation.isValid) {
+    const parsed = parseDeckPayload(formData);
+    if (!parsed.ok) {
       return {
         success: false,
-        message: `단어 검증 실패: ${validation.errors.join(', ')}`,
-        fieldErrors: {
-          words: validation.errors,
-        },
+        message: parsed.message,
+        fieldErrors: parsed.fieldErrors,
       };
     }
 
@@ -208,8 +283,8 @@ export async function createDeck(formData: FormData): Promise<ActionResponse<Dec
       .insert({
         name,
         description: description || null,
-        words: toDeckWords(words),
-        categories: [],
+        words: parsed.words,
+        categories: parsed.categories,
         is_public: isPublic,
         creator_id: user.id,
         thumbnail_url: thumbnailUrl || null,
@@ -247,13 +322,11 @@ export async function createAnonymousDeck(formData: FormData): Promise<ActionRes
 
     const name = formData.get("name") as string;
     const description = formData.get("description") as string;
-    const wordsString = formData.get("words") as string;
     const authorHandle = (formData.get("author_handle") as string)?.trim();
     const password = formData.get("password") as string;
 
     const fieldErrors: { [key: string]: string[] } = {};
     if (!name) fieldErrors.name = ["이름은 필수입니다."];
-    if (!wordsString) fieldErrors.words = ["단어는 필수입니다."];
     if (!authorHandle) {
       fieldErrors.author_handle = ["표시 이름은 필수입니다."];
     } else if (authorHandle.length < ANON_HANDLE_MIN || authorHandle.length > ANON_HANDLE_MAX) {
@@ -273,12 +346,12 @@ export async function createAnonymousDeck(formData: FormData): Promise<ActionRes
       };
     }
 
-    const { normalizedWords: words, validation } = parseWordsString(wordsString);
-    if (!validation.isValid) {
+    const parsed = parseDeckPayload(formData);
+    if (!parsed.ok) {
       return {
         success: false,
-        message: `단어 검증 실패: ${validation.errors.join(", ")}`,
-        fieldErrors: { words: validation.errors },
+        message: parsed.message,
+        fieldErrors: parsed.fieldErrors,
       };
     }
 
@@ -289,8 +362,8 @@ export async function createAnonymousDeck(formData: FormData): Promise<ActionRes
       .insert({
         name,
         description: description || null,
-        words: toDeckWords(words),
-        categories: [],
+        words: parsed.words,
+        categories: parsed.categories,
         is_public: true,
         creator_id: null,
         author_handle: authorHandle,
@@ -341,39 +414,30 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
 
     const name = formData.get("name") as string;
     const description = formData.get("description") as string;
-    const wordsString = formData.get("words") as string;
     const isPublic = formData.get("is_public") === "on";
     const thumbnailUrl = formData.get("thumbnail_url") as string;
 
-    if (!name || !wordsString) {
-      const fieldErrors: { [key: string]: string[] } = {};
-      if (!name) fieldErrors.name = ["이름은 필수입니다."];
-      if (!wordsString) fieldErrors.words = ["단어는 필수입니다."];
-      
+    if (!name) {
       return {
         success: false,
-        message: "이름과 단어는 필수입니다.",
-        fieldErrors,
+        message: "이름은 필수입니다.",
+        fieldErrors: { name: ["이름은 필수입니다."] },
       };
     }
 
-    // 단어 문자열 파싱 및 유효성 검사
-    const { normalizedWords: words, validation } = parseWordsString(wordsString);
-
-    if (!validation.isValid) {
+    const parsed = parseDeckPayload(formData);
+    if (!parsed.ok) {
       return {
         success: false,
-        message: `단어 검증 실패: ${validation.errors.join(', ')}`,
-        fieldErrors: {
-          words: validation.errors,
-        },
+        message: parsed.message,
+        fieldErrors: parsed.fieldErrors,
       };
     }
 
-    // 먼저 덱이 존재하는지 확인 (기존 word별 tags 보존을 위해 words도 함께 조회)
+    // 먼저 덱이 존재하는지 확인
     const { data: existingDeck, error: checkError } = await supabase
       .from("decks")
-      .select("id, creator_id, name, updated_at, words")
+      .select("id, creator_id, name, updated_at")
       .eq("id", id)
       .single();
 
@@ -402,29 +466,22 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
     }
 
     // 덱 업데이트
-    console.log("덱 업데이트 시작:", { 
-      id, 
-      name, 
+    console.log("덱 업데이트 시작:", {
+      id,
+      name,
       user_id: user.id,
-      words: words.slice(0, 3), // 처음 3개 단어만 로그
+      words: parsed.words.slice(0, 3).map((w) => w.word), // 처음 3개 단어만 로그
+      categories: parsed.categories,
       is_public: isPublic,
-      thumbnail_url: thumbnailUrl
+      thumbnail_url: thumbnailUrl,
     });
-    
-    // 기존 word별 tags를 보존: 새 단어 목록에 같은 word가 있으면 기존 태그 유지
-    const existingTagsByWord = new Map<string, string[]>(
-      (existingDeck.words ?? []).map((w) => [w.word, w.tags ?? []]),
-    );
-    const mergedWords = words.map((word) => ({
-      word,
-      tags: existingTagsByWord.get(word) ?? [],
-    }));
 
     // 업데이트할 데이터 준비
     const updateData = {
       name,
       description: description || null,
-      words: mergedWords,
+      words: parsed.words,
+      categories: parsed.categories,
       is_public: isPublic,
       thumbnail_url: thumbnailUrl || null,
       updated_at: new Date().toISOString(),
