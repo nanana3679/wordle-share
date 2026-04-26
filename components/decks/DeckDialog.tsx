@@ -21,12 +21,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Upload, X, Image as ImageIcon } from "lucide-react";
+import { Sparkles, Upload, X, Image as ImageIcon } from "lucide-react";
 import Image from "next/image";
 import { actionWithToast } from "@/lib/action-with-toast";
 import { CategoryPalette } from "@/components/decks/CategoryPalette";
 import { WordList } from "@/components/decks/WordList";
 import type { WordRowValue } from "@/components/decks/WordRow";
+import { AiImportPanel } from "@/components/decks/AiImportPanel";
+import type { ParsedAiDeck } from "@/lib/parseAiDeckResponse";
 
 interface DeckDialogProps {
   deck?: Deck; // deck이 있으면 수정 모드, 없으면 생성 모드
@@ -76,6 +78,9 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
   const [formState, setFormState] = useState<DeckFormState>(() =>
     buildInitialState(deck)
   );
+  const [name, setName] = useState(deck?.name ?? "");
+  const [description, setDescription] = useState(deck?.description ?? "");
+  const [aiPanelOpen, setAiPanelOpen] = useState(false);
 
   const isEditMode = !!deck;
   const isAnonymousCreate = !isEditMode && !isAuthenticated;
@@ -90,6 +95,9 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
       setThumbnailUrl(deck?.thumbnail_url || "");
       setSelectedFile(null);
       setPreviewUrl("");
+      setName(deck?.name ?? "");
+      setDescription(deck?.description ?? "");
+      setAiPanelOpen(false);
     }
   }, [open, deck]);
 
@@ -223,6 +231,97 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
       })),
     }));
   }, []);
+
+  const handleAiImport = useCallback(
+    (parsed: ParsedAiDeck) => {
+      // name/description: 비어있을 때만 채움
+      if (parsed.name && name.trim().length === 0) setName(parsed.name);
+      if (parsed.description && description.trim().length === 0) {
+        setDescription(parsed.description);
+      }
+
+      setFormState((prev) => {
+        // categories: 합집합 (기존 순서 유지 + 새 항목 append)
+        const existingCats = new Set(prev.categories);
+        const newCats = parsed.categories.filter((c) => !existingCats.has(c));
+        const mergedCategories = [...prev.categories, ...newCats];
+
+        // words: append, 중복 단어는 기존 행에 tags 합집합으로 머지
+        const byWord = new Map<string, WordRowValue>();
+        for (const row of prev.words) {
+          const key = row.word.trim().toLowerCase();
+          if (key) byWord.set(key, row);
+        }
+
+        // 빈 행이 끝에 있으면 새 단어 추가 시 자연스럽게 채워지도록 분리
+        const trailingEmpty: WordRowValue[] = [];
+        const baseWords = [...prev.words];
+        while (
+          baseWords.length > 0 &&
+          baseWords[baseWords.length - 1].word.trim().length === 0 &&
+          baseWords[baseWords.length - 1].tags.length === 0
+        ) {
+          trailingEmpty.unshift(baseWords.pop()!);
+        }
+
+        const merged: WordRowValue[] = [...baseWords];
+        let appendedCount = 0;
+        for (const incoming of parsed.words) {
+          const existingRow = byWord.get(incoming.word);
+          if (existingRow) {
+            const mergedTags = Array.from(
+              new Set([...existingRow.tags, ...incoming.tags])
+            );
+            const idx = merged.findIndex((r) => r.id === existingRow.id);
+            if (idx !== -1) {
+              merged[idx] = { ...existingRow, tags: mergedTags };
+            }
+          } else {
+            const row: WordRowValue = {
+              id: nanoid(),
+              word: incoming.word,
+              tags: incoming.tags,
+            };
+            merged.push(row);
+            byWord.set(incoming.word, row);
+            appendedCount += 1;
+          }
+        }
+
+        // 사용자가 빈 행 하나는 항상 보기를 원할 수 있으므로 마지막 빈 행 하나는 유지
+        if (trailingEmpty.length > 0 && appendedCount > 0) {
+          merged.push(trailingEmpty[0]);
+        } else if (trailingEmpty.length > 0) {
+          merged.push(...trailingEmpty);
+        }
+
+        const incomingHasTags = parsed.words.some((w) => w.tags.length > 0);
+        const shouldEnableCategories =
+          prev.usesCategories ||
+          mergedCategories.length > 0 ||
+          incomingHasTags;
+
+        return {
+          ...prev,
+          categories: mergedCategories,
+          words: merged,
+          usesCategories: shouldEnableCategories,
+          // 토글 자동 ON 시 stash는 비움
+          hiddenCategories: shouldEnableCategories ? [] : prev.hiddenCategories,
+          hiddenWordTags: shouldEnableCategories ? {} : prev.hiddenWordTags,
+        };
+      });
+
+      const droppedCount = parsed.droppedWords.length;
+      toast.success(`${parsed.words.length}개 단어를 추가했습니다.`);
+      if (droppedCount > 0) {
+        toast.warning(
+          `${droppedCount}개 단어가 영어 소문자 규칙에 맞지 않아 제외되었습니다.`
+        );
+      }
+    },
+    [name, description]
+  );
 
   const handleToggleCategories = useCallback((checked: boolean) => {
     setFormState((prev) => {
@@ -439,7 +538,8 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
               <Input
                 id="name"
                 name="name"
-                defaultValue={deck?.name || ""}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 placeholder="예: 동물 단어"
                 required
               />
@@ -503,29 +603,50 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
               <Textarea
                 id="description"
                 name="description"
-                defaultValue={deck?.description || ""}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
                 placeholder="덱에 대한 설명을 입력하세요..."
                 rows={3}
               />
             </div>
 
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <Label>단어 목록 *</Label>
-                <div className="flex items-center gap-2">
-                  <Label
-                    htmlFor="uses_categories"
-                    className="text-xs text-muted-foreground"
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setAiPanelOpen((v) => !v)}
+                    aria-expanded={aiPanelOpen}
+                    aria-controls="ai-import-panel"
+                    className="h-8 gap-1.5 text-xs"
                   >
-                    카테고리 사용
-                  </Label>
-                  <Switch
-                    id="uses_categories"
-                    checked={formState.usesCategories}
-                    onCheckedChange={handleToggleCategories}
-                  />
+                    <Sparkles className="size-3.5" />
+                    {aiPanelOpen ? "AI 패널 접기" : "AI로 가져오기"}
+                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Label
+                      htmlFor="uses_categories"
+                      className="text-xs text-muted-foreground"
+                    >
+                      카테고리 사용
+                    </Label>
+                    <Switch
+                      id="uses_categories"
+                      checked={formState.usesCategories}
+                      onCheckedChange={handleToggleCategories}
+                    />
+                  </div>
                 </div>
               </div>
+
+              {aiPanelOpen && (
+                <div id="ai-import-panel">
+                  <AiImportPanel onImport={handleAiImport} />
+                </div>
+              )}
 
               {formState.usesCategories && (
                 <CategoryPalette
