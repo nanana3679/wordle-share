@@ -21,12 +21,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Upload, X, Image as ImageIcon } from "lucide-react";
+import { Sparkles, Upload, X, Image as ImageIcon } from "lucide-react";
 import Image from "next/image";
 import { actionWithToast } from "@/lib/action-with-toast";
 import { CategoryPalette } from "@/components/decks/CategoryPalette";
 import { WordList } from "@/components/decks/WordList";
 import type { WordRowValue } from "@/components/decks/WordRow";
+import { AiImportPanel } from "@/components/decks/AiImportPanel";
+import type { ParsedAiDeck } from "@/lib/parseAiDeckResponse";
 
 interface DeckDialogProps {
   deck?: Deck; // deck이 있으면 수정 모드, 없으면 생성 모드
@@ -76,6 +78,9 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
   const [formState, setFormState] = useState<DeckFormState>(() =>
     buildInitialState(deck)
   );
+  const [name, setName] = useState(deck?.name ?? "");
+  const [description, setDescription] = useState(deck?.description ?? "");
+  const [aiPanelOpen, setAiPanelOpen] = useState(false);
 
   const isEditMode = !!deck;
   const isAnonymousCreate = !isEditMode && !isAuthenticated;
@@ -90,6 +95,9 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
       setThumbnailUrl(deck?.thumbnail_url || "");
       setSelectedFile(null);
       setPreviewUrl("");
+      setName(deck?.name ?? "");
+      setDescription(deck?.description ?? "");
+      setAiPanelOpen(false);
     }
   }, [open, deck]);
 
@@ -223,6 +231,117 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
       })),
     }));
   }, []);
+
+  const handleAiImport = useCallback(
+    (parsed: ParsedAiDeck) => {
+      // name/description: 비어있을 때만 채움
+      if (parsed.name && name.trim().length === 0) setName(parsed.name);
+      if (parsed.description && description.trim().length === 0) {
+        setDescription(parsed.description);
+      }
+
+      setFormState((prev) => {
+        // categories: 합집합 (기존 순서 유지 + 새 항목 append)
+        const existingCats = new Set(prev.categories);
+        const newCats = parsed.categories.filter((c) => !existingCats.has(c));
+        const mergedCategories = [...prev.categories, ...newCats];
+
+        // 끝의 빈 행 분리 (모두 제거 후 마지막에 1개만 다시 추가)
+        const baseWords = [...prev.words];
+        while (
+          baseWords.length > 0 &&
+          baseWords[baseWords.length - 1].word.trim().length === 0 &&
+          baseWords[baseWords.length - 1].tags.length === 0
+        ) {
+          baseWords.pop();
+        }
+
+        // 정규화된 word를 키로 사용 (incoming.word와 비교 일관성)
+        const byWord = new Map<string, { idx: number; row: WordRowValue }>();
+        for (let i = 0; i < baseWords.length; i++) {
+          const row = baseWords[i];
+          const key = row.word.trim().toLowerCase();
+          if (key) byWord.set(key, { idx: i, row });
+        }
+
+        const merged: WordRowValue[] = [...baseWords];
+        for (const incoming of parsed.words) {
+          const existing = byWord.get(incoming.word);
+          if (existing) {
+            const updated: WordRowValue = {
+              ...existing.row,
+              tags: Array.from(
+                new Set([...existing.row.tags, ...incoming.tags])
+              ),
+            };
+            merged[existing.idx] = updated;
+            byWord.set(incoming.word, { idx: existing.idx, row: updated });
+          } else {
+            const row: WordRowValue = {
+              id: nanoid(),
+              word: incoming.word,
+              tags: incoming.tags,
+            };
+            const idx = merged.length;
+            merged.push(row);
+            byWord.set(incoming.word, { idx, row });
+          }
+        }
+
+        // 끝에 빈 행 1개 유지 (사용자가 추가 입력하기 쉽게)
+        merged.push(makeRow());
+
+        const incomingHasTags = parsed.words.some((w) => w.tags.length > 0);
+        const willTurnOn =
+          !prev.usesCategories &&
+          (mergedCategories.length > 0 || incomingHasTags);
+
+        if (willTurnOn) {
+          // OFF → ON 자동 전환: 기존 stash 복원 (handleToggleCategories(true) 미러링)
+          const restoredWords = merged.map((row) => {
+            const stashed = prev.hiddenWordTags[row.id];
+            if (stashed && stashed.length > 0 && row.tags.length === 0) {
+              return { ...row, tags: stashed };
+            }
+            return row;
+          });
+          // 기존 hiddenCategories 중 mergedCategories에 없는 것은 복원
+          const mergedSet = new Set(mergedCategories);
+          const restoredCategories = [...mergedCategories];
+          for (const c of prev.hiddenCategories) {
+            if (!mergedSet.has(c)) {
+              mergedSet.add(c);
+              restoredCategories.push(c);
+            }
+          }
+          return {
+            ...prev,
+            categories: restoredCategories,
+            words: restoredWords,
+            usesCategories: true,
+            hiddenCategories: [],
+            hiddenWordTags: {},
+          };
+        }
+
+        return {
+          ...prev,
+          categories: mergedCategories,
+          words: merged,
+          // 이미 ON이면 그대로 유지, 아니면 OFF 유지 (stash도 그대로)
+        };
+      });
+
+      const droppedCount = parsed.droppedWords.length;
+      toast.success(`${parsed.words.length}개 단어를 추가했습니다.`);
+      if (droppedCount > 0) {
+        toast.warning(
+          `${droppedCount}개 단어가 영어 소문자 규칙에 맞지 않아 제외되었습니다.`
+        );
+      }
+    },
+    [name, description]
+  );
 
   const handleToggleCategories = useCallback((checked: boolean) => {
     setFormState((prev) => {
@@ -439,7 +558,8 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
               <Input
                 id="name"
                 name="name"
-                defaultValue={deck?.name || ""}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 placeholder="예: 동물 단어"
                 required
               />
@@ -503,29 +623,50 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
               <Textarea
                 id="description"
                 name="description"
-                defaultValue={deck?.description || ""}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
                 placeholder="덱에 대한 설명을 입력하세요..."
                 rows={3}
               />
             </div>
 
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <Label>단어 목록 *</Label>
-                <div className="flex items-center gap-2">
-                  <Label
-                    htmlFor="uses_categories"
-                    className="text-xs text-muted-foreground"
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setAiPanelOpen((v) => !v)}
+                    aria-expanded={aiPanelOpen}
+                    aria-controls="ai-import-panel"
+                    className="h-8 gap-1.5 text-xs"
                   >
-                    카테고리 사용
-                  </Label>
-                  <Switch
-                    id="uses_categories"
-                    checked={formState.usesCategories}
-                    onCheckedChange={handleToggleCategories}
-                  />
+                    <Sparkles className="size-3.5" />
+                    {aiPanelOpen ? "AI 패널 접기" : "AI로 가져오기"}
+                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Label
+                      htmlFor="uses_categories"
+                      className="text-xs text-muted-foreground"
+                    >
+                      카테고리 사용
+                    </Label>
+                    <Switch
+                      id="uses_categories"
+                      checked={formState.usesCategories}
+                      onCheckedChange={handleToggleCategories}
+                    />
+                  </div>
                 </div>
               </div>
+
+              {aiPanelOpen && (
+                <div id="ai-import-panel">
+                  <AiImportPanel onImport={handleAiImport} />
+                </div>
+              )}
 
               {formState.usesCategories && (
                 <CategoryPalette
