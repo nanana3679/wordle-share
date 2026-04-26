@@ -246,69 +246,89 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
         const newCats = parsed.categories.filter((c) => !existingCats.has(c));
         const mergedCategories = [...prev.categories, ...newCats];
 
-        // words: append, 중복 단어는 기존 행에 tags 합집합으로 머지
-        const byWord = new Map<string, WordRowValue>();
-        for (const row of prev.words) {
-          const key = row.word.trim().toLowerCase();
-          if (key) byWord.set(key, row);
-        }
-
-        // 빈 행이 끝에 있으면 새 단어 추가 시 자연스럽게 채워지도록 분리
-        const trailingEmpty: WordRowValue[] = [];
+        // 끝의 빈 행 분리 (모두 제거 후 마지막에 1개만 다시 추가)
         const baseWords = [...prev.words];
         while (
           baseWords.length > 0 &&
           baseWords[baseWords.length - 1].word.trim().length === 0 &&
           baseWords[baseWords.length - 1].tags.length === 0
         ) {
-          trailingEmpty.unshift(baseWords.pop()!);
+          baseWords.pop();
+        }
+
+        // 정규화된 word를 키로 사용 (incoming.word와 비교 일관성)
+        const byWord = new Map<string, { idx: number; row: WordRowValue }>();
+        for (let i = 0; i < baseWords.length; i++) {
+          const row = baseWords[i];
+          const key = row.word.trim().toLowerCase();
+          if (key) byWord.set(key, { idx: i, row });
         }
 
         const merged: WordRowValue[] = [...baseWords];
-        let appendedCount = 0;
         for (const incoming of parsed.words) {
-          const existingRow = byWord.get(incoming.word);
-          if (existingRow) {
-            const mergedTags = Array.from(
-              new Set([...existingRow.tags, ...incoming.tags])
-            );
-            const idx = merged.findIndex((r) => r.id === existingRow.id);
-            if (idx !== -1) {
-              merged[idx] = { ...existingRow, tags: mergedTags };
-            }
+          const existing = byWord.get(incoming.word);
+          if (existing) {
+            const updated: WordRowValue = {
+              ...existing.row,
+              tags: Array.from(
+                new Set([...existing.row.tags, ...incoming.tags])
+              ),
+            };
+            merged[existing.idx] = updated;
+            byWord.set(incoming.word, { idx: existing.idx, row: updated });
           } else {
             const row: WordRowValue = {
               id: nanoid(),
               word: incoming.word,
               tags: incoming.tags,
             };
+            const idx = merged.length;
             merged.push(row);
-            byWord.set(incoming.word, row);
-            appendedCount += 1;
+            byWord.set(incoming.word, { idx, row });
           }
         }
 
-        // 사용자가 빈 행 하나는 항상 보기를 원할 수 있으므로 마지막 빈 행 하나는 유지
-        if (trailingEmpty.length > 0 && appendedCount > 0) {
-          merged.push(trailingEmpty[0]);
-        } else if (trailingEmpty.length > 0) {
-          merged.push(...trailingEmpty);
-        }
+        // 끝에 빈 행 1개 유지 (사용자가 추가 입력하기 쉽게)
+        merged.push(makeRow());
 
         const incomingHasTags = parsed.words.some((w) => w.tags.length > 0);
-        const shouldEnableCategories =
-          prev.usesCategories ||
-          mergedCategories.length > 0 ||
-          incomingHasTags;
+        const willTurnOn =
+          !prev.usesCategories &&
+          (mergedCategories.length > 0 || incomingHasTags);
+
+        if (willTurnOn) {
+          // OFF → ON 자동 전환: 기존 stash 복원 (handleToggleCategories(true) 미러링)
+          const restoredWords = merged.map((row) => {
+            const stashed = prev.hiddenWordTags[row.id];
+            if (stashed && stashed.length > 0 && row.tags.length === 0) {
+              return { ...row, tags: stashed };
+            }
+            return row;
+          });
+          // 기존 hiddenCategories 중 mergedCategories에 없는 것은 복원
+          const mergedSet = new Set(mergedCategories);
+          const restoredCategories = [...mergedCategories];
+          for (const c of prev.hiddenCategories) {
+            if (!mergedSet.has(c)) {
+              mergedSet.add(c);
+              restoredCategories.push(c);
+            }
+          }
+          return {
+            ...prev,
+            categories: restoredCategories,
+            words: restoredWords,
+            usesCategories: true,
+            hiddenCategories: [],
+            hiddenWordTags: {},
+          };
+        }
 
         return {
           ...prev,
           categories: mergedCategories,
           words: merged,
-          usesCategories: shouldEnableCategories,
-          // 토글 자동 ON 시 stash는 비움
-          hiddenCategories: shouldEnableCategories ? [] : prev.hiddenCategories,
-          hiddenWordTags: shouldEnableCategories ? {} : prev.hiddenWordTags,
+          // 이미 ON이면 그대로 유지, 아니면 OFF 유지 (stash도 그대로)
         };
       });
 
