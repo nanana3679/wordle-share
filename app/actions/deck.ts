@@ -370,10 +370,10 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
       };
     }
 
-    // 먼저 덱이 존재하는지 확인
+    // 먼저 덱이 존재하는지 확인 (기존 word별 tags 보존을 위해 words도 함께 조회)
     const { data: existingDeck, error: checkError } = await supabase
       .from("decks")
-      .select("id, creator_id, name, updated_at")
+      .select("id, creator_id, name, updated_at, words")
       .eq("id", id)
       .single();
 
@@ -411,11 +411,20 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
       thumbnail_url: thumbnailUrl
     });
     
+    // 기존 word별 tags를 보존: 새 단어 목록에 같은 word가 있으면 기존 태그 유지
+    const existingTagsByWord = new Map<string, string[]>(
+      (existingDeck.words ?? []).map((w) => [w.word, w.tags ?? []]),
+    );
+    const mergedWords = words.map((word) => ({
+      word,
+      tags: existingTagsByWord.get(word) ?? [],
+    }));
+
     // 업데이트할 데이터 준비
     const updateData = {
       name,
       description: description || null,
-      words: toDeckWords(words),
+      words: mergedWords,
       is_public: isPublic,
       thumbnail_url: thumbnailUrl || null,
       updated_at: new Date().toISOString(),

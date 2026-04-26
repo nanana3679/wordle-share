@@ -1,10 +1,14 @@
 -- =============================================
 -- decks.words: TEXT[] -> JSONB ({word, tags}[])
 -- decks.categories: TEXT[] (덱 단위 카테고리 팔레트) 추가
+-- validate_words(TEXT[]) dead code 제거 (컬럼이 JSONB로 전환되어 무의미)
 -- 멱등적으로 작성: 이미 적용된 환경에서도 안전하게 재실행 가능.
 -- =============================================
 
 BEGIN;
+
+-- 0) dead code 제거: 어디에서도 호출되지 않으며, 시그니처가 새 스키마와 불일치
+DROP FUNCTION IF EXISTS public.validate_words(text[]);
 
 -- 1) categories 컬럼 추가 (이미 있으면 skip)
 ALTER TABLE public.decks
