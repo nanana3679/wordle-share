@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase-server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
-import { parseWordsString } from "@/lib/wordConstraints";
+import { parseWordsString, toDeckWords } from "@/lib/wordConstraints";
 import { getUserInfo } from "@/app/actions/user";
 import { User } from "@supabase/supabase-js";
 import { PostgrestSingleResponse } from "@supabase/supabase-js";
@@ -20,7 +20,7 @@ const BCRYPT_ROUNDS = 10;
 
 // author_password_hash 노출 방지용 화이트리스트
 const DECK_PUBLIC_COLUMNS =
-  "id, name, description, words, thumbnail_url, is_public, created_at, updated_at, creator_id, author_handle";
+  "id, name, description, words, categories, thumbnail_url, is_public, created_at, updated_at, creator_id, author_handle";
 
 export async function getDecks(page: number = 1, pageSize: number = 24): Promise<ActionResponse<Deck[]> & { total?: number; page?: number; pageSize?: number; totalPages?: number }> {
   return safeAction(async () => {
@@ -208,7 +208,8 @@ export async function createDeck(formData: FormData): Promise<ActionResponse<Dec
       .insert({
         name,
         description: description || null,
-        words,
+        words: toDeckWords(words),
+        categories: [],
         is_public: isPublic,
         creator_id: user.id,
         thumbnail_url: thumbnailUrl || null,
@@ -288,7 +289,8 @@ export async function createAnonymousDeck(formData: FormData): Promise<ActionRes
       .insert({
         name,
         description: description || null,
-        words,
+        words: toDeckWords(words),
+        categories: [],
         is_public: true,
         creator_id: null,
         author_handle: authorHandle,
@@ -413,7 +415,7 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
     const updateData = {
       name,
       description: description || null,
-      words,
+      words: toDeckWords(words),
       is_public: isPublic,
       thumbnail_url: thumbnailUrl || null,
       updated_at: new Date().toISOString(),

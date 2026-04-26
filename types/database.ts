@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           author_handle: string | null
           author_password_hash: string | null
+          categories: string[]
           created_at: string
           creator_id: string | null
           description: string | null
@@ -26,11 +27,12 @@ export type Database = {
           name: string | null
           thumbnail_url: string | null
           updated_at: string | null
-          words: string[] | null
+          words: { word: string; tags: string[] }[]
         }
         Insert: {
           author_handle?: string | null
           author_password_hash?: string | null
+          categories?: string[]
           created_at?: string
           creator_id?: string | null
           description?: string | null
@@ -39,11 +41,12 @@ export type Database = {
           name?: string | null
           thumbnail_url?: string | null
           updated_at?: string | null
-          words?: string[] | null
+          words?: { word: string; tags: string[] }[]
         }
         Update: {
           author_handle?: string | null
           author_password_hash?: string | null
+          categories?: string[]
           created_at?: string
           creator_id?: string | null
           description?: string | null
@@ -52,7 +55,7 @@ export type Database = {
           name?: string | null
           thumbnail_url?: string | null
           updated_at?: string | null
-          words?: string[] | null
+          words?: { word: string; tags: string[] }[]
         }
         Relationships: []
       }

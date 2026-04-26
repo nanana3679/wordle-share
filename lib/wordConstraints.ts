@@ -1,5 +1,7 @@
 // 단어 제약 조건 헬퍼 함수들
 
+import type { DeckWord } from "@/types/decks";
+
 export interface WordValidationResult {
   isValid: boolean;
   errors: string[];
@@ -142,6 +144,65 @@ export function parseWordsString(wordsString: string): {
     .filter(word => word.length > 0);
   
   return processWords(words);
+}
+
+/**
+ * string[] 배열을 DeckWord[] 형태로 변환합니다 (태그 없음).
+ */
+export function toDeckWords(words: string[]): DeckWord[] {
+  return words.map((word) => ({ word, tags: [] }));
+}
+
+/**
+ * DeckWord[] 입력을 정규화하고 유효성을 검사합니다.
+ * - 단어: a-z만 허용, 소문자 정규화, 공백 제거, 중복 제거 (먼저 등장한 항목의 태그 보존).
+ * - 태그: trim 후 빈 문자열 제외.
+ */
+export function validateDeckWords(input: DeckWord[]): {
+  ok: DeckWord[];
+  errors: string[];
+} {
+  const errors: string[] = [];
+  const seen = new Map<string, DeckWord>();
+
+  if (!input || input.length === 0) {
+    errors.push("최소 하나의 단어가 필요합니다.");
+    return { ok: [], errors };
+  }
+
+  input.forEach((entry, index) => {
+    const rawWord = (entry?.word ?? "").trim();
+    if (!rawWord) {
+      errors.push(`${index + 1}번째 단어가 비어있습니다.`);
+      return;
+    }
+
+    const validation = validateWord(rawWord);
+    if (!validation.isValid) {
+      errors.push(
+        `${index + 1}번째 단어 "${rawWord}": ${validation.errors.join(", ")}`,
+      );
+      return;
+    }
+
+    const normalizedWord = rawWord.toLowerCase();
+    const normalizedTags = Array.from(
+      new Set(
+        (entry?.tags ?? [])
+          .map((tag) => (typeof tag === "string" ? tag.trim() : ""))
+          .filter((tag) => tag.length > 0),
+      ),
+    );
+
+    if (seen.has(normalizedWord)) {
+      // 중복 단어는 무시 (먼저 등장한 항목의 태그를 유지)
+      return;
+    }
+
+    seen.set(normalizedWord, { word: normalizedWord, tags: normalizedTags });
+  });
+
+  return { ok: Array.from(seen.values()), errors };
 }
 
 /**

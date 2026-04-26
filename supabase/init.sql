@@ -7,7 +7,10 @@ CREATE TABLE public.decks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT,
   description TEXT,
-  words TEXT[],
+  -- words: [{ "word": string, "tags": string[] }, ...]
+  words JSONB NOT NULL DEFAULT '[]'::jsonb,
+  -- categories: 덱 단위 카테고리(태그 axes) 팔레트
+  categories TEXT[] NOT NULL DEFAULT '{}',
   thumbnail_url TEXT,
   is_public BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),

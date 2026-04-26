@@ -10,6 +10,7 @@ import {
   type GameState 
 } from "@/lib/wordleGame";
 import { Deck } from "@/types/decks";
+import { getWordStrings } from "@/lib/deckHelpers";
 
 export interface UseGameReturn {
   gameState: GameState | null;
@@ -32,13 +33,14 @@ export function useGame(deck: Deck): UseGameReturn {
 
   // 게임 초기화
   useEffect(() => {
-    if (!deck.words || deck.words.length === 0) {
+    const wordList = getWordStrings(deck);
+    if (wordList.length === 0) {
       throw new Error('이 덱에는 단어가 없습니다.');
     }
-    
+
     // 랜덤 단어 선택 및 게임 초기화
-    const targetWord = selectRandomWord(deck.words);
-    const initialGameState = initializeGame(targetWord, 6, deck.words);
+    const targetWord = selectRandomWord(wordList);
+    const initialGameState = initializeGame(targetWord, 6, wordList);
     setGameState(initialGameState);
   }, [deck]);
 
@@ -147,10 +149,11 @@ export function useGame(deck: Deck): UseGameReturn {
 
   // 게임 재시작
   const restartGame = useCallback(() => {
-    if (!deck?.words || deck.words.length === 0) return;
-    
-    const targetWord = selectRandomWord(deck.words);
-    const newGameState = initializeGame(targetWord, 6, deck.words);
+    const wordList = getWordStrings(deck);
+    if (wordList.length === 0) return;
+
+    const targetWord = selectRandomWord(wordList);
+    const newGameState = initializeGame(targetWord, 6, wordList);
     setGameState(newGameState);
     setShowResult(false);
     setShowGameResultModal(false);
