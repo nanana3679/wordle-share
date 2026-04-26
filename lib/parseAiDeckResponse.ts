@@ -28,6 +28,14 @@ export type ParseAiDeckResult =
 
 const CODE_BLOCK_RE = /```(?:json)?\s*([\s\S]*?)```/i;
 
+// 카테고리/태그 슬러그 규칙: 영어 소문자 + 하이픈만, 최소 한 글자는 a-z.
+// 위반 시 silently drop — 한글/공백/슬래시/숫자/하이픈만 등 비정형 입력 차단.
+const SLUG_RE = /^[a-z-]+$/;
+const HAS_LETTER_RE = /[a-z]/;
+function isValidSlug(s: string): boolean {
+  return SLUG_RE.test(s) && HAS_LETTER_RE.test(s);
+}
+
 /**
  * Try, in order:
  *   1. ```json ... ``` code block (preferred — most LLMs wrap with this).
@@ -84,12 +92,13 @@ export function parseAiDeckResponse(raw: string): ParseAiDeckResult {
   }
   const v = validation.data;
 
-  // categories: trim + lowercase + dedupe (첫 등장 순서 유지)
+  // categories: trim + lowercase + slug 검증 + dedupe (첫 등장 순서 유지)
   const seenCategory = new Set<string>();
   const categories: string[] = [];
   for (const raw of v.categories) {
     const norm = raw.trim().toLowerCase();
     if (!norm) continue;
+    if (!isValidSlug(norm)) continue;
     if (seenCategory.has(norm)) continue;
     seenCategory.add(norm);
     categories.push(norm);
@@ -112,7 +121,7 @@ export function parseAiDeckResponse(raw: string): ParseAiDeckResult {
       new Set(
         incoming.tags
           .map((t) => t.trim().toLowerCase())
-          .filter((t) => t.length > 0)
+          .filter((t) => t.length > 0 && isValidSlug(t))
       )
     );
 
