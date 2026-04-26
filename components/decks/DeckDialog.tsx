@@ -292,7 +292,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
             <Textarea
               id="words"
               name="words"
-              defaultValue={deck?.words?.join(", ") || ""}
+              defaultValue={deck?.words?.map((w) => w.word).join(", ") || ""}
               placeholder="예: 고양이, 강아지, 토끼, 사자, 호랑이"
               rows={4}
               required

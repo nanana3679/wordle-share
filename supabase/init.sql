@@ -7,7 +7,10 @@ CREATE TABLE public.decks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT,
   description TEXT,
-  words TEXT[],
+  -- words: [{ "word": string, "tags": string[] }, ...]
+  words JSONB NOT NULL DEFAULT '[]'::jsonb,
+  -- categories: 덱 단위 카테고리(태그 axes) 팔레트
+  categories TEXT[] NOT NULL DEFAULT '{}',
   thumbnail_url TEXT,
   is_public BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -41,25 +44,11 @@ CREATE INDEX idx_decks_is_public ON public.decks(is_public);
 CREATE INDEX idx_decks_created_at ON public.decks(created_at DESC);
 CREATE INDEX idx_likes_deck_id ON public.likes(deck_id);
 
--- 4. validate_words 함수 (database.ts에 정의됨)
-CREATE OR REPLACE FUNCTION public.validate_words(words TEXT[])
-RETURNS BOOLEAN
-LANGUAGE plpgsql
-AS $$
-BEGIN
-  -- 배열이 비어있으면 false
-  IF array_length(words, 1) IS NULL THEN
-    RETURN false;
-  END IF;
-  RETURN true;
-END;
-$$;
-
--- 5. RLS 활성화
+-- 4. RLS 활성화
 ALTER TABLE public.decks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.likes ENABLE ROW LEVEL SECURITY;
 
--- 6. Decks RLS 정책
+-- 5. Decks RLS 정책
 CREATE POLICY "공개 덱은 누구나 조회 가능"
   ON public.decks FOR SELECT
   USING (is_public = true);
@@ -94,7 +83,7 @@ CREATE POLICY "소유자만 덱 삭제 가능"
   TO authenticated
   USING (auth.uid() = creator_id);
 
--- 7. Likes RLS 정책
+-- 6. Likes RLS 정책
 CREATE POLICY "좋아요는 누구나 조회 가능"
   ON public.likes FOR SELECT
   USING (true);
@@ -109,13 +98,13 @@ CREATE POLICY "본인의 좋아요만 삭제 가능"
   TO authenticated
   USING (auth.uid() = user_id);
 
--- 8. Storage 버킷 (deck-thumbnails)
+-- 7. Storage 버킷 (deck-thumbnails)
 -- Supabase SQL Editor에서 실행
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('deck-thumbnails', 'deck-thumbnails', true)
 ON CONFLICT (id) DO NOTHING;
 
--- 9. Storage RLS 정책
+-- 8. Storage RLS 정책
 CREATE POLICY "썸네일 누구나 조회 가능"
   ON storage.objects FOR SELECT
   USING (bucket_id = 'deck-thumbnails');

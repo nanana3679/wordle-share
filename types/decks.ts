@@ -1,6 +1,8 @@
 import { User } from "@supabase/supabase-js";
 import { Tables, TablesInsert, TablesUpdate } from "./database";
 
+export type DeckWord = { word: string; tags: string[] };
+
 // 서버 액션이 응답에서 author_password_hash를 제외하므로 클라이언트 타입도 제외
 export type Deck = Omit<Tables<"decks">, "author_password_hash"> & {
   likes?: Array<{
