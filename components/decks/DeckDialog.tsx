@@ -307,7 +307,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
         : [];
 
       formData.set("words_json", JSON.stringify(serializedWords));
-      formData.set("categories", JSON.stringify(serializedCategories));
+      formData.set("categories_json", JSON.stringify(serializedCategories));
       formData.delete("words");
 
       // 익명 덱 생성: 썸네일·공개 토글 없이 바로 생성
@@ -363,7 +363,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
           updateFormData.set("name", formData.get("name") as string);
           updateFormData.set("description", formData.get("description") as string);
           updateFormData.set("words_json", formData.get("words_json") as string);
-          updateFormData.set("categories", formData.get("categories") as string);
+          updateFormData.set("categories_json", formData.get("categories_json") as string);
           updateFormData.set("is_public", formData.get("is_public") as string);
           updateFormData.set("thumbnail_url", finalThumbnailUrl);
 

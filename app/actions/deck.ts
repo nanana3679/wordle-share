@@ -66,7 +66,7 @@ function parseDeckPayload(formData: FormData): DeckPayloadResult {
     };
   }
 
-  const categoriesJson = formData.get("categories");
+  const categoriesJson = formData.get("categories_json");
   let rawCategories: unknown = [];
   if (typeof categoriesJson === "string" && categoriesJson.trim()) {
     try {
