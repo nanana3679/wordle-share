@@ -186,9 +186,16 @@ export function validateDeckWords(input: DeckWord[]): {
     }
 
     const normalizedWord = rawWord.toLowerCase();
+    const rawTags = entry?.tags;
+    if (rawTags !== undefined && rawTags !== null && !Array.isArray(rawTags)) {
+      errors.push(
+        `${index + 1}번째 단어 "${rawWord}": tags 필드는 배열이어야 합니다.`,
+      );
+      return;
+    }
     const normalizedTags = Array.from(
       new Set(
-        (entry?.tags ?? [])
+        (rawTags ?? [])
           .map((tag) => (typeof tag === "string" ? tag.trim() : ""))
           .filter((tag) => tag.length > 0),
       ),

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { nanoid } from "nanoid";
 import { createDeck, createAnonymousDeck, updateDeck } from "@/app/actions/deck";
 import { Deck } from "@/types/decks";
 import { uploadDeckThumbnail } from "@/app/actions/storage";
@@ -23,10 +24,45 @@ import { toast } from "sonner";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
 import Image from "next/image";
 import { actionWithToast } from "@/lib/action-with-toast";
+import { CategoryPalette } from "@/components/decks/CategoryPalette";
+import { WordList } from "@/components/decks/WordList";
+import type { WordRowValue } from "@/components/decks/WordRow";
 
 interface DeckDialogProps {
   deck?: Deck; // deck이 있으면 수정 모드, 없으면 생성 모드
   children: React.ReactNode;
+}
+
+type DeckFormState = {
+  words: WordRowValue[];
+  categories: string[];
+  usesCategories: boolean;
+  hiddenCategories: string[];
+  hiddenWordTags: Record<string, string[]>;
+};
+
+function makeRow(word = "", tags: string[] = []): WordRowValue {
+  return { id: nanoid(), word, tags };
+}
+
+function buildInitialState(deck?: Deck): DeckFormState {
+  const deckWords = deck?.words ?? [];
+  const deckCategories = deck?.categories ?? [];
+  const hasAnyTag = deckWords.some((w) => (w.tags?.length ?? 0) > 0);
+  const usesCategories = deckCategories.length > 0 || hasAnyTag;
+
+  const rows: WordRowValue[] =
+    deckWords.length > 0
+      ? deckWords.map((w) => makeRow(w.word, w.tags ?? []))
+      : [makeRow(), makeRow(), makeRow()];
+
+  return {
+    words: rows,
+    categories: deckCategories,
+    usesCategories,
+    hiddenCategories: [],
+    hiddenWordTags: {},
+  };
 }
 
 export function DeckDialog({ deck, children }: DeckDialogProps) {
@@ -37,12 +73,25 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
   const [thumbnailUrl, setThumbnailUrl] = useState(deck?.thumbnail_url || "");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [formState, setFormState] = useState<DeckFormState>(() =>
+    buildInitialState(deck)
+  );
 
   const isEditMode = !!deck;
   const isAnonymousCreate = !isEditMode && !isAuthenticated;
   const title = isEditMode ? "덱 수정" : isAnonymousCreate ? "익명으로 덱 만들기" : "새 덱 만들기";
   const submitButtonText = isEditMode ? "덱 수정" : "덱 생성";
   const loadingText = isEditMode ? "수정 중..." : "생성 중...";
+
+  // 다이얼로그를 다시 열 때 폼 상태 초기화
+  useEffect(() => {
+    if (open) {
+      setFormState(buildInitialState(deck));
+      setThumbnailUrl(deck?.thumbnail_url || "");
+      setSelectedFile(null);
+      setPreviewUrl("");
+    }
+  }, [open, deck]);
 
   // 미리보기 URL 정리
   useEffect(() => {
@@ -53,26 +102,31 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
     };
   }, [previewUrl]);
 
+  const usageCounts = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const row of formState.words) {
+      for (const tag of row.tags) {
+        map[tag] = (map[tag] ?? 0) + 1;
+      }
+    }
+    return map;
+  }, [formState.words]);
+
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // 파일 타입 검증
-    if (!file.type.startsWith('image/')) {
+    if (!file.type.startsWith("image/")) {
       toast.error("이미지 파일만 선택할 수 있습니다.");
       return;
     }
 
-    // 파일 크기 검증 (5MB 제한)
     if (file.size > 5 * 1024 * 1024) {
       toast.error("이미지 크기는 5MB 이하여야 합니다.");
       return;
     }
 
-    // 파일 저장 및 미리보기 생성
     setSelectedFile(file);
-    
-    // 미리보기 URL 생성
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
   };
@@ -86,10 +140,176 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
     }
   };
 
+  const updateRow = useCallback((id: string, next: Partial<WordRowValue>) => {
+    setFormState((prev) => ({
+      ...prev,
+      words: prev.words.map((row) => (row.id === id ? { ...row, ...next } : row)),
+    }));
+  }, []);
+
+  const addRow = useCallback((afterId?: string) => {
+    setFormState((prev) => {
+      const newRow = makeRow();
+      if (!afterId) {
+        return { ...prev, words: [...prev.words, newRow] };
+      }
+      const idx = prev.words.findIndex((row) => row.id === afterId);
+      if (idx === -1) return { ...prev, words: [...prev.words, newRow] };
+      const next = [...prev.words];
+      next.splice(idx + 1, 0, newRow);
+      return { ...prev, words: next };
+    });
+  }, []);
+
+  const removeRow = useCallback((id: string) => {
+    setFormState((prev) => {
+      const filtered = prev.words.filter((row) => row.id !== id);
+      return {
+        ...prev,
+        words: filtered.length > 0 ? filtered : [makeRow()],
+      };
+    });
+  }, []);
+
+  const addCategory = useCallback(
+    (name: string) => {
+      const trimmed = name.trim();
+      if (!trimmed) return false;
+      if (formState.categories.includes(trimmed)) {
+        toast.error(`"${trimmed}"는 이미 등록된 카테고리입니다.`);
+        return false;
+      }
+      setFormState((prev) =>
+        prev.categories.includes(trimmed)
+          ? prev
+          : { ...prev, categories: [...prev.categories, trimmed] },
+      );
+      return true;
+    },
+    [formState.categories],
+  );
+
+  const renameCategory = useCallback(
+    (oldName: string, newName: string) => {
+      const trimmed = newName.trim();
+      if (!trimmed || trimmed === oldName) return false;
+      if (formState.categories.includes(trimmed)) {
+        toast.error(`"${trimmed}"는 이미 등록된 카테고리입니다.`);
+        return false;
+      }
+      setFormState((prev) => {
+        if (prev.categories.includes(trimmed)) return prev;
+        return {
+          ...prev,
+          categories: prev.categories.map((c) => (c === oldName ? trimmed : c)),
+          words: prev.words.map((row) => ({
+            ...row,
+            tags: row.tags.map((t) => (t === oldName ? trimmed : t)),
+          })),
+        };
+      });
+      return true;
+    },
+    [formState.categories],
+  );
+
+  const deleteCategory = useCallback((name: string) => {
+    setFormState((prev) => ({
+      ...prev,
+      categories: prev.categories.filter((c) => c !== name),
+      words: prev.words.map((row) => ({
+        ...row,
+        tags: row.tags.filter((t) => t !== name),
+      })),
+    }));
+  }, []);
+
+  const handleToggleCategories = useCallback((checked: boolean) => {
+    setFormState((prev) => {
+      if (checked) {
+        // OFF -> ON: 숨겨둔 값 복원
+        const restoredWords = prev.words.map((row) => {
+          const stashed = prev.hiddenWordTags[row.id];
+          if (stashed && stashed.length > 0) {
+            return { ...row, tags: stashed };
+          }
+          return row;
+        });
+        return {
+          ...prev,
+          usesCategories: true,
+          categories:
+            prev.categories.length > 0 ? prev.categories : prev.hiddenCategories,
+          hiddenCategories: [],
+          hiddenWordTags: {},
+          words: restoredWords,
+        };
+      }
+      // ON -> OFF: 보존
+      const stash: Record<string, string[]> = {};
+      const cleared = prev.words.map((row) => {
+        if (row.tags.length > 0) stash[row.id] = row.tags;
+        return { ...row, tags: [] };
+      });
+      return {
+        ...prev,
+        usesCategories: false,
+        hiddenCategories: prev.categories,
+        hiddenWordTags: stash,
+        categories: [],
+        words: cleared,
+      };
+    });
+  }, []);
+
   async function handleSubmit(formData: FormData) {
     setIsLoading(true);
 
     try {
+      // 빈 행 자동 제거 + lowercase 정규화
+      const trimmedRows = formState.words
+        .map((row) => ({ ...row, word: row.word.trim().toLowerCase() }))
+        .filter((row) => row.word.length > 0);
+
+      if (trimmedRows.length === 0) {
+        toast.error("최소 하나의 단어를 입력해주세요.");
+        return;
+      }
+
+      const invalidRow = trimmedRows.find((row) => !/^[a-z]+$/.test(row.word));
+      if (invalidRow) {
+        toast.error(`"${invalidRow.word}"는 영문자(a-z)만 사용할 수 있습니다.`);
+        return;
+      }
+
+      const seen = new Set<string>();
+      for (const row of trimmedRows) {
+        if (seen.has(row.word)) {
+          toast.error(`"${row.word}"는 중복된 단어입니다.`);
+          return;
+        }
+        seen.add(row.word);
+      }
+
+      // 카테고리 토글 ON인데 등록된 카테고리가 0개면 OFF로 전환하고 진행
+      let effectiveUsesCategories = formState.usesCategories;
+      if (effectiveUsesCategories && formState.categories.length === 0) {
+        toast.warning("카테고리가 비어있어 카테고리 사용을 끕니다.");
+        effectiveUsesCategories = false;
+      }
+
+      const serializedWords = trimmedRows.map((row) => ({
+        word: row.word,
+        tags: effectiveUsesCategories ? row.tags : [],
+      }));
+      const serializedCategories = effectiveUsesCategories
+        ? formState.categories
+        : [];
+
+      formData.set("words_json", JSON.stringify(serializedWords));
+      formData.set("categories_json", JSON.stringify(serializedCategories));
+      formData.delete("words");
+
       // 익명 덱 생성: 썸네일·공개 토글 없이 바로 생성
       if (isAnonymousCreate) {
         const response = await actionWithToast(() => createAnonymousDeck(formData));
@@ -127,7 +347,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
             toast.error(createResponse.message || "덱 생성에 실패했습니다.");
             return;
           }
-          
+
           const uploadResponse = await actionWithToast(
             () => uploadDeckThumbnail(selectedFile, createResponse.data?.id as string),
             { showOnlyError: true }
@@ -137,15 +357,16 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
             return;
           }
           finalThumbnailUrl = uploadResponse.data;
-          
+
           // 이미지 URL로 덱 업데이트
           const updateFormData = new FormData();
           updateFormData.set("name", formData.get("name") as string);
           updateFormData.set("description", formData.get("description") as string);
-          updateFormData.set("words", formData.get("words") as string);
+          updateFormData.set("words_json", formData.get("words_json") as string);
+          updateFormData.set("categories_json", formData.get("categories_json") as string);
           updateFormData.set("is_public", formData.get("is_public") as string);
           updateFormData.set("thumbnail_url", finalThumbnailUrl);
-          
+
           const updateResponse = await actionWithToast(
             () => updateDeck(createResponse.data?.id as string, updateFormData)
           );
@@ -153,44 +374,47 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
             toast.error(updateResponse.message || "덱 업데이트에 실패했습니다.");
             return;
           }
-          
+
           setOpen(false);
           router.refresh();
           return;
         }
       }
-      
+
       // 이미지 URL을 FormData에 추가
       if (finalThumbnailUrl) {
         formData.set("thumbnail_url", finalThumbnailUrl);
       }
-      
+
       if (isEditMode && deck) {
         const response = await actionWithToast(() => updateDeck(deck.id, formData));
         if (!response.success) {
           toast.error(response.message || "덱 수정에 실패했습니다.");
           return;
         }
-        
-        // 수정 후 페이지 새로고침
+
         setTimeout(() => {
           router.refresh();
         }, 1000);
       } else if (!isEditMode) {
-        // 생성 모드 && 이미지 없음
         const response = await actionWithToast(() => createDeck(formData));
         if (!response.success) {
           toast.error(response.message || "덱 생성에 실패했습니다.");
           return;
         }
-        
+
         router.refresh();
       }
-      
+
       setOpen(false);
     } catch (error) {
       console.error("덱 처리 중 오류 발생:", error);
-      const errorMessage = error instanceof Error ? error.message : (isEditMode ? "덱 수정에 실패했습니다." : "덱 생성에 실패했습니다.");
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : isEditMode
+            ? "덱 수정에 실패했습니다."
+            : "덱 생성에 실패했습니다.";
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -199,9 +423,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
+      <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle>{title}</DialogTitle>
@@ -209,138 +431,165 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
             {isEditMode ? "덱 정보를 수정하세요." : "새로운 단어 덱을 만들어 보세요."}
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="flex-1 overflow-y-auto px-1">
           <form action={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">덱 이름 *</Label>
-            <Input
-              id="name"
-              name="name"
-              defaultValue={deck?.name || ""}
-              placeholder="예: 동물 단어"
-              required
-            />
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="name">덱 이름 *</Label>
+              <Input
+                id="name"
+                name="name"
+                defaultValue={deck?.name || ""}
+                placeholder="예: 동물 단어"
+                required
+              />
+            </div>
 
-          {/* 이미지 업로드 (익명 생성은 미지원) */}
-          {!isAnonymousCreate && (
-          <div className="space-y-2">
-            <Label>썸네일 이미지</Label>
-            {(thumbnailUrl || previewUrl) ? (
-              <div className="relative w-full h-32 rounded-lg overflow-hidden border">
-                <Image
-                  src={previewUrl || thumbnailUrl}
-                  alt="덱 썸네일"
-                  fill
-                  sizes="(max-width: 640px) 100vw, 600px"
-                  className="object-cover"
-                />
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="sm"
-                  className="absolute top-2 right-2"
-                  onClick={handleRemoveImage}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
-                <ImageIcon className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground mb-2">
-                  이미지를 선택하여 덱에 썸네일을 추가하세요
+            {/* 이미지 업로드 (익명 생성은 미지원) */}
+            {!isAnonymousCreate && (
+              <div className="space-y-2">
+                <Label>썸네일 이미지</Label>
+                {thumbnailUrl || previewUrl ? (
+                  <div className="relative w-full h-32 rounded-lg overflow-hidden border">
+                    <Image
+                      src={previewUrl || thumbnailUrl}
+                      alt="덱 썸네일"
+                      fill
+                      sizes="(max-width: 640px) 100vw, 600px"
+                      className="object-cover"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      className="absolute top-2 right-2"
+                      onClick={handleRemoveImage}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
+                    <ImageIcon className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground mb-2">
+                      이미지를 선택하여 덱에 썸네일을 추가하세요
+                    </p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageSelect}
+                      className="hidden"
+                      id="thumbnail-upload"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => document.getElementById("thumbnail-upload")?.click()}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      이미지 선택
+                    </Button>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  이미지 크기는 5MB 이하여야 합니다.
                 </p>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageSelect}
-                  className="hidden"
-                  id="thumbnail-upload"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => document.getElementById('thumbnail-upload')?.click()}
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  이미지 선택
-                </Button>
               </div>
             )}
-            <p className="text-xs text-muted-foreground">
-              이미지 크기는 5MB 이하여야 합니다.
-            </p>
-          </div>
-          )}
 
-          <div className="space-y-2">
-            <Label htmlFor="description">설명</Label>
-            <Textarea
-              id="description"
-              name="description"
-              defaultValue={deck?.description || ""}
-              placeholder="덱에 대한 설명을 입력하세요..."
-              rows={3}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="words">단어 목록 *</Label>
-            <Textarea
-              id="words"
-              name="words"
-              defaultValue={deck?.words?.map((w) => w.word).join(", ") || ""}
-              placeholder="예: 고양이, 강아지, 토끼, 사자, 호랑이"
-              rows={4}
-              required
-            />
-            <p className="text-xs text-muted-foreground">
-              단어는 쉼표(,)로 구분하여 입력하세요.
-            </p>
-          </div>
-          
-          {isAnonymousCreate ? (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="author_handle">표시 이름 *</Label>
-                <Input
-                  id="author_handle"
-                  name="author_handle"
-                  placeholder="덱에 표시될 이름 (2~20자)"
-                  minLength={2}
-                  maxLength={20}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">비밀번호 *</Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="수정/삭제 시 필요 (4자 이상)"
-                  minLength={4}
-                  maxLength={64}
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  익명 덱은 항상 공개되며, 비밀번호를 분실하면 수정/삭제할 수 없습니다.
-                </p>
-              </div>
-            </>
-          ) : (
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="is_public"
-                name="is_public"
-                defaultChecked={deck?.is_public ?? true}
+            <div className="space-y-2">
+              <Label htmlFor="description">설명</Label>
+              <Textarea
+                id="description"
+                name="description"
+                defaultValue={deck?.description || ""}
+                placeholder="덱에 대한 설명을 입력하세요..."
+                rows={3}
               />
-              <Label htmlFor="is_public">공개 덱으로 만들기</Label>
             </div>
-          )}
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>단어 목록 *</Label>
+                <div className="flex items-center gap-2">
+                  <Label
+                    htmlFor="uses_categories"
+                    className="text-xs text-muted-foreground"
+                  >
+                    카테고리 사용
+                  </Label>
+                  <Switch
+                    id="uses_categories"
+                    checked={formState.usesCategories}
+                    onCheckedChange={handleToggleCategories}
+                  />
+                </div>
+              </div>
+
+              {formState.usesCategories && (
+                <CategoryPalette
+                  categories={formState.categories}
+                  usageCounts={usageCounts}
+                  onAdd={addCategory}
+                  onRename={renameCategory}
+                  onDelete={deleteCategory}
+                />
+              )}
+
+              <WordList
+                rows={formState.words}
+                categories={formState.categories}
+                showCategoryPicker={formState.usesCategories}
+                onChangeRow={updateRow}
+                onAddRow={addRow}
+                onRemoveRow={removeRow}
+                onCreateCategory={addCategory}
+              />
+              <p className="text-xs text-muted-foreground pl-9">
+                Enter 키로 다음 행을 추가하고, × 버튼으로 행을 삭제할 수 있어요.
+              </p>
+            </div>
+
+            {isAnonymousCreate ? (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="author_handle">표시 이름 *</Label>
+                  <Input
+                    id="author_handle"
+                    name="author_handle"
+                    placeholder="덱에 표시될 이름 (2~20자)"
+                    minLength={2}
+                    maxLength={20}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">비밀번호 *</Label>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    placeholder="수정/삭제 시 필요 (4자 이상)"
+                    minLength={4}
+                    maxLength={64}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    익명 덱은 항상 공개되며, 비밀번호를 분실하면 수정/삭제할 수 없습니다.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="is_public"
+                  name="is_public"
+                  defaultChecked={deck?.is_public ?? true}
+                />
+                <Label htmlFor="is_public">공개 덱으로 만들기</Label>
+              </div>
+            )}
 
             <div className="flex justify-end space-x-2 pt-4">
               <Button
