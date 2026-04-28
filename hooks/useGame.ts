@@ -132,10 +132,11 @@ export function useGame(deck: Deck, adapter: ScriptAdapter): UseGameReturn {
         return;
       }
 
-      // 한 글자 입력은 어댑터로 위임
+      // 한 글자 입력: keyId는 키보드 상태 식별자라 입력 문자로 쓰면
+      // 비라틴 스크립트에서 currentGuess가 깨질 수 있음. 실제 입력 문자를 그대로 전달.
       if (rawKey.length === 1 && adapter.isAllowedChar(rawKey)) {
         event.preventDefault();
-        handleKeyPress(adapter.keyId(rawKey));
+        handleKeyPress(rawKey);
         return;
       }
 
