@@ -1,5 +1,8 @@
 // Wordle 게임 로직
 
+import { getScriptAdapter } from './scripts';
+import type { ScriptAdapter, ScriptId } from './scripts/types';
+
 export type LetterState = 'correct' | 'present' | 'absent' | 'empty';
 
 export interface Letter {
@@ -20,62 +23,80 @@ export interface GameState {
   keyboardState: Record<string, LetterState>;
   validWords?: string[]; // 유효한 단어 목록
   errorMessage?: string; // 에러 메시지
+  adapterId: ScriptId;
 }
 
-export function initializeGame(targetWord: string, maxGuesses: number = 6, validWords?: string[]): GameState {
+export function initializeGame(
+  targetWord: string,
+  maxGuesses: number = 6,
+  validWords: string[] | undefined,
+  adapter: ScriptAdapter
+): GameState {
   return {
-    targetWord: targetWord.toLowerCase(),
+    targetWord: adapter.normalize(targetWord),
     guesses: [],
     currentGuess: '',
     gameStatus: 'playing',
     maxGuesses,
     keyboardState: {},
-    validWords: validWords?.map(w => w.toLowerCase()),
-    errorMessage: undefined
+    validWords: validWords?.map((w) => adapter.normalize(w)),
+    errorMessage: undefined,
+    adapterId: adapter.id,
   };
 }
 
 export function addLetterToGuess(gameState: GameState, letter: string): GameState {
   if (gameState.gameStatus !== 'playing') return gameState;
-  if (gameState.currentGuess.length >= gameState.targetWord.length) return gameState;
-  
-  // 알파벳만 허용
-  if (!letter.match(/[A-Za-z]/)) return gameState;
-  
+
+  const adapter = getScriptAdapter(gameState.adapterId);
+  const targetUnits = adapter.splitUnits(gameState.targetWord);
+  const currentUnits = adapter.splitUnits(gameState.currentGuess);
+  if (currentUnits.length >= targetUnits.length) return gameState;
+
+  if (!adapter.isAllowedChar(letter)) return gameState;
+
   return {
     ...gameState,
-    currentGuess: gameState.currentGuess + letter.toLowerCase(),
+    currentGuess: gameState.currentGuess + adapter.normalize(letter),
     errorMessage: undefined // 입력 시 에러 메시지 초기화
   };
 }
 
 export function removeLetterFromGuess(gameState: GameState): GameState {
   if (gameState.gameStatus !== 'playing') return gameState;
-  
+
+  const adapter = getScriptAdapter(gameState.adapterId);
+  const units = adapter.splitUnits(gameState.currentGuess);
+  if (units.length === 0) return gameState;
+
   return {
     ...gameState,
-    currentGuess: gameState.currentGuess.slice(0, -1)
+    currentGuess: units.slice(0, -1).join('')
   };
 }
 
 export function submitGuess(gameState: GameState): GameState {
   if (gameState.gameStatus !== 'playing') return gameState;
-  if (gameState.currentGuess.length !== gameState.targetWord.length) return gameState;
-  
+
+  const adapter = getScriptAdapter(gameState.adapterId);
+  const targetUnits = adapter.splitUnits(gameState.targetWord);
+  const currentUnits = adapter.splitUnits(gameState.currentGuess);
+  if (currentUnits.length !== targetUnits.length) return gameState;
+
   // 유효한 단어 목록이 있는 경우 검증
   if (gameState.validWords && gameState.validWords.length > 0) {
-    const currentGuessLower = gameState.currentGuess.toLowerCase();
-    if (!gameState.validWords.includes(currentGuessLower)) {
+    const currentNormalized = adapter.normalize(gameState.currentGuess);
+    if (!gameState.validWords.includes(currentNormalized)) {
       return {
         ...gameState,
         errorMessage: '단어 목록에 없는 단어입니다.'
       };
     }
   }
-  
-  const newGuess = evaluateGuess(gameState.currentGuess, gameState.targetWord);
+
+  const newGuess = evaluateGuess(currentUnits, targetUnits);
   const newGuesses = [...gameState.guesses, newGuess];
-  
+
   // 키보드 상태 업데이트
   const newKeyboardState = { ...gameState.keyboardState };
   newGuess.letters.forEach(letter => {
@@ -84,22 +105,22 @@ export function submitGuess(gameState: GameState): GameState {
       const upperChar = letter.char.toUpperCase();
       // 더 높은 우선순위 상태로 업데이트 (correct > present > absent)
       const currentState = newKeyboardState[upperChar];
-      if (!currentState || 
+      if (!currentState ||
           (currentState === 'absent' && letter.state !== 'absent') ||
           (currentState === 'present' && letter.state === 'correct')) {
         newKeyboardState[upperChar] = letter.state;
       }
     }
   });
-  
+
   // 게임 상태 확인
   let gameStatus: 'playing' | 'won' | 'lost' = 'playing';
-  if (gameState.currentGuess.toLowerCase() === gameState.targetWord) {
+  if (adapter.normalize(gameState.currentGuess) === gameState.targetWord) {
     gameStatus = 'won';
   } else if (newGuesses.length >= gameState.maxGuesses) {
     gameStatus = 'lost';
   }
-  
+
   return {
     ...gameState,
     guesses: newGuesses,
@@ -110,42 +131,40 @@ export function submitGuess(gameState: GameState): GameState {
   };
 }
 
-function evaluateGuess(guess: string, target: string): Guess {
-  const targetArray = target.split('');
-  const guessArray = guess.split('');
+function evaluateGuess(guessUnits: string[], targetUnits: string[]): Guess {
   const result: Letter[] = [];
-  
+
   // 첫 번째 패스: 정확한 위치의 글자 확인
-  const targetRemaining = [...targetArray];
-  const guessRemaining = [...guessArray];
-  
+  const targetRemaining = [...targetUnits];
+  const guessRemaining = [...guessUnits];
+
   // correct 위치 찾기
-  for (let i = 0; i < guessArray.length; i++) {
-    if (guessArray[i] === targetArray[i]) {
-      result[i] = { char: guessArray[i], state: 'correct' };
+  for (let i = 0; i < guessUnits.length; i++) {
+    if (guessUnits[i] === targetUnits[i]) {
+      result[i] = { char: guessUnits[i], state: 'correct' };
       targetRemaining[i] = '';
       guessRemaining[i] = '';
     }
   }
-  
+
   // 두 번째 패스: present 위치 찾기
-  for (let i = 0; i < guessArray.length; i++) {
+  for (let i = 0; i < guessUnits.length; i++) {
     if (guessRemaining[i] === '') continue; // 이미 처리된 글자
-    
-    const targetIndex = targetRemaining.findIndex(char => char === guessArray[i]);
+
+    const targetIndex = targetRemaining.findIndex((char) => char === guessUnits[i]);
     if (targetIndex !== -1) {
-      result[i] = { char: guessArray[i], state: 'present' };
+      result[i] = { char: guessUnits[i], state: 'present' };
       targetRemaining[targetIndex] = '';
       guessRemaining[i] = '';
     }
   }
-  
+
   // 세 번째 패스: absent 처리
-  for (let i = 0; i < guessArray.length; i++) {
+  for (let i = 0; i < guessUnits.length; i++) {
     if (guessRemaining[i] === '') continue; // 이미 처리된 글자
-    result[i] = { char: guessArray[i], state: 'absent' };
+    result[i] = { char: guessUnits[i], state: 'absent' };
   }
-  
+
   return { letters: result };
 }
 

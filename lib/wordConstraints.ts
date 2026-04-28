@@ -1,6 +1,7 @@
 // 단어 제약 조건 헬퍼 함수들
 
 import type { DeckWord } from "@/types/decks";
+import type { ScriptAdapter } from "./scripts/types";
 
 export interface WordValidationResult {
   isValid: boolean;
@@ -9,23 +10,20 @@ export interface WordValidationResult {
 
 /**
  * 단일 단어의 유효성을 검사합니다.
- * @param word 검사할 단어
- * @returns 유효성 검사 결과
  */
-export function validateWord(word: string): WordValidationResult {
+export function validateWord(word: string, adapter: ScriptAdapter): WordValidationResult {
   const errors: string[] = [];
-  
+
   // 1글자 이상인지 확인
   if (!word || word.length < 1) {
     errors.push('단어는 1글자 이상이어야 합니다.');
     return { isValid: false, errors };
   }
-  
-  // a-z, A-Z만 사용되는지 확인
-  if (!/^[a-zA-Z]+$/.test(word)) {
+
+  if (!adapter.isAllowedWord(word)) {
     errors.push('단어는 영문자(a-z, A-Z)만 사용할 수 있습니다.');
   }
-  
+
   return {
     isValid: errors.length === 0,
     errors
@@ -34,46 +32,44 @@ export function validateWord(word: string): WordValidationResult {
 
 /**
  * 단어 배열의 유효성을 검사합니다.
- * @param words 검사할 단어 배열
- * @returns 유효성 검사 결과
  */
-export function validateWords(words: string[]): WordValidationResult {
+export function validateWords(words: string[], adapter: ScriptAdapter): WordValidationResult {
   const errors: string[] = [];
-  
+
   if (!words || words.length === 0) {
     errors.push('최소 하나의 단어가 필요합니다.');
     return { isValid: false, errors };
   }
-  
+
   // 각 단어의 개별 유효성 검사
   const individualErrors: string[] = [];
   const processedWords = new Set<string>();
-  
+
   words.forEach((word, index) => {
     const trimmedWord = word.trim();
-    
+
     if (!trimmedWord) {
       individualErrors.push(`${index + 1}번째 단어가 비어있습니다.`);
       return;
     }
-    
+
     // 중복 검사
-    const lowerWord = trimmedWord.toLowerCase();
+    const lowerWord = adapter.normalize(trimmedWord);
     if (processedWords.has(lowerWord)) {
       individualErrors.push(`"${trimmedWord}"는 중복된 단어입니다.`);
       return;
     }
     processedWords.add(lowerWord);
-    
+
     // 개별 단어 유효성 검사
-    const wordValidation = validateWord(trimmedWord);
+    const wordValidation = validateWord(trimmedWord, adapter);
     if (!wordValidation.isValid) {
       individualErrors.push(`${index + 1}번째 단어 "${trimmedWord}": ${wordValidation.errors.join(', ')}`);
     }
   });
-  
+
   errors.push(...individualErrors);
-  
+
   return {
     isValid: errors.length === 0,
     errors
@@ -81,41 +77,35 @@ export function validateWords(words: string[]): WordValidationResult {
 }
 
 /**
- * 단어를 정규화합니다 (공백 제거, 소문자 변환).
- * @param word 정규화할 단어
- * @returns 정규화된 단어
+ * 단어를 정규화합니다.
  */
-export function normalizeWord(word: string): string {
-  return word.trim().toLowerCase();
+export function normalizeWord(word: string, adapter: ScriptAdapter): string {
+  return adapter.normalize(word);
 }
 
 /**
- * 단어 배열을 정규화합니다 (중복 제거, 공백 제거, 소문자 변환).
- * @param words 정규화할 단어 배열
- * @returns 정규화된 단어 배열
+ * 단어 배열을 정규화합니다 (중복 제거 포함).
  */
-export function normalizeWords(words: string[]): string[] {
+export function normalizeWords(words: string[], adapter: ScriptAdapter): string[] {
   const normalized = words
     .map(word => word.trim())
     .filter(word => word.length > 0)
-    .map(word => word.toLowerCase());
-  
+    .map(word => adapter.normalize(word));
+
   // 중복 제거
   return Array.from(new Set(normalized));
 }
 
 /**
  * 단어 배열을 정규화하고 유효성을 검사합니다.
- * @param words 검사할 단어 배열
- * @returns 정규화된 단어 배열과 유효성 검사 결과
  */
-export function processWords(words: string[]): {
+export function processWords(words: string[], adapter: ScriptAdapter): {
   normalizedWords: string[];
   validation: WordValidationResult;
 } {
-  const normalizedWords = normalizeWords(words);
-  const validation = validateWords(normalizedWords);
-  
+  const normalizedWords = normalizeWords(words, adapter);
+  const validation = validateWords(normalizedWords, adapter);
+
   return {
     normalizedWords,
     validation
@@ -124,10 +114,8 @@ export function processWords(words: string[]): {
 
 /**
  * CSV 형태의 문자열을 단어 배열로 변환하고 검증합니다.
- * @param wordsString 쉼표로 구분된 단어 문자열
- * @returns 정규화된 단어 배열과 유효성 검사 결과
  */
-export function parseWordsString(wordsString: string): {
+export function parseWordsString(wordsString: string, adapter: ScriptAdapter): {
   normalizedWords: string[];
   validation: WordValidationResult;
 } {
@@ -137,13 +125,13 @@ export function parseWordsString(wordsString: string): {
       validation: { isValid: false, errors: ['단어를 입력해주세요.'] }
     };
   }
-  
+
   const words = wordsString
     .split(',')
     .map(word => word.trim())
     .filter(word => word.length > 0);
-  
-  return processWords(words);
+
+  return processWords(words, adapter);
 }
 
 /**
@@ -155,10 +143,11 @@ export function toDeckWords(words: string[]): DeckWord[] {
 
 /**
  * DeckWord[] 입력을 정규화하고 유효성을 검사합니다.
- * - 단어: a-z만 허용, 소문자 정규화, 공백 제거, 중복 제거 (먼저 등장한 항목의 태그 보존).
+ * - 단어: adapter.isAllowedWord 통과만 허용, adapter.normalize로 정규화, 공백 제거, 중복 제거
+ *   (먼저 등장한 항목의 태그 보존).
  * - 태그: trim 후 빈 문자열 제외.
  */
-export function validateDeckWords(input: DeckWord[]): {
+export function validateDeckWords(input: DeckWord[], adapter: ScriptAdapter): {
   ok: DeckWord[];
   errors: string[];
 } {
@@ -177,7 +166,7 @@ export function validateDeckWords(input: DeckWord[]): {
       return;
     }
 
-    const validation = validateWord(rawWord);
+    const validation = validateWord(rawWord, adapter);
     if (!validation.isValid) {
       errors.push(
         `${index + 1}번째 단어 "${rawWord}": ${validation.errors.join(", ")}`,
@@ -185,7 +174,7 @@ export function validateDeckWords(input: DeckWord[]): {
       return;
     }
 
-    const normalizedWord = rawWord.toLowerCase();
+    const normalizedWord = adapter.normalize(rawWord);
     const rawTags = entry?.tags;
     if (rawTags !== undefined && rawTags !== null && !Array.isArray(rawTags)) {
       errors.push(
@@ -214,33 +203,30 @@ export function validateDeckWords(input: DeckWord[]): {
 
 /**
  * 단어가 게임에 적합한지 확인합니다 (추가 게임 관련 제약 조건).
- * @param word 검사할 단어
- * @param minLength 최소 길이 (기본값: 3)
- * @param maxLength 최대 길이 (기본값: 10)
- * @returns 게임 적합성 검사 결과
  */
 export function validateWordForGame(
-  word: string, 
-  minLength: number = 3, 
+  word: string,
+  adapter: ScriptAdapter,
+  minLength: number = 3,
   maxLength: number = 10
 ): WordValidationResult {
   const errors: string[] = [];
-  
+
   // 기본 유효성 검사
-  const basicValidation = validateWord(word);
+  const basicValidation = validateWord(word, adapter);
   if (!basicValidation.isValid) {
     return basicValidation;
   }
-  
+
   // 길이 검사
   if (word.length < minLength) {
     errors.push(`단어는 최소 ${minLength}글자 이상이어야 합니다.`);
   }
-  
+
   if (word.length > maxLength) {
     errors.push(`단어는 최대 ${maxLength}글자까지 가능합니다.`);
   }
-  
+
   return {
     isValid: errors.length === 0,
     errors
@@ -249,32 +235,29 @@ export function validateWordForGame(
 
 /**
  * 단어 배열이 게임에 적합한지 확인합니다.
- * @param words 검사할 단어 배열
- * @param minLength 최소 길이 (기본값: 3)
- * @param maxLength 최대 길이 (기본값: 10)
- * @returns 게임 적합성 검사 결과
  */
 export function validateWordsForGame(
-  words: string[], 
-  minLength: number = 3, 
+  words: string[],
+  adapter: ScriptAdapter,
+  minLength: number = 3,
   maxLength: number = 10
 ): WordValidationResult {
   const errors: string[] = [];
-  
+
   // 기본 유효성 검사
-  const basicValidation = validateWords(words);
+  const basicValidation = validateWords(words, adapter);
   if (!basicValidation.isValid) {
     return basicValidation;
   }
-  
+
   // 각 단어의 게임 적합성 검사
   words.forEach((word, index) => {
-    const gameValidation = validateWordForGame(word, minLength, maxLength);
+    const gameValidation = validateWordForGame(word, adapter, minLength, maxLength);
     if (!gameValidation.isValid) {
       errors.push(`${index + 1}번째 단어 "${word}": ${gameValidation.errors.join(', ')}`);
     }
   });
-  
+
   return {
     isValid: errors.length === 0,
     errors

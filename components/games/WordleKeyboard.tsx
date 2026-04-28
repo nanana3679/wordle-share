@@ -1,53 +1,49 @@
 "use client";
 
 import { LetterState } from "@/lib/wordleGame";
+import type { KeyboardLayout } from "@/lib/scripts/types";
 
 interface KeyboardProps {
   onKeyPress: (key: string) => void;
   onBackspace: () => void;
   onEnter: () => void;
   keyboardState: Record<string, LetterState>;
+  layout: KeyboardLayout;
   disabled?: boolean;
 }
 
-const KEYBOARD_ROWS = [
-  ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
-  ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
-  ['ENTER', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'BACKSPACE']
-];
-
-export function WordleKeyboard({ 
-  onKeyPress, 
-  onBackspace, 
-  onEnter, 
-  keyboardState, 
-  disabled = false 
+export function WordleKeyboard({
+  onKeyPress,
+  onBackspace,
+  onEnter,
+  keyboardState,
+  layout,
+  disabled = false
 }: KeyboardProps) {
   const getKeyClassName = (key: string): string => {
     const baseClass = "keyboard-key";
     const state = keyboardState[key.toUpperCase()];
-    
-    if (key === 'ENTER' || key === 'BACKSPACE') {
+
+    if (key === layout.enterLabel || key === layout.backspaceLabel) {
       return `${baseClass} special-key ${disabled ? 'disabled' : ''}`;
     }
-    
+
     let stateClass = '';
     if (state === 'correct') stateClass = 'correct';
     else if (state === 'present') stateClass = 'present';
     else if (state === 'absent') stateClass = 'absent';
-    
+
     return `${baseClass} ${stateClass} ${disabled ? 'disabled' : ''}`;
   };
 
   const handleKeyClick = (key: string) => {
     if (disabled) return;
-    
-    if (key === 'ENTER') {
+
+    if (key === layout.enterLabel) {
       onEnter();
-    } else if (key === 'BACKSPACE') {
+    } else if (key === layout.backspaceLabel) {
       onBackspace();
-    } else if (key.match(/[A-Z]/)) {
-      // 알파벳만 허용
+    } else {
       onKeyPress(key);
     }
   };
@@ -156,7 +152,7 @@ export function WordleKeyboard({
         }
       `}</style>
       <div className="keyboard-container">
-        {KEYBOARD_ROWS.map((row, rowIndex) => (
+        {layout.rows.map((row, rowIndex) => (
           <div key={rowIndex} className="keyboard-row">
             {row.map((key) => (
               <button
@@ -165,7 +161,7 @@ export function WordleKeyboard({
                 onClick={() => handleKeyClick(key)}
                 disabled={disabled}
               >
-                {key === 'BACKSPACE' ? '⌫' : key}
+                {key === layout.backspaceLabel ? '⌫' : key}
               </button>
             ))}
           </div>

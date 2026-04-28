@@ -1,14 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { 
-  initializeGame, 
-  addLetterToGuess, 
-  removeLetterFromGuess, 
+import {
+  initializeGame,
+  addLetterToGuess,
+  removeLetterFromGuess,
   submitGuess,
   selectRandomWord,
   isGameComplete,
-  type GameState 
+  type GameState
 } from "@/lib/wordleGame";
+import type { ScriptAdapter } from "@/lib/scripts/types";
 import { Deck } from "@/types/decks";
 import { getWordStrings } from "@/lib/deckHelpers";
 
@@ -24,7 +25,7 @@ export interface UseGameReturn {
   setShowGameResultModal: (show: boolean) => void;
 }
 
-export function useGame(deck: Deck): UseGameReturn {
+export function useGame(deck: Deck, adapter: ScriptAdapter): UseGameReturn {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [showGameResultModal, setShowGameResultModal] = useState(false);
@@ -40,9 +41,9 @@ export function useGame(deck: Deck): UseGameReturn {
 
     // 랜덤 단어 선택 및 게임 초기화
     const targetWord = selectRandomWord(wordList);
-    const initialGameState = initializeGame(targetWord, 6, wordList);
+    const initialGameState = initializeGame(targetWord, 6, wordList, adapter);
     setGameState(initialGameState);
-  }, [deck]);
+  }, [deck, adapter]);
 
   // 키보드 입력 처리
   const handleKeyPress = useCallback((key: string) => {
@@ -153,13 +154,13 @@ export function useGame(deck: Deck): UseGameReturn {
     if (wordList.length === 0) return;
 
     const targetWord = selectRandomWord(wordList);
-    const newGameState = initializeGame(targetWord, 6, wordList);
+    const newGameState = initializeGame(targetWord, 6, wordList, adapter);
     setGameState(newGameState);
     setShowResult(false);
     setShowGameResultModal(false);
     setGameResultType(null);
     setIsSubmitting(false);
-  }, [deck]);
+  }, [deck, adapter]);
 
   return {
     gameState,
