@@ -26,8 +26,16 @@ jobs:
         with:
           version: latest
 
+      - name: Verify secrets present
+        run: |
+          [ -n "$SUPABASE_PROJECT_REF" ] || { echo "PROJECT_REF empty"; exit 1; }
+          [ -n "$SUPABASE_ACCESS_TOKEN" ] || { echo "ACCESS_TOKEN empty"; exit 1; }
+          [ -n "$SUPABASE_DB_PASSWORD" ] || { echo "DB_PASSWORD empty"; exit 1; }
+          echo "ref length: ${#SUPABASE_PROJECT_REF}"
+          echo "token prefix: ${SUPABASE_ACCESS_TOKEN:0:4}"
+
       - name: Link Supabase project
-        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD" --debug
 
       - name: Push migrations
-        run: supabase db push
+        run: supabase db push --password "$SUPABASE_DB_PASSWORD" --debug
