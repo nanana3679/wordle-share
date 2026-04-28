@@ -1,14 +1,14 @@
 "use client";
 
 import { LetterState } from "@/lib/wordleGame";
-import type { KeyboardLayout } from "@/lib/scripts/types";
+import type { ScriptAdapter } from "@/lib/scripts/types";
 
 interface KeyboardProps {
   onKeyPress: (key: string) => void;
   onBackspace: () => void;
   onEnter: () => void;
   keyboardState: Record<string, LetterState>;
-  layout: KeyboardLayout;
+  adapter: ScriptAdapter;
   disabled?: boolean;
 }
 
@@ -17,16 +17,19 @@ export function WordleKeyboard({
   onBackspace,
   onEnter,
   keyboardState,
-  layout,
+  adapter,
   disabled = false
 }: KeyboardProps) {
+  const layout = adapter.keyboard;
+
   const getKeyClassName = (key: string): string => {
     const baseClass = "keyboard-key";
-    const state = keyboardState[key.toUpperCase()];
 
     if (key === layout.enterLabel || key === layout.backspaceLabel) {
       return `${baseClass} special-key ${disabled ? 'disabled' : ''}`;
     }
+
+    const state = keyboardState[adapter.keyId(key)];
 
     let stateClass = '';
     if (state === 'correct') stateClass = 'correct';

@@ -18,7 +18,10 @@ export interface ScriptAdapter {
   rtl: boolean;
   splitUnits(word: string): string[];
   normalize(word: string): string;
+  normalizeChar(ch: string): string;
   isAllowedChar(ch: string): boolean;
   isAllowedWord(word: string): boolean;
   keyboard: KeyboardLayout;
+  keyId(ch: string): string;
+  charDescription: string;
 }

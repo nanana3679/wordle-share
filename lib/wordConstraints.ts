@@ -15,13 +15,13 @@ export function validateWord(word: string, adapter: ScriptAdapter): WordValidati
   const errors: string[] = [];
 
   // 1글자 이상인지 확인
-  if (!word || word.length < 1) {
+  if (!word || adapter.splitUnits(word).length < 1) {
     errors.push('단어는 1글자 이상이어야 합니다.');
     return { isValid: false, errors };
   }
 
   if (!adapter.isAllowedWord(word)) {
-    errors.push('단어는 영문자(a-z, A-Z)만 사용할 수 있습니다.');
+    errors.push(`단어는 ${adapter.charDescription}만 사용할 수 있습니다.`);
   }
 
   return {
@@ -219,11 +219,12 @@ export function validateWordForGame(
   }
 
   // 길이 검사
-  if (word.length < minLength) {
+  const unitLength = adapter.splitUnits(word).length;
+  if (unitLength < minLength) {
     errors.push(`단어는 최소 ${minLength}글자 이상이어야 합니다.`);
   }
 
-  if (word.length > maxLength) {
+  if (unitLength > maxLength) {
     errors.push(`단어는 최대 ${maxLength}글자까지 가능합니다.`);
   }
 

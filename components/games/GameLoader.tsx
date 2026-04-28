@@ -34,14 +34,14 @@ export function GameLoader({ deck }: GameLoaderProps) {
 
   return (
     <div className="min-h-screen bg-gray-50 p-5 max-[480px]:p-2.5">
-      <WordleGrid gameState={gameState} showResult={showResult} />
+      <WordleGrid gameState={gameState} adapter={adapter} showResult={showResult} />
 
       <WordleKeyboard
         onKeyPress={handleKeyPress}
         onBackspace={handleBackspace}
         onEnter={handleEnter}
         keyboardState={gameState.keyboardState}
-        layout={adapter.keyboard}
+        adapter={adapter}
         disabled={isGameComplete(gameState)}
       />
 

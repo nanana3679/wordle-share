@@ -1,16 +1,16 @@
 "use client";
 
 import { GameState } from "@/lib/wordleGame";
-import { getScriptAdapter } from "@/lib/scripts";
+import type { ScriptAdapter } from "@/lib/scripts/types";
 
 interface WordleGridProps {
   gameState: GameState;
+  adapter: ScriptAdapter;
   showResult?: boolean;
 }
 
-export function WordleGrid({ gameState, showResult = false }: WordleGridProps) {
+export function WordleGrid({ gameState, adapter, showResult = false }: WordleGridProps) {
   const { targetWord, guesses, currentGuess } = gameState;
-  const adapter = getScriptAdapter(gameState.adapterId);
   const wordLength = adapter.splitUnits(targetWord).length;
   const currentGuessUnits = adapter.splitUnits(currentGuess);
   const maxGuesses = gameState.maxGuesses;
