@@ -22,7 +22,7 @@ const BCRYPT_ROUNDS = 10;
 
 // author_password_hash 노출 방지용 화이트리스트
 const DECK_PUBLIC_COLUMNS =
-  "id, name, description, words, categories, thumbnail_url, is_public, created_at, updated_at, creator_id, author_handle";
+  "id, name, description, words, categories, script, thumbnail_url, is_public, created_at, updated_at, creator_id, author_handle";
 
 type DeckPayloadResult =
   | { ok: true; words: DeckWord[]; categories: string[] }

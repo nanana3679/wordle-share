@@ -25,6 +25,7 @@ export type Database = {
           id: string
           is_public: boolean | null
           name: string | null
+          script: string
           thumbnail_url: string | null
           updated_at: string | null
           words: { word: string; tags: string[] }[]
@@ -39,6 +40,7 @@ export type Database = {
           id?: string
           is_public?: boolean | null
           name?: string | null
+          script?: string
           thumbnail_url?: string | null
           updated_at?: string | null
           words?: { word: string; tags: string[] }[]
@@ -53,6 +55,7 @@ export type Database = {
           id?: string
           is_public?: boolean | null
           name?: string | null
+          script?: string
           thumbnail_url?: string | null
           updated_at?: string | null
           words?: { word: string; tags: string[] }[]
