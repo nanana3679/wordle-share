@@ -47,14 +47,20 @@ export function DecksContentInfinite() {
   })();
 
   // 검색 및 필터링
+  const normalizedSearch = searchTerm.trim().toLowerCase();
   const filteredDecks = allDecks.filter((deck) => {
-    const matchesSearch = deck.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         deck.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+    // 검색어가 비어있으면 모든 덱이 매칭되어야 한다.
+    // (deck.name과 deck.description이 모두 null인 경우 ?. 단락으로 undefined가 반환되어
+    //  덱이 잘못 필터링되던 버그 수정)
+    const matchesSearch =
+      normalizedSearch === "" ||
+      deck.name?.toLowerCase().includes(normalizedSearch) ||
+      deck.description?.toLowerCase().includes(normalizedSearch);
+
     const matchesFilter = filterPublic === "all" ||
                          (filterPublic === "public" && deck.is_public) ||
                          (filterPublic === "private" && !deck.is_public);
-    
+
     return matchesSearch && matchesFilter;
   });
 
