@@ -28,6 +28,20 @@ BEGIN
 
   -- 이미 JSONB라면 아무 것도 하지 않음 (멱등)
   IF current_data_type = 'ARRAY' THEN
+    -- ALTER COLUMN ... USING 절은 서브쿼리(SELECT ...)를 허용하지 않으므로
+    -- 변환 로직을 임시 함수로 감싼다. pg_temp 스키마는 세션 종료 시 자동 정리됨.
+    CREATE FUNCTION pg_temp.text_array_to_word_jsonb(arr TEXT[])
+    RETURNS JSONB
+    LANGUAGE SQL
+    IMMUTABLE
+    AS $func$
+      SELECT COALESCE(
+        (SELECT jsonb_agg(jsonb_build_object('word', w, 'tags', '[]'::jsonb))
+           FROM unnest(arr) AS w),
+        '[]'::jsonb
+      )
+    $func$;
+
     -- TEXT[] -> JSONB:
     --   NULL 또는 빈 배열은 '[]'::jsonb,
     --   각 요소는 {"word": <text>, "tags": []} 객체로 변환.
@@ -39,13 +53,7 @@ BEGIN
       USING (
         CASE
           WHEN words IS NULL THEN '[]'::jsonb
-          ELSE COALESCE(
-            (
-              SELECT jsonb_agg(jsonb_build_object('word', w, 'tags', '[]'::jsonb))
-                FROM unnest(words) AS w
-            ),
-            '[]'::jsonb
-          )
+          ELSE pg_temp.text_array_to_word_jsonb(words)
         END
       );
 
