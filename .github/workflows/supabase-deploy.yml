@@ -26,6 +26,12 @@ jobs:
         with:
           version: latest
 
+      - name: Verify secrets length
+        run: |
+          echo "ref length: ${#SUPABASE_PROJECT_REF}"
+          echo "token prefix: ${SUPABASE_ACCESS_TOKEN:0:4}"
+          echo "pwd length: ${#SUPABASE_DB_PASSWORD}"
+
       - name: Link Supabase project
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
 
