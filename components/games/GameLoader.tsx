@@ -1,9 +1,11 @@
 "use client";
 
+import { useMemo } from "react";
 import { WordleGrid } from "@/components/games/WordleGrid";
 import { WordleKeyboard } from "@/components/games/WordleKeyboard";
 import { GameResultModal } from "@/components/games/GameResultModal";
 import { isGameComplete } from "@/lib/wordleGame";
+import { getScriptAdapter } from "@/lib/scripts";
 import { useGame } from "@/hooks/useGame";
 import { Deck } from "@/types/decks";
 
@@ -12,6 +14,8 @@ interface GameLoaderProps {
 }
 
 export function GameLoader({ deck }: GameLoaderProps) {
+  const adapter = useMemo(() => getScriptAdapter(deck.script), [deck.script]);
+
   const {
     gameState,
     showResult,
@@ -22,7 +26,7 @@ export function GameLoader({ deck }: GameLoaderProps) {
     handleEnter,
     restartGame,
     setShowGameResultModal,
-  } = useGame(deck);
+  } = useGame(deck, adapter);
 
   if (!gameState) {
     return null; // 데이터가 아직 로드되지 않았거나 에러가 발생한 경우
@@ -37,6 +41,7 @@ export function GameLoader({ deck }: GameLoaderProps) {
         onBackspace={handleBackspace}
         onEnter={handleEnter}
         keyboardState={gameState.keyboardState}
+        layout={adapter.keyboard}
         disabled={isGameComplete(gameState)}
       />
 

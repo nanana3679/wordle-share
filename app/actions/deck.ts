@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { validateDeckWords } from "@/lib/wordConstraints";
 import { MAX_TAGS_PER_WORD, normalizeCategories } from "@/lib/deckCategories";
+import { getScriptAdapter } from "@/lib/scripts";
 import type { DeckWord } from "@/types/decks";
 import { getUserInfo } from "@/app/actions/user";
 import { User } from "@supabase/supabase-js";
@@ -28,7 +29,9 @@ type DeckPayloadResult =
   | { ok: true; words: DeckWord[]; categories: string[] }
   | { ok: false; message: string; fieldErrors?: { [key: string]: string[] } };
 
-function parseDeckPayload(formData: FormData): DeckPayloadResult {
+function parseDeckPayload(formData: FormData, script: string = "latin"): DeckPayloadResult {
+  const adapter = getScriptAdapter(script);
+
   const wordsJson = formData.get("words_json");
   if (typeof wordsJson !== "string" || !wordsJson.trim()) {
     return {
@@ -57,7 +60,7 @@ function parseDeckPayload(formData: FormData): DeckPayloadResult {
     };
   }
 
-  const wordsValidation = validateDeckWords(rawWords as DeckWord[]);
+  const wordsValidation = validateDeckWords(rawWords as DeckWord[], adapter);
   if (wordsValidation.errors.length > 0) {
     return {
       ok: false,

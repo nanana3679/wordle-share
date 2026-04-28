@@ -1,6 +1,7 @@
 "use client";
 
 import { GameState } from "@/lib/wordleGame";
+import { getScriptAdapter } from "@/lib/scripts";
 
 interface WordleGridProps {
   gameState: GameState;
@@ -9,23 +10,25 @@ interface WordleGridProps {
 
 export function WordleGrid({ gameState, showResult = false }: WordleGridProps) {
   const { targetWord, guesses, currentGuess } = gameState;
-  const wordLength = targetWord.length;
+  const adapter = getScriptAdapter(gameState.adapterId);
+  const wordLength = adapter.splitUnits(targetWord).length;
+  const currentGuessUnits = adapter.splitUnits(currentGuess);
   const maxGuesses = gameState.maxGuesses;
   const currentRowIndex = guesses.length;
-  
+
   // 6줄 × n글자 그리드 생성
   const rows = [];
-  
+
   for (let rowIndex = 0; rowIndex < maxGuesses; rowIndex++) {
     const isCurrentRow = rowIndex === currentRowIndex && gameState.gameStatus === 'playing';
     const isCompletedRow = rowIndex < guesses.length;
-    
+
     rows.push(
       <div key={`row-${rowIndex}`} className={`wordle-row ${isCurrentRow ? 'current-row' : ''}`}>
         {Array.from({ length: wordLength }, (_, letterIndex) => {
           let tileContent = '';
           let tileState = '';
-          
+
           if (isCompletedRow) {
             // 완료된 추측의 타일
             const letter = guesses[rowIndex].letters[letterIndex];
@@ -33,7 +36,7 @@ export function WordleGrid({ gameState, showResult = false }: WordleGridProps) {
             tileState = letter.state;
           } else if (isCurrentRow) {
             // 현재 입력 중인 추측의 타일
-            tileContent = currentGuess[letterIndex]?.toUpperCase() || '';
+            tileContent = currentGuessUnits[letterIndex]?.toUpperCase() || '';
             tileState = tileContent ? 'filled' : '';
           }
           
