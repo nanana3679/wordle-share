@@ -115,29 +115,31 @@ export function useGame(deck: Deck, adapter: ScriptAdapter): UseGameReturn {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!gameState || isGameComplete(gameState)) return;
-      
-      const key = event.key.toUpperCase();
-      
-      // 특수 키 처리
-      if (key === 'ENTER') {
+
+      // 특수 키는 영문 그대로 비교 (브라우저 KeyboardEvent.key 표준값)
+      const rawKey = event.key;
+      const upperKey = rawKey.toUpperCase();
+
+      if (upperKey === 'ENTER') {
         event.preventDefault();
         handleEnter();
         return;
       }
-      
-      if (key === 'BACKSPACE' || key === 'DELETE') {
+
+      if (upperKey === 'BACKSPACE' || upperKey === 'DELETE') {
         event.preventDefault();
         handleBackspace();
         return;
       }
-      
-      // 알파벳만 허용 (길이가 1이고 A-Z인 경우만)
-      if (key.length === 1 && key.match(/[A-Z]/)) {
+
+      // 한 글자 입력: keyId는 키보드 상태 식별자라 입력 문자로 쓰면
+      // 비라틴 스크립트에서 currentGuess가 깨질 수 있음. 실제 입력 문자를 그대로 전달.
+      if (rawKey.length === 1 && adapter.isAllowedChar(rawKey)) {
         event.preventDefault();
-        handleKeyPress(key);
+        handleKeyPress(rawKey);
         return;
       }
-      
+
       // 다른 모든 키 차단
       if (event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) {
         event.preventDefault();
@@ -146,7 +148,7 @@ export function useGame(deck: Deck, adapter: ScriptAdapter): UseGameReturn {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [gameState, handleKeyPress, handleBackspace, handleEnter]);
+  }, [gameState, handleKeyPress, handleBackspace, handleEnter, adapter]);
 
   // 게임 재시작
   const restartGame = useCallback(() => {

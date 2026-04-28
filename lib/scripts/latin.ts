@@ -11,6 +11,7 @@ export const latin: ScriptAdapter = {
   rtl: false,
   splitUnits: (word) => Array.from(word),
   normalize: (word) => word.trim().toLowerCase(),
+  normalizeChar: (ch) => ch.toLowerCase(),
   isAllowedChar: (ch) => /^[a-zA-Z]$/.test(ch),
   isAllowedWord: (word) => /^[a-zA-Z]+$/.test(word),
   keyboard: {
@@ -18,4 +19,6 @@ export const latin: ScriptAdapter = {
     enterLabel: 'ENTER',
     backspaceLabel: 'BACKSPACE',
   },
+  keyId: (ch) => ch.toUpperCase(),
+  charDescription: '영문자(a-z, A-Z)',
 };

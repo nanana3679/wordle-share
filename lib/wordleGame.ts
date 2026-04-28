@@ -57,7 +57,7 @@ export function addLetterToGuess(gameState: GameState, letter: string): GameStat
 
   return {
     ...gameState,
-    currentGuess: gameState.currentGuess + adapter.normalize(letter),
+    currentGuess: gameState.currentGuess + adapter.normalizeChar(letter),
     errorMessage: undefined // 입력 시 에러 메시지 초기화
   };
 }
@@ -101,14 +101,14 @@ export function submitGuess(gameState: GameState): GameState {
   const newKeyboardState = { ...gameState.keyboardState };
   newGuess.letters.forEach(letter => {
     if (letter.char && letter.state !== 'empty') {
-      // 키보드에서는 대문자로 저장 (키보드 배열이 대문자이므로)
-      const upperChar = letter.char.toUpperCase();
+      // 어댑터의 keyId로 키보드 상태 키 결정
+      const keyId = adapter.keyId(letter.char);
       // 더 높은 우선순위 상태로 업데이트 (correct > present > absent)
-      const currentState = newKeyboardState[upperChar];
+      const currentState = newKeyboardState[keyId];
       if (!currentState ||
           (currentState === 'absent' && letter.state !== 'absent') ||
           (currentState === 'present' && letter.state === 'correct')) {
-        newKeyboardState[upperChar] = letter.state;
+        newKeyboardState[keyId] = letter.state;
       }
     }
   });
