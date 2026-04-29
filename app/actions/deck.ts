@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { validateDeckWords } from "@/lib/wordConstraints";
 import { MAX_TAGS_PER_WORD, normalizeCategories } from "@/lib/deckCategories";
-import { getScriptAdapter } from "@/lib/scripts";
+import { getScriptAdapter, SUPPORTED_SCRIPTS } from "@/lib/scripts";
 import type { DeckWord } from "@/types/decks";
 import { getUserInfo } from "@/app/actions/user";
 import { User } from "@supabase/supabase-js";
@@ -28,6 +28,24 @@ const DECK_PUBLIC_COLUMNS =
 type DeckPayloadResult =
   | { ok: true; words: DeckWord[]; categories: string[] }
   | { ok: false; message: string; fieldErrors?: { [key: string]: string[] } };
+
+type ScriptResolution =
+  | { ok: true; script: string }
+  | { ok: false; message: string; fieldErrors?: { [key: string]: string[] } };
+
+// formData의 script를 화이트리스트 검증. 누락 시 'latin' 기본값.
+function resolveScript(formData: FormData): ScriptResolution {
+  const raw = formData.get("script");
+  const script = typeof raw === "string" && raw.trim() ? raw.trim() : "latin";
+  if (!(SUPPORTED_SCRIPTS as readonly string[]).includes(script)) {
+    return {
+      ok: false,
+      message: `지원하지 않는 쓰기체계입니다: ${script}`,
+      fieldErrors: { script: [`지원하지 않는 쓰기체계입니다: ${script}`] },
+    };
+  }
+  return { ok: true, script };
+}
 
 function parseDeckPayload(formData: FormData, script: string = "latin"): DeckPayloadResult {
   const adapter = getScriptAdapter(script);
@@ -276,7 +294,16 @@ export async function createDeck(formData: FormData): Promise<ActionResponse<Dec
       };
     }
 
-    const parsed = parseDeckPayload(formData);
+    const scriptResolution = resolveScript(formData);
+    if (!scriptResolution.ok) {
+      return {
+        success: false,
+        message: scriptResolution.message,
+        fieldErrors: scriptResolution.fieldErrors,
+      };
+    }
+
+    const parsed = parseDeckPayload(formData, scriptResolution.script);
     if (!parsed.ok) {
       return {
         success: false,
@@ -292,6 +319,7 @@ export async function createDeck(formData: FormData): Promise<ActionResponse<Dec
         description: description || null,
         words: parsed.words,
         categories: parsed.categories,
+        script: scriptResolution.script,
         is_public: isPublic,
         creator_id: user.id,
         thumbnail_url: thumbnailUrl || null,
@@ -353,7 +381,16 @@ export async function createAnonymousDeck(formData: FormData): Promise<ActionRes
       };
     }
 
-    const parsed = parseDeckPayload(formData);
+    const scriptResolution = resolveScript(formData);
+    if (!scriptResolution.ok) {
+      return {
+        success: false,
+        message: scriptResolution.message,
+        fieldErrors: scriptResolution.fieldErrors,
+      };
+    }
+
+    const parsed = parseDeckPayload(formData, scriptResolution.script);
     if (!parsed.ok) {
       return {
         success: false,
@@ -371,6 +408,7 @@ export async function createAnonymousDeck(formData: FormData): Promise<ActionRes
         description: description || null,
         words: parsed.words,
         categories: parsed.categories,
+        script: scriptResolution.script,
         is_public: true,
         creator_id: null,
         author_handle: authorHandle,
@@ -432,23 +470,12 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
       };
     }
 
-    const parsed = parseDeckPayload(formData);
-    if (!parsed.ok) {
-      return {
-        success: false,
-        message: parsed.message,
-        fieldErrors: parsed.fieldErrors,
-      };
-    }
-
-    // 먼저 덱이 존재하는지 확인
+    // 먼저 덱이 존재하는지 확인 (수정 시 script는 기존 값으로 잠금)
     const { data: existingDeck, error: checkError } = await supabase
       .from("decks")
-      .select("id, creator_id, name, updated_at")
+      .select("id, creator_id, name, updated_at, script")
       .eq("id", id)
       .single();
-
-    console.log("기존 덱 정보:", { existingDeck, checkError });
 
     if (checkError) {
       console.error("덱 조회 에러:", checkError);
@@ -457,6 +484,25 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
         message: `덱을 찾을 수 없습니다: ${checkError.message}`,
       };
     }
+
+    const lockedScript = (existingDeck.script as string | null) ?? "latin";
+    if (!(SUPPORTED_SCRIPTS as readonly string[]).includes(lockedScript)) {
+      return {
+        success: false,
+        message: `덱의 쓰기체계가 지원되지 않습니다: ${lockedScript}`,
+      };
+    }
+
+    const parsed = parseDeckPayload(formData, lockedScript);
+    if (!parsed.ok) {
+      return {
+        success: false,
+        message: parsed.message,
+        fieldErrors: parsed.fieldErrors,
+      };
+    }
+
+    console.log("기존 덱 정보:", { existingDeck });
 
     // 권한 확인
     console.log("권한 확인:", { 
