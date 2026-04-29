@@ -10,6 +10,7 @@ import {
   type GameState
 } from "@/lib/wordleGame";
 import type { ScriptAdapter } from "@/lib/scripts/types";
+import { scriptUsesIme } from "@/lib/scripts";
 import { Deck } from "@/types/decks";
 import { getWordStrings } from "@/lib/deckHelpers";
 
@@ -46,17 +47,14 @@ export function useGame(deck: Deck, adapter: ScriptAdapter): UseGameReturn {
   }, [deck, adapter]);
 
   // 키보드 입력 처리
+  // 줄이 가득 찼는지 검사는 addLetterToGuess 내부에서 어댑터의 splitUnits 기반으로 수행한다.
+  // 여기서 string length로 사전 가드를 하면 한글처럼 unit≠char인 스크립트에서
+  // 첫 자모만 들어가고 나머지가 차단되는 버그가 생긴다.
   const handleKeyPress = useCallback((key: string) => {
     if (!gameState || isGameComplete(gameState)) return;
-    
+
     setGameState(prevState => {
       if (!prevState) return null;
-      
-      // 현재 줄이 이미 완료된 경우 입력 차단
-      if (prevState.currentGuess.length >= prevState.targetWord.length) {
-        return prevState;
-      }
-      
       return addLetterToGuess(prevState, key);
     });
   }, [gameState]);
@@ -72,17 +70,21 @@ export function useGame(deck: Deck, adapter: ScriptAdapter): UseGameReturn {
 
   const handleEnter = useCallback(() => {
     if (!gameState || isGameComplete(gameState) || isSubmitting) return;
-    
-    // 현재 줄이 완전히 채워지지 않은 경우 제출 불가
-    if (gameState.currentGuess.length !== gameState.targetWord.length) {
-      return;
-    }
-    
+
+    // 줄 채움 검증은 submitGuess 내부의 splitUnits 기반 로직에 위임한다.
+    // 여기서 string length로 사전 체크하면 unit≠char인 한글 등에서 제출이 차단된다.
+
     // 중복 제출 방지
     setIsSubmitting(true);
-    
+
     // submitGuess를 먼저 실행하여 결과 확인
     const newState = submitGuess(gameState);
+
+    // submitGuess가 변화 없이 반환한 경우(줄 미충족 등) → 아무것도 안 함
+    if (newState === gameState) {
+      setIsSubmitting(false);
+      return;
+    }
     
     // 에러 메시지가 있으면 toast로 표시하고 상태 업데이트하지 않음
     if (newState.errorMessage) {
@@ -120,17 +122,30 @@ export function useGame(deck: Deck, adapter: ScriptAdapter): UseGameReturn {
       const rawKey = event.key;
       const upperKey = rawKey.toUpperCase();
 
+      // Enter는 IME 조합 중에도 통과시킨다.
+      // 한국어 IME는 마지막 자모 입력 후에도 composition 상태를 유지하므로
+      // isComposing 가드를 걸면 사용자가 Enter를 두 번 눌러야 제출되는 문제가 생긴다.
+      // 우리는 compositionupdate에서 매 자모를 실시간 dispatch하므로 이 시점의
+      // currentGuess는 이미 최신 상태다.
       if (upperKey === 'ENTER') {
         event.preventDefault();
         handleEnter();
         return;
       }
 
+      // IME 조합 중에는 letter / Backspace 처리 금지.
+      // (Backspace는 IME가 처리 → compositionupdate → reconcile에서 자모 단위 삭제)
+      if (event.isComposing || event.keyCode === 229) return;
+
       if (upperKey === 'BACKSPACE' || upperKey === 'DELETE') {
         event.preventDefault();
         handleBackspace();
         return;
       }
+
+      // IME 기반 스크립트는 hidden input의 composition 경로로만 입력을 받는다
+      // (전역 keydown으로 직접 입력하면 hidden input과 중복 누적됨)
+      if (scriptUsesIme(adapter.id)) return;
 
       // 한 글자 입력: keyId는 키보드 상태 식별자라 입력 문자로 쓰면
       // 비라틴 스크립트에서 currentGuess가 깨질 수 있음. 실제 입력 문자를 그대로 전달.

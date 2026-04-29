@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TagPicker } from "@/components/decks/TagPicker";
+import type { ScriptAdapter } from "@/lib/scripts/types";
 import { cn } from "@/lib/utils";
 
 export interface WordRowValue {
@@ -20,6 +21,7 @@ interface WordRowProps {
   hasInvalidChars: boolean;
   showCategoryPicker: boolean;
   categories: string[];
+  adapter: ScriptAdapter;
   onChangeWord: (word: string) => void;
   onChangeTags: (tags: string[]) => void;
   onCreateCategory: (name: string) => boolean;
@@ -35,6 +37,7 @@ export function WordRow({
   hasInvalidChars,
   showCategoryPicker,
   categories,
+  adapter,
   onChangeWord,
   onChangeTags,
   onCreateCategory,
@@ -54,14 +57,14 @@ export function WordRow({
           <Input
             ref={inputRef}
             value={value.word}
-            onChange={(e) => onChangeWord(e.target.value.toLowerCase())}
+            onChange={(e) => onChangeWord(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
+              if (e.key === "Enter" && !e.nativeEvent.isComposing) {
                 e.preventDefault();
                 onEnter();
               }
             }}
-            placeholder="단어 (a-z)"
+            placeholder={`단어 (${adapter.charDescription})`}
             autoComplete="off"
             spellCheck={false}
             className={cn(
@@ -93,7 +96,7 @@ export function WordRow({
       </div>
       {hasError && (
         <p id={errorId} className="pl-9 text-xs text-destructive">
-          {hasInvalidChars && "영문자(a-z)만 사용할 수 있습니다."}
+          {hasInvalidChars && `${adapter.charDescription}만 사용할 수 있습니다.`}
           {hasInvalidChars && isDuplicate && " "}
           {isDuplicate && "중복된 단어입니다."}
         </p>

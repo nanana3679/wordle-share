@@ -136,6 +136,17 @@ export function WordleKeyboard({
           opacity: 0.5;
           cursor: not-allowed;
         }
+
+        /* script-* 분기 contract: 기본(.keyboard-key)은 latin 가정.
+           비라틴 스크립트는 .script-<id>로 차이만 덮어쓴다. */
+        .keyboard-container.script-hangul .keyboard-key {
+          min-width: 32px;
+          font-size: 16px;
+        }
+        .keyboard-container.script-hangul .keyboard-key.special-key {
+          min-width: 56px;
+          font-size: 12px;
+        }
         
         @media (max-width: 480px) {
           .keyboard-container {
@@ -152,9 +163,18 @@ export function WordleKeyboard({
             min-width: 50px;
             font-size: 10px;
           }
+
+          .keyboard-container.script-hangul .keyboard-key {
+            min-width: 26px;
+            font-size: 14px;
+          }
+          .keyboard-container.script-hangul .keyboard-key.special-key {
+            min-width: 44px;
+            font-size: 10px;
+          }
         }
       `}</style>
-      <div className="keyboard-container">
+      <div className={`keyboard-container script-${adapter.id}`}>
         {layout.rows.map((row, rowIndex) => (
           <div key={rowIndex} className="keyboard-row">
             {row.map((key) => (

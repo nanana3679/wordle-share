@@ -5,11 +5,13 @@ import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { WordRow, type WordRowValue } from "@/components/decks/WordRow";
+import type { ScriptAdapter } from "@/lib/scripts/types";
 
 interface WordListProps {
   rows: WordRowValue[];
   categories: string[];
   showCategoryPicker: boolean;
+  adapter: ScriptAdapter;
   onChangeRow: (id: string, next: Partial<WordRowValue>) => void;
   onAddRow: (afterId?: string) => void;
   onRemoveRow: (id: string) => void;
@@ -20,6 +22,7 @@ export function WordList({
   rows,
   categories,
   showCategoryPicker,
+  adapter,
   onChangeRow,
   onAddRow,
   onRemoveRow,
@@ -44,7 +47,7 @@ export function WordList({
   const duplicates = useMemo(() => {
     const counts = new Map<string, number>();
     for (const row of rows) {
-      const w = row.word.trim().toLowerCase();
+      const w = adapter.normalize(row.word);
       if (!w) continue;
       counts.set(w, (counts.get(w) ?? 0) + 1);
     }
@@ -53,7 +56,7 @@ export function WordList({
         .filter(([, count]) => count > 1)
         .map(([word]) => word)
     );
-  }, [rows]);
+  }, [rows, adapter]);
 
   const handleEnter = (id: string) => {
     pendingFocusAfterIdRef.current = id;
@@ -64,10 +67,10 @@ export function WordList({
     <div className="space-y-2">
       <div className="space-y-2">
         {rows.map((row, index) => {
-          const trimmed = row.word.trim().toLowerCase();
+          const trimmed = adapter.normalize(row.word);
           const isDuplicate = trimmed.length > 0 && duplicates.has(trimmed);
           const hasInvalidChars =
-            row.word.length > 0 && !/^[a-z]*$/.test(row.word);
+            row.word.trim().length > 0 && !adapter.isAllowedWord(row.word.trim());
 
           return (
             <WordRow
@@ -78,6 +81,7 @@ export function WordList({
               hasInvalidChars={hasInvalidChars}
               showCategoryPicker={showCategoryPicker}
               categories={categories}
+              adapter={adapter}
               onChangeWord={(word) => onChangeRow(row.id, { word })}
               onChangeTags={(tags) => onChangeRow(row.id, { tags })}
               onCreateCategory={onCreateCategory}

@@ -19,6 +19,9 @@ export function WordleGrid({ gameState, adapter, showResult = false }: WordleGri
   // 6줄 × n글자 그리드 생성
   const rows = [];
 
+  // 라틴 외 스크립트는 대소문자가 없거나 toUpperCase가 무의미한 경우가 많아 그대로 표시
+  const display = (ch: string) => (adapter.id === 'latin' ? ch.toUpperCase() : ch);
+
   for (let rowIndex = 0; rowIndex < maxGuesses; rowIndex++) {
     const isCurrentRow = rowIndex === currentRowIndex && gameState.gameStatus === 'playing';
     const isCompletedRow = rowIndex < guesses.length;
@@ -32,11 +35,11 @@ export function WordleGrid({ gameState, adapter, showResult = false }: WordleGri
           if (isCompletedRow) {
             // 완료된 추측의 타일
             const letter = guesses[rowIndex].letters[letterIndex];
-            tileContent = letter.char.toUpperCase();
+            tileContent = display(letter.char);
             tileState = letter.state;
           } else if (isCurrentRow) {
             // 현재 입력 중인 추측의 타일
-            tileContent = currentGuessUnits[letterIndex]?.toUpperCase() || '';
+            tileContent = currentGuessUnits[letterIndex] ? display(currentGuessUnits[letterIndex]) : '';
             tileState = tileContent ? 'filled' : '';
           }
           
@@ -89,6 +92,13 @@ export function WordleGrid({ gameState, adapter, showResult = false }: WordleGri
           transition: all 0.3s ease;
           background-color: #fff;
           color: #000;
+        }
+
+        /* script-* 분기 contract: 기본(.wordle-tile)은 latin 가정.
+           비라틴 스크립트는 .script-<id>로 차이만 덮어쓴다. */
+        .wordle-grid.script-hangul .wordle-tile {
+          font-size: 2.25rem;
+          text-transform: none;
         }
         
         .wordle-tile.filled {
@@ -156,9 +166,13 @@ export function WordleGrid({ gameState, adapter, showResult = false }: WordleGri
             height: 50px;
             font-size: 1.5rem;
           }
+
+          .wordle-grid.script-hangul .wordle-tile {
+            font-size: 1.75rem;
+          }
         }
       `}</style>
-      <div className="wordle-grid">
+      <div className={`wordle-grid script-${adapter.id}`}>
         {rows}
       </div>
     </>
