@@ -15,6 +15,18 @@ import { ActionResponse } from "@/types/action";
 import { Deck } from "@/types/decks";
 import { safeAction } from "@/lib/safe-action";
 
+const ALLOWED_SCRIPTS = ["latin", "cyrillic", "greek"] as const;
+type AllowedScript = (typeof ALLOWED_SCRIPTS)[number];
+
+function readScript(formData: FormData): AllowedScript | null {
+  const raw = formData.get("script");
+  if (raw == null || raw === "") return "latin";
+  if (typeof raw !== "string") return null;
+  return (ALLOWED_SCRIPTS as readonly string[]).includes(raw)
+    ? (raw as AllowedScript)
+    : null;
+}
+
 const ANON_HANDLE_MIN = 2;
 const ANON_HANDLE_MAX = 20;
 const ANON_PASSWORD_MIN = 4;
@@ -276,7 +288,16 @@ export async function createDeck(formData: FormData): Promise<ActionResponse<Dec
       };
     }
 
-    const parsed = parseDeckPayload(formData);
+    const script = readScript(formData);
+    if (!script) {
+      return {
+        success: false,
+        message: "지원하지 않는 쓰기체계입니다.",
+        fieldErrors: { script: ["지원하지 않는 쓰기체계입니다."] },
+      };
+    }
+
+    const parsed = parseDeckPayload(formData, script);
     if (!parsed.ok) {
       return {
         success: false,
@@ -292,6 +313,7 @@ export async function createDeck(formData: FormData): Promise<ActionResponse<Dec
         description: description || null,
         words: parsed.words,
         categories: parsed.categories,
+        script,
         is_public: isPublic,
         creator_id: user.id,
         thumbnail_url: thumbnailUrl || null,
@@ -353,7 +375,16 @@ export async function createAnonymousDeck(formData: FormData): Promise<ActionRes
       };
     }
 
-    const parsed = parseDeckPayload(formData);
+    const script = readScript(formData);
+    if (!script) {
+      return {
+        success: false,
+        message: "지원하지 않는 쓰기체계입니다.",
+        fieldErrors: { script: ["지원하지 않는 쓰기체계입니다."] },
+      };
+    }
+
+    const parsed = parseDeckPayload(formData, script);
     if (!parsed.ok) {
       return {
         success: false,
@@ -371,6 +402,7 @@ export async function createAnonymousDeck(formData: FormData): Promise<ActionRes
         description: description || null,
         words: parsed.words,
         categories: parsed.categories,
+        script,
         is_public: true,
         creator_id: null,
         author_handle: authorHandle,
@@ -432,19 +464,10 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
       };
     }
 
-    const parsed = parseDeckPayload(formData);
-    if (!parsed.ok) {
-      return {
-        success: false,
-        message: parsed.message,
-        fieldErrors: parsed.fieldErrors,
-      };
-    }
-
-    // 먼저 덱이 존재하는지 확인
+    // 먼저 덱이 존재하는지 확인 (script는 기존 값 유지)
     const { data: existingDeck, error: checkError } = await supabase
       .from("decks")
-      .select("id, creator_id, name, updated_at")
+      .select("id, creator_id, name, updated_at, script")
       .eq("id", id)
       .single();
 
@@ -469,6 +492,21 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
       return {
         success: false,
         message: "이 덱을 수정할 권한이 없습니다.",
+      };
+    }
+
+    const existingScript =
+      typeof existingDeck.script === "string" &&
+      (ALLOWED_SCRIPTS as readonly string[]).includes(existingDeck.script)
+        ? (existingDeck.script as AllowedScript)
+        : "latin";
+
+    const parsed = parseDeckPayload(formData, existingScript);
+    if (!parsed.ok) {
+      return {
+        success: false,
+        message: parsed.message,
+        fieldErrors: parsed.fieldErrors,
       };
     }
 
