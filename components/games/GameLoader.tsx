@@ -31,7 +31,12 @@ export function GameLoader({ deck }: GameLoaderProps) {
   } = useGame(deck, adapter);
 
   const gameOver = gameState ? isGameComplete(gameState) : true;
-  const { inputRef, inputProps } = useImeInput(adapter, handleKeyPress, usesIme && !gameOver);
+  const { inputRef, inputProps } = useImeInput({
+    adapter,
+    onUnit: handleKeyPress,
+    onBackspace: handleBackspace,
+    enabled: usesIme && !gameOver,
+  });
 
   if (!gameState) {
     return null; // 데이터가 아직 로드되지 않았거나 에러가 발생한 경우
