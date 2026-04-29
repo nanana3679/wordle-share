@@ -661,6 +661,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
                 <SelectContent>
                   <SelectItem value="latin">영어 (Latin)</SelectItem>
                   <SelectItem value="hangul">한국어 (Hangul)</SelectItem>
+                  <SelectItem value="kana">日本語 (Kana)</SelectItem>
                 </SelectContent>
               </Select>
               {isEditMode && (
