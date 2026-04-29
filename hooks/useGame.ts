@@ -70,17 +70,21 @@ export function useGame(deck: Deck, adapter: ScriptAdapter): UseGameReturn {
 
   const handleEnter = useCallback(() => {
     if (!gameState || isGameComplete(gameState) || isSubmitting) return;
-    
-    // 현재 줄이 완전히 채워지지 않은 경우 제출 불가
-    if (gameState.currentGuess.length !== gameState.targetWord.length) {
-      return;
-    }
-    
+
+    // 줄 채움 검증은 submitGuess 내부의 splitUnits 기반 로직에 위임한다.
+    // 여기서 string length로 사전 체크하면 unit≠char인 한글 등에서 제출이 차단된다.
+
     // 중복 제출 방지
     setIsSubmitting(true);
-    
+
     // submitGuess를 먼저 실행하여 결과 확인
     const newState = submitGuess(gameState);
+
+    // submitGuess가 변화 없이 반환한 경우(줄 미충족 등) → 아무것도 안 함
+    if (newState === gameState) {
+      setIsSubmitting(false);
+      return;
+    }
     
     // 에러 메시지가 있으면 toast로 표시하고 상태 업데이트하지 않음
     if (newState.errorMessage) {
