@@ -137,7 +137,8 @@ export function WordleKeyboard({
           cursor: not-allowed;
         }
 
-        /* 한글 자모는 글리프 폭이 좁아 키 너비를 줄이고 폰트 크기는 키운다 */
+        /* script-* 분기 contract: 기본(.keyboard-key)은 latin 가정.
+           비라틴 스크립트는 .script-<id>로 차이만 덮어쓴다. */
         .keyboard-container.script-hangul .keyboard-key {
           min-width: 32px;
           font-size: 16px;

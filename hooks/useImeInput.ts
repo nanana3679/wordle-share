@@ -20,6 +20,8 @@ export function useImeInput(
 ): UseImeInputResult {
   const inputRef = useRef<HTMLInputElement>(null);
   const composingRef = useRef(false);
+  // compositionend 직후 같은 값으로 input이 재발화하는 브라우저(Safari 일부) 대응
+  const justFlushedRef = useRef(false);
 
   // 활성화되면 마운트 직후 focus, 외부 클릭 시 다시 focus
   useEffect(() => {
@@ -55,14 +57,19 @@ export function useImeInput(
     (e: React.CompositionEvent<HTMLInputElement>) => {
       composingRef.current = false;
       flush(e.currentTarget.value);
+      justFlushedRef.current = true;
+      queueMicrotask(() => {
+        justFlushedRef.current = false;
+      });
     },
     [flush],
   );
 
-  // 자모 단독키 입력이나 paste 등 composition을 거치지 않는 경로 보강
+  // 자모 단독키 입력이나 paste 등 composition을 거치지 않는 경로 보강.
+  // compositionend 직후 같은 음절이 두 번 누적되지 않도록 justFlushedRef로 한 틱 가드.
   const onInput = useCallback(
     (e: React.FormEvent<HTMLInputElement>) => {
-      if (composingRef.current) return;
+      if (composingRef.current || justFlushedRef.current) return;
       flush(e.currentTarget.value);
     },
     [flush],

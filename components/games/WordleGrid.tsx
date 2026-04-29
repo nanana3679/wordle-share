@@ -94,7 +94,8 @@ export function WordleGrid({ gameState, adapter, showResult = false }: WordleGri
           color: #000;
         }
 
-        /* 한글 자모는 글리프가 좁아 폰트 크기를 키우고 대문자 변환을 끈다 */
+        /* script-* 분기 contract: 기본(.wordle-tile)은 latin 가정.
+           비라틴 스크립트는 .script-<id>로 차이만 덮어쓴다. */
         .wordle-grid.script-hangul .wordle-tile {
           font-size: 2.25rem;
           text-transform: none;
