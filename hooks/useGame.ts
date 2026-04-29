@@ -114,18 +114,24 @@ export function useGame(deck: Deck, adapter: ScriptAdapter): UseGameReturn {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!gameState || isGameComplete(gameState)) return;
 
-      // IME 조합 중에는 키 처리 금지 (compositionend 시 hidden input이 처리)
-      if (event.isComposing || event.keyCode === 229) return;
-
       // 특수 키는 영문 그대로 비교 (브라우저 KeyboardEvent.key 표준값)
       const rawKey = event.key;
       const upperKey = rawKey.toUpperCase();
 
+      // Enter는 IME 조합 중에도 통과시킨다.
+      // 한국어 IME는 마지막 자모 입력 후에도 composition 상태를 유지하므로
+      // isComposing 가드를 걸면 사용자가 Enter를 두 번 눌러야 제출되는 문제가 생긴다.
+      // 우리는 compositionupdate에서 매 자모를 실시간 dispatch하므로 이 시점의
+      // currentGuess는 이미 최신 상태다.
       if (upperKey === 'ENTER') {
         event.preventDefault();
         handleEnter();
         return;
       }
+
+      // IME 조합 중에는 letter / Backspace 처리 금지.
+      // (Backspace는 IME가 처리 → compositionupdate → reconcile에서 자모 단위 삭제)
+      if (event.isComposing || event.keyCode === 229) return;
 
       if (upperKey === 'BACKSPACE' || upperKey === 'DELETE') {
         event.preventDefault();
@@ -133,7 +139,7 @@ export function useGame(deck: Deck, adapter: ScriptAdapter): UseGameReturn {
         return;
       }
 
-      // IME 기반 스크립트는 hidden input의 compositionend 경로로만 입력을 받는다
+      // IME 기반 스크립트는 hidden input의 composition 경로로만 입력을 받는다
       // (전역 keydown으로 직접 입력하면 hidden input과 중복 누적됨)
       if (scriptUsesIme(adapter.id)) return;
 
