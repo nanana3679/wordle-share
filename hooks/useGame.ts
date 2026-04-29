@@ -47,17 +47,14 @@ export function useGame(deck: Deck, adapter: ScriptAdapter): UseGameReturn {
   }, [deck, adapter]);
 
   // 키보드 입력 처리
+  // 줄이 가득 찼는지 검사는 addLetterToGuess 내부에서 어댑터의 splitUnits 기반으로 수행한다.
+  // 여기서 string length로 사전 가드를 하면 한글처럼 unit≠char인 스크립트에서
+  // 첫 자모만 들어가고 나머지가 차단되는 버그가 생긴다.
   const handleKeyPress = useCallback((key: string) => {
     if (!gameState || isGameComplete(gameState)) return;
-    
+
     setGameState(prevState => {
       if (!prevState) return null;
-      
-      // 현재 줄이 이미 완료된 경우 입력 차단
-      if (prevState.currentGuess.length >= prevState.targetWord.length) {
-        return prevState;
-      }
-      
       return addLetterToGuess(prevState, key);
     });
   }, [gameState]);
