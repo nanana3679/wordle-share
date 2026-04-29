@@ -158,7 +158,7 @@ export function WordleGrid({ gameState, adapter, showResult = false }: WordleGri
           }
         }
       `}</style>
-      <div className="wordle-grid">
+      <div className="wordle-grid" dir={adapter.rtl ? 'rtl' : 'ltr'}>
         {rows}
       </div>
     </>

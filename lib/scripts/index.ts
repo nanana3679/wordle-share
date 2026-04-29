@@ -1,7 +1,8 @@
 import { latin } from './latin';
+import { hebrew } from './hebrew';
 import type { ScriptAdapter, ScriptId } from './types';
 
-const ADAPTERS: Partial<Record<ScriptId, ScriptAdapter>> = { latin };
+const ADAPTERS: Partial<Record<ScriptId, ScriptAdapter>> = { latin, hebrew };
 
 export function getScriptAdapter(id: string): ScriptAdapter {
   const adapter = ADAPTERS[id as ScriptId];
