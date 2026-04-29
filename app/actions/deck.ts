@@ -502,7 +502,7 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
       };
     }
 
-    console.log("기존 덱 정보:", { existingDeck });
+    console.log("기존 덱 조회 성공:", { id: existingDeck.id });
 
     // 권한 확인
     console.log("권한 확인:", { 
