@@ -504,14 +504,11 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
 
     console.log("기존 덱 조회 성공:", { id: existingDeck.id });
 
-    // 권한 확인
-    console.log("권한 확인:", { 
-      deck_creator_id: existingDeck.creator_id, 
-      current_user_id: user.id,
-      is_authorized: existingDeck.creator_id === user.id 
-    });
+    // 권한 확인 (사용자 식별자는 로그하지 않음)
+    const isAuthorized = existingDeck.creator_id === user.id;
+    console.log("권한 확인:", { id: existingDeck.id, is_authorized: isAuthorized });
 
-    if (existingDeck.creator_id !== user.id) {
+    if (!isAuthorized) {
       return {
         success: false,
         message: "이 덱을 수정할 권한이 없습니다.",
@@ -563,12 +560,7 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
     }
 
     if (count === 0) {
-      console.error("업데이트된 행이 없음:", { 
-        id, 
-        user_id: user.id,
-        updateData,
-        existingDeck 
-      });
+      console.error("업데이트된 행이 없음:", { id });
       return {
         success: false,
         message: "업데이트할 덱을 찾을 수 없습니다. 덱 ID를 확인해주세요.",
