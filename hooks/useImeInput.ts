@@ -20,7 +20,7 @@ export function useImeInput(
 ): UseImeInputResult {
   const inputRef = useRef<HTMLInputElement>(null);
   const composingRef = useRef(false);
-  // compositionend 직후 같은 값으로 input이 재발화하는 브라우저(Safari 일부) 대응
+  // compositionend 직후 같은 값으로 input이 재발화하는 브라우저(Safari 등) 대응
   const justFlushedRef = useRef(false);
 
   // 활성화되면 마운트 직후 focus, 외부 클릭 시 다시 focus
@@ -39,40 +39,51 @@ export function useImeInput(
     return () => window.removeEventListener("click", refocus);
   }, [enabled]);
 
-  const flush = useCallback(
+  const dispatch = useCallback(
     (value: string) => {
       if (!value) return;
       const units = adapter.splitUnits(value);
       for (const u of units) onUnit(u);
-      if (inputRef.current) inputRef.current.value = "";
     },
     [adapter, onUnit],
   );
+
+  // 다음 IME composition을 깨지 않도록 input value 클리어를 다음 frame으로 미룬다.
+  // (compositionend 핸들러 내부에서 동기 클리어하면 일부 브라우저에서 후속 composition이
+  //  시작되지 않거나 첫 compositionstart 후 멈추는 증상이 있다 — 한글 IME 대표 케이스)
+  const scheduleClear = useCallback(() => {
+    justFlushedRef.current = true;
+    requestAnimationFrame(() => {
+      if (inputRef.current) inputRef.current.value = "";
+      justFlushedRef.current = false;
+    });
+  }, []);
 
   const onCompositionStart = useCallback(() => {
     composingRef.current = true;
   }, []);
 
+  // e.data만 사용 → 누적된 input.value가 아닌 "이번 composition 결과"만 처리
   const onCompositionEnd = useCallback(
     (e: React.CompositionEvent<HTMLInputElement>) => {
       composingRef.current = false;
-      flush(e.currentTarget.value);
-      justFlushedRef.current = true;
-      queueMicrotask(() => {
-        justFlushedRef.current = false;
-      });
+      dispatch(e.data || "");
+      scheduleClear();
     },
-    [flush],
+    [dispatch, scheduleClear],
   );
 
   // 자모 단독키 입력이나 paste 등 composition을 거치지 않는 경로 보강.
-  // compositionend 직후 같은 음절이 두 번 누적되지 않도록 justFlushedRef로 한 틱 가드.
+  // compositionend 직후 한 frame은 가드로 무시(이중 flush 방지).
   const onInput = useCallback(
     (e: React.FormEvent<HTMLInputElement>) => {
       if (composingRef.current || justFlushedRef.current) return;
-      flush(e.currentTarget.value);
+      const value = e.currentTarget.value;
+      if (!value) return;
+      dispatch(value);
+      scheduleClear();
     },
-    [flush],
+    [dispatch, scheduleClear],
   );
 
   return {
