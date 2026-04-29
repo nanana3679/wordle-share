@@ -36,13 +36,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getScriptAdapter, type ScriptId } from "@/lib/scripts";
+import {
+  getScriptAdapter,
+  isSupportedScript,
+  SUPPORTED_SCRIPTS,
+  type ScriptId,
+} from "@/lib/scripts";
 
-const SCRIPT_OPTIONS: { value: ScriptId; label: string }[] = [
-  { value: "latin", label: "영어 (Latin)" },
-  { value: "cyrillic", label: "русский (Cyrillic)" },
-  { value: "greek", label: "Ελληνικά (Greek)" },
-];
+const SCRIPT_LABELS: Record<ScriptId, string> = {
+  latin: "영어 (Latin)",
+  cyrillic: "русский (Cyrillic)",
+  greek: "Ελληνικά (Greek)",
+  hangul: "한국어 (Hangul)",
+  kana: "日本語 (Kana)",
+  hebrew: "עברית (Hebrew)",
+  arabic: "العربية (Arabic)",
+};
 
 interface DeckDialogProps {
   deck?: Deck; // deck이 있으면 수정 모드, 없으면 생성 모드
@@ -96,7 +105,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
   const [description, setDescription] = useState(deck?.description ?? "");
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [script, setScript] = useState<ScriptId>(
-    (deck?.script as ScriptId) ?? "latin"
+    isSupportedScript(deck?.script) ? deck.script : "latin"
   );
 
   const isEditMode = !!deck;
@@ -115,7 +124,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
       setName(deck?.name ?? "");
       setDescription(deck?.description ?? "");
       setAiPanelOpen(false);
-      setScript((deck?.script as ScriptId) ?? "latin");
+      setScript(isSupportedScript(deck?.script) ? deck.script : "latin");
     }
   }, [open, deck]);
 
@@ -447,7 +456,10 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
 
       formData.set("words_json", JSON.stringify(serializedWords));
       formData.set("categories_json", JSON.stringify(serializedCategories));
-      formData.set("script", script);
+      // 수정 모드에서는 서버가 기존 deck.script를 사용하므로 전송하지 않음
+      if (!isEditMode) {
+        formData.set("script", script);
+      }
       formData.delete("words");
 
       // 익명 덱 생성: 썸네일·공개 토글 없이 바로 생성
@@ -650,9 +662,9 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {SCRIPT_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
+                  {SUPPORTED_SCRIPTS.map((id) => (
+                    <SelectItem key={id} value={id}>
+                      {SCRIPT_LABELS[id]}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -680,26 +692,27 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
               <div className="flex items-center justify-between gap-2">
                 <Label>단어 목록 *</Label>
                 <div className="flex items-center gap-3">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      if (script !== "latin") {
-                        toast.error(
-                          "AI 가져오기는 현재 영어 덱에서만 지원됩니다."
-                        );
-                        return;
-                      }
-                      setAiPanelOpen((v) => !v);
-                    }}
-                    aria-expanded={aiPanelOpen}
-                    aria-controls="ai-import-panel"
-                    className="h-8 gap-1.5 text-xs"
+                  <span
+                    title={
+                      script !== "latin"
+                        ? "AI 가져오기는 현재 영어 덱에서만 지원됩니다."
+                        : undefined
+                    }
                   >
-                    <Sparkles className="size-3.5" />
-                    {aiPanelOpen ? "AI 패널 접기" : "AI로 가져오기"}
-                  </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setAiPanelOpen((v) => !v)}
+                      disabled={script !== "latin"}
+                      aria-expanded={aiPanelOpen}
+                      aria-controls="ai-import-panel"
+                      className="h-8 gap-1.5 text-xs"
+                    >
+                      <Sparkles className="size-3.5" />
+                      {aiPanelOpen ? "AI 패널 접기" : "AI로 가져오기"}
+                    </Button>
+                  </span>
                   <div className="flex items-center gap-2">
                     <Label
                       htmlFor="uses_categories"

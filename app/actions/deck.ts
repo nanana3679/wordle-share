@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { validateDeckWords } from "@/lib/wordConstraints";
 import { MAX_TAGS_PER_WORD, normalizeCategories } from "@/lib/deckCategories";
-import { getScriptAdapter } from "@/lib/scripts";
+import { getScriptAdapter, isSupportedScript, type ScriptId } from "@/lib/scripts";
 import type { DeckWord } from "@/types/decks";
 import { getUserInfo } from "@/app/actions/user";
 import { User } from "@supabase/supabase-js";
@@ -15,16 +15,10 @@ import { ActionResponse } from "@/types/action";
 import { Deck } from "@/types/decks";
 import { safeAction } from "@/lib/safe-action";
 
-const ALLOWED_SCRIPTS = ["latin", "cyrillic", "greek"] as const;
-type AllowedScript = (typeof ALLOWED_SCRIPTS)[number];
-
-function readScript(formData: FormData): AllowedScript | null {
+function readScript(formData: FormData): ScriptId | null {
   const raw = formData.get("script");
   if (raw == null || raw === "") return "latin";
-  if (typeof raw !== "string") return null;
-  return (ALLOWED_SCRIPTS as readonly string[]).includes(raw)
-    ? (raw as AllowedScript)
-    : null;
+  return isSupportedScript(raw) ? raw : null;
 }
 
 const ANON_HANDLE_MIN = 2;
@@ -495,11 +489,9 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
       };
     }
 
-    const existingScript =
-      typeof existingDeck.script === "string" &&
-      (ALLOWED_SCRIPTS as readonly string[]).includes(existingDeck.script)
-        ? (existingDeck.script as AllowedScript)
-        : "latin";
+    const existingScript: ScriptId = isSupportedScript(existingDeck.script)
+      ? existingDeck.script
+      : "latin";
 
     const parsed = parseDeckPayload(formData, existingScript);
     if (!parsed.ok) {

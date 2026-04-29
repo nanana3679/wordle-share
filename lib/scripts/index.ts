@@ -9,6 +9,12 @@ const ADAPTERS: Partial<Record<ScriptId, ScriptAdapter>> = {
   greek,
 };
 
+export const SUPPORTED_SCRIPTS = Object.keys(ADAPTERS) as ScriptId[];
+
+export function isSupportedScript(id: unknown): id is ScriptId {
+  return typeof id === 'string' && (SUPPORTED_SCRIPTS as string[]).includes(id);
+}
+
 export function getScriptAdapter(id: string): ScriptAdapter {
   const adapter = ADAPTERS[id as ScriptId];
   if (!adapter) {
@@ -21,3 +27,4 @@ export function getScriptAdapter(id: string): ScriptAdapter {
 }
 
 export type { ScriptAdapter, ScriptId, KeyboardLayout } from './types';
+
