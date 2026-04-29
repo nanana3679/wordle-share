@@ -36,4 +36,7 @@ jobs:
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
 
       - name: Push migrations
-        run: supabase db push
+        # --include-all: PR이 비순차적으로 머지되어 remote의 마지막 마이그레이션보다
+        # 이른 timestamp의 local 파일이 들어온 경우에도 적용한다.
+        # (예: 20260429가 먼저 적용된 뒤 20260428이 머지된 케이스)
+        run: supabase db push --include-all
