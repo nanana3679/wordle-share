@@ -1,5 +1,14 @@
 import type { ScriptAdapter } from './types';
 
+// 한글 어댑터 (꼬들 레퍼런스)
+//
+// Contract:
+// - 입력/키보드 레이어에서는 자모(ㄱ-ㅎ, ㅏ-ㅣ) 직접 입력을 허용한다 → isAllowedChar
+// - 덱 단어 저장 시에는 음절(가-힣)로만 구성된 단어만 허용한다 → isAllowedWord
+//   (자모 시퀀스는 IME 조합 결과가 아니므로 단어 후보로 받지 않는다)
+// - splitUnits는 음절을 자모로 분해하고, 자모 직접 입력은 그대로 통과시킨다
+// - 종성 겹받침은 단자모 2개로 추가 분해 (ㄳ→ㄱㅅ 등 11종)
+// - 중성의 이중모음(ㅘ, ㅝ, ㅢ 등)은 분해하지 않고 단일 자모로 보존 — 꼬들 표준
 const SBase = 0xac00;
 const LCount = 19;
 const VCount = 21;
