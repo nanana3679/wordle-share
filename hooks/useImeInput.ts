@@ -77,9 +77,19 @@ export function useImeInput(
 
   // 자모 단독키 입력이나 paste 등 composition을 거치지 않는 경로 보강.
   // value는 건드리지 않고 prev와의 차이만 dispatch.
+  //
+  // 주의: 일부 한글 IME에서 첫 input 이벤트가 compositionstart보다 먼저 발화한다.
+  // 이때 composingRef는 아직 false라 첫 자모를 직접 dispatch해버리고, 이후 같은
+  // 음절의 후속 자모들은 composition으로 흡수되어 dispatch되지 않는 버그가 생긴다.
+  // 따라서 native event의 isComposing / inputType=insertCompositionText를 1차로 확인한다.
   const onInput = useCallback(
     (e: React.FormEvent<HTMLInputElement>) => {
+      const native = e.nativeEvent as InputEvent;
       if (composingRef.current) return;
+      if (native.isComposing) return;
+      if (typeof native.inputType === "string" && native.inputType.startsWith("insertCompositionText")) {
+        return;
+      }
       const cur = e.currentTarget.value;
       const prev = prevValueRef.current;
       if (cur.length > prev.length && cur.startsWith(prev)) {
