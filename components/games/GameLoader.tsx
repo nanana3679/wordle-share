@@ -43,10 +43,12 @@ export function GameLoader({ deck }: GameLoaderProps) {
         <input
           ref={inputRef}
           type="text"
+          inputMode="text"
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck={false}
+          autoFocus
           aria-label="한글 입력"
           className="ime-hidden-input"
           {...inputProps}
@@ -74,17 +76,26 @@ export function GameLoader({ deck }: GameLoaderProps) {
       />
 
       <style jsx global>{`
+        /* IME가 정상 동작하려면 화면에 "실재"하는 input이어야 한다.
+           pointer-events: none / display: none / visibility: hidden은 일부 브라우저에서
+           IME 활성화를 막으므로 사용 금지. 화면 밖으로 밀어 시각적으로만 숨긴다. */
         .ime-hidden-input {
           position: fixed;
-          top: 0;
           left: 0;
+          top: 0;
           width: 1px;
           height: 1px;
           opacity: 0;
-          pointer-events: none;
           border: 0;
           padding: 0;
           margin: 0;
+          background: transparent;
+          color: transparent;
+          caret-color: transparent;
+          z-index: -1;
+        }
+        .ime-hidden-input:focus {
+          outline: none;
         }
       `}</style>
     </div>
