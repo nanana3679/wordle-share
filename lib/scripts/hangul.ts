@@ -3,10 +3,13 @@ import type { ScriptAdapter } from './types';
 // 한글 어댑터 (꼬들 레퍼런스)
 //
 // Contract:
-// - 입력/키보드 레이어에서는 자모(ㄱ-ㅎ, ㅏ-ㅣ) 직접 입력을 허용한다 → isAllowedChar
-// - 덱 단어 저장 시에는 음절(가-힣)로만 구성된 단어만 허용한다 → isAllowedWord
+// - 입력/키보드 레이어에서는 자모(호환 자모 영역 ㄱ-ㅎ, ㅏ-ㅣ) 직접 입력을 허용 → isAllowedChar
+//   ※ U+1100 Hangul Jamo / Extended-A/B 영역은 지원하지 않음 (현대 한글 게임 정책)
+// - 덱 단어 저장 시에는 음절(가-힣)로만 구성된 단어만 허용 → isAllowedWord
 //   (자모 시퀀스는 IME 조합 결과가 아니므로 단어 후보로 받지 않는다)
-// - splitUnits는 음절을 자모로 분해하고, 자모 직접 입력은 그대로 통과시킨다
+// - normalize는 trim + NFC 정규화 (조합형 입력이 들어와도 음절 동치 보장)
+// - splitUnits는 음절을 자모로 분해, 자모 직접 입력은 통과, 그 외 문자는 무시
+//   (입력은 isAllowedWord/isAllowedChar로 사전 검증되어야 함)
 // - 종성 겹받침은 단자모 2개로 추가 분해 (ㄳ→ㄱㅅ 등 11종)
 // - 중성의 이중모음(ㅘ, ㅝ, ㅢ 등)은 분해하지 않고 단일 자모로 보존 — 꼬들 표준
 const SBase = 0xac00;
@@ -88,16 +91,17 @@ export const hangul: ScriptAdapter = {
   rtl: false,
   splitUnits: (word) => {
     const result: string[] = [];
-    for (const ch of word) {
+    for (const ch of word.normalize('NFC')) {
       if (SYLLABLE_RE.test(ch)) {
         result.push(...decomposeSyllable(ch));
-      } else {
+      } else if (JAMO_RE.test(ch)) {
         result.push(ch);
       }
+      // 그 외 문자(ASCII, emoji, 옛한글 자모 등)는 무시
     }
     return result;
   },
-  normalize: (word) => word.trim(),
+  normalize: (word) => word.trim().normalize('NFC'),
   normalizeChar: (ch) => ch,
   isAllowedChar: (ch) => SYLLABLE_RE.test(ch) || JAMO_RE.test(ch),
   isAllowedWord: (word) => ALL_SYLLABLE_RE.test(word),

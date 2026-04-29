@@ -44,6 +44,17 @@ describe('hangul.splitUnits', () => {
     expect(hangul.splitUnits('ㄱㄴㄷ')).toEqual(['ㄱ', 'ㄴ', 'ㄷ']);
     expect(hangul.splitUnits('ㅏㅑ')).toEqual(['ㅏ', 'ㅑ']);
   });
+
+  it('NFD 조합형 입력도 NFC로 정규화 후 분해', () => {
+    // U+1100 ㄱ + U+1161 ㅏ → NFC: '가'
+    const nfd = '가';
+    expect(hangul.splitUnits(nfd)).toEqual(['ㄱ', 'ㅏ']);
+  });
+
+  it('비한글 문자(ASCII/emoji)는 무시', () => {
+    expect(hangul.splitUnits('가a')).toEqual(['ㄱ', 'ㅏ']);
+    expect(hangul.splitUnits('한 글')).toEqual(['ㅎ', 'ㅏ', 'ㄴ', 'ㄱ', 'ㅡ', 'ㄹ']);
+  });
 });
 
 describe('hangul.isAllowedChar', () => {
@@ -93,9 +104,15 @@ describe('hangul.isAllowedWord', () => {
 });
 
 describe('hangul.normalize / normalizeChar', () => {
-  it('normalize는 trim만 적용 (한글은 대소문자 무관)', () => {
+  it('normalize는 trim 적용', () => {
     expect(hangul.normalize('  한글  ')).toBe('한글');
     expect(hangul.normalize('한글')).toBe('한글');
+  });
+
+  it('normalize는 NFC 정규화로 조합형(NFD) 입력을 합성형으로 통일', () => {
+    // U+1100 ㄱ + U+1161 ㅏ → '가' (NFC)
+    const nfd = '가';
+    expect(hangul.normalize(nfd)).toBe('가');
   });
 
   it('normalizeChar는 글자 그대로 반환', () => {
