@@ -136,6 +136,16 @@ export function WordleKeyboard({
           opacity: 0.5;
           cursor: not-allowed;
         }
+
+        /* 한글 자모는 글리프 폭이 좁아 키 너비를 줄이고 폰트 크기는 키운다 */
+        .keyboard-container.script-hangul .keyboard-key {
+          min-width: 32px;
+          font-size: 16px;
+        }
+        .keyboard-container.script-hangul .keyboard-key.special-key {
+          min-width: 56px;
+          font-size: 12px;
+        }
         
         @media (max-width: 480px) {
           .keyboard-container {
@@ -152,9 +162,18 @@ export function WordleKeyboard({
             min-width: 50px;
             font-size: 10px;
           }
+
+          .keyboard-container.script-hangul .keyboard-key {
+            min-width: 26px;
+            font-size: 14px;
+          }
+          .keyboard-container.script-hangul .keyboard-key.special-key {
+            min-width: 44px;
+            font-size: 10px;
+          }
         }
       `}</style>
-      <div className="keyboard-container">
+      <div className={`keyboard-container script-${adapter.id}`}>
         {layout.rows.map((row, rowIndex) => (
           <div key={rowIndex} className="keyboard-row">
             {row.map((key) => (

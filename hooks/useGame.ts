@@ -10,6 +10,7 @@ import {
   type GameState
 } from "@/lib/wordleGame";
 import type { ScriptAdapter } from "@/lib/scripts/types";
+import { scriptUsesIme } from "@/lib/scripts";
 import { Deck } from "@/types/decks";
 import { getWordStrings } from "@/lib/deckHelpers";
 
@@ -116,6 +117,9 @@ export function useGame(deck: Deck, adapter: ScriptAdapter): UseGameReturn {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!gameState || isGameComplete(gameState)) return;
 
+      // IME 조합 중에는 키 처리 금지 (compositionend 시 hidden input이 처리)
+      if (event.isComposing || event.keyCode === 229) return;
+
       // 특수 키는 영문 그대로 비교 (브라우저 KeyboardEvent.key 표준값)
       const rawKey = event.key;
       const upperKey = rawKey.toUpperCase();
@@ -131,6 +135,10 @@ export function useGame(deck: Deck, adapter: ScriptAdapter): UseGameReturn {
         handleBackspace();
         return;
       }
+
+      // IME 기반 스크립트는 hidden input의 compositionend 경로로만 입력을 받는다
+      // (전역 keydown으로 직접 입력하면 hidden input과 중복 누적됨)
+      if (scriptUsesIme(adapter.id)) return;
 
       // 한 글자 입력: keyId는 키보드 상태 식별자라 입력 문자로 쓰면
       // 비라틴 스크립트에서 currentGuess가 깨질 수 있음. 실제 입력 문자를 그대로 전달.

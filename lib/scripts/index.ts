@@ -11,6 +11,12 @@ export function isSupportedScript(id: string): id is ScriptId {
   return (SUPPORTED_SCRIPTS as readonly string[]).includes(id);
 }
 
+// OS IME(한글, 가나 등) 조합 입력이 필요한 스크립트 여부.
+// Phase 3에서 'kana'가 추가될 자리.
+export function scriptUsesIme(id: ScriptId): boolean {
+  return id === 'hangul';
+}
+
 export function getScriptAdapter(id: string): ScriptAdapter {
   const adapter = ADAPTERS[id as ScriptId];
   if (!adapter) {

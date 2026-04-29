@@ -20,6 +20,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { getScriptAdapter, isSupportedScript } from "@/lib/scripts";
+import type { ScriptId } from "@/lib/scripts/types";
 import { toast } from "sonner";
 import { Sparkles, Upload, X, Image as ImageIcon } from "lucide-react";
 import Image from "next/image";
@@ -81,6 +90,10 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
   const [name, setName] = useState(deck?.name ?? "");
   const [description, setDescription] = useState(deck?.description ?? "");
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
+  const initialScript: ScriptId =
+    deck?.script && isSupportedScript(deck.script) ? deck.script : "latin";
+  const [script, setScript] = useState<ScriptId>(initialScript);
+  const adapter = useMemo(() => getScriptAdapter(script), [script]);
 
   const isEditMode = !!deck;
   const isAnonymousCreate = !isEditMode && !isAuthenticated;
@@ -98,6 +111,9 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
       setName(deck?.name ?? "");
       setDescription(deck?.description ?? "");
       setAiPanelOpen(false);
+      setScript(
+        deck?.script && isSupportedScript(deck.script) ? deck.script : "latin",
+      );
     }
   }, [open, deck]);
 
@@ -385,9 +401,9 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
     setIsLoading(true);
 
     try {
-      // 빈 행 자동 제거 + lowercase 정규화
+      // 빈 행 자동 제거 + 어댑터 정규화 (latin은 lowercase + trim, 한글은 trim + NFC)
       const trimmedRows = formState.words
-        .map((row) => ({ ...row, word: row.word.trim().toLowerCase() }))
+        .map((row) => ({ ...row, word: adapter.normalize(row.word) }))
         .filter((row) => row.word.length > 0);
 
       if (trimmedRows.length === 0) {
@@ -395,9 +411,9 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
         return;
       }
 
-      const invalidRow = trimmedRows.find((row) => !/^[a-z]+$/.test(row.word));
+      const invalidRow = trimmedRows.find((row) => !adapter.isAllowedWord(row.word));
       if (invalidRow) {
-        toast.error(`"${invalidRow.word}"는 영문자(a-z)만 사용할 수 있습니다.`);
+        toast.error(`"${invalidRow.word}"는 ${adapter.charDescription}만 사용할 수 있습니다.`);
         return;
       }
 
@@ -427,6 +443,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
 
       formData.set("words_json", JSON.stringify(serializedWords));
       formData.set("categories_json", JSON.stringify(serializedCategories));
+      formData.set("script", script);
       formData.delete("words");
 
       // 익명 덱 생성: 썸네일·공개 토글 없이 바로 생성
@@ -483,6 +500,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
           updateFormData.set("description", formData.get("description") as string);
           updateFormData.set("words_json", formData.get("words_json") as string);
           updateFormData.set("categories_json", formData.get("categories_json") as string);
+          updateFormData.set("script", script);
           updateFormData.set("is_public", formData.get("is_public") as string);
           updateFormData.set("thumbnail_url", finalThumbnailUrl);
 
@@ -630,22 +648,46 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="script">쓰기 체계</Label>
+              <Select
+                value={script}
+                onValueChange={(v) => setScript(v as ScriptId)}
+                disabled={isEditMode}
+              >
+                <SelectTrigger id="script">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="latin">영어 (Latin)</SelectItem>
+                  <SelectItem value="hangul">한국어 (Hangul)</SelectItem>
+                </SelectContent>
+              </Select>
+              {isEditMode && (
+                <p className="text-xs text-muted-foreground">
+                  덱 생성 후에는 쓰기 체계를 변경할 수 없습니다.
+                </p>
+              )}
+            </div>
+
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <Label>단어 목록 *</Label>
                 <div className="flex items-center gap-3">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setAiPanelOpen((v) => !v)}
-                    aria-expanded={aiPanelOpen}
-                    aria-controls="ai-import-panel"
-                    className="h-8 gap-1.5 text-xs"
-                  >
-                    <Sparkles className="size-3.5" />
-                    {aiPanelOpen ? "AI 패널 접기" : "AI로 가져오기"}
-                  </Button>
+                  {script === "latin" && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setAiPanelOpen((v) => !v)}
+                      aria-expanded={aiPanelOpen}
+                      aria-controls="ai-import-panel"
+                      className="h-8 gap-1.5 text-xs"
+                    >
+                      <Sparkles className="size-3.5" />
+                      {aiPanelOpen ? "AI 패널 접기" : "AI로 가져오기"}
+                    </Button>
+                  )}
                   <div className="flex items-center gap-2">
                     <Label
                       htmlFor="uses_categories"
@@ -662,7 +704,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
                 </div>
               </div>
 
-              {aiPanelOpen && (
+              {aiPanelOpen && script === "latin" && (
                 <div id="ai-import-panel">
                   <AiImportPanel onImport={handleAiImport} />
                 </div>
@@ -682,6 +724,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
                 rows={formState.words}
                 categories={formState.categories}
                 showCategoryPicker={formState.usesCategories}
+                adapter={adapter}
                 onChangeRow={updateRow}
                 onAddRow={addRow}
                 onRemoveRow={removeRow}
