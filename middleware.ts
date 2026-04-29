@@ -1,12 +1,23 @@
 import { createClient } from '@/lib/supabase-middleware';
 import { NextRequest } from 'next/server';
+import { defaultLocale, isLocale } from '@/i18n/config';
 
 export async function middleware(request: NextRequest) {
   const { supabase, response } = createClient(request);
-  
+
   // 세션 새로고침
   await supabase.auth.getUser();
-  
+
+  if (!request.cookies.get('NEXT_LOCALE')) {
+    const acceptLang = request.headers.get('accept-language');
+    const detected = acceptLang?.split(',')[0]?.split('-')[0];
+    const locale = detected && isLocale(detected) ? detected : defaultLocale;
+    response.cookies.set('NEXT_LOCALE', locale, {
+      maxAge: 60 * 60 * 24 * 365,
+      path: '/',
+    });
+  }
+
   return response;
 }
 

@@ -6,6 +6,8 @@ import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import Loading from "@/components/common/Loading";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { Suspense } from "react";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 
 const pretendard = localFont({
   src: [
@@ -34,25 +36,30 @@ export const metadata: Metadata = {
   description: "Wordle deck sharing platform",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
-    <html lang="ko">
+    <html lang={locale}>
       <body
         className={`${pretendard.variable} antialiased`}
         style={{ fontFamily: "var(--font-pretendard)" }}
       >
-        <QueryProvider>
-          <ErrorBoundary>
-            <Suspense fallback={<Loading />}>
-              {children}
-            </Suspense>
-          </ErrorBoundary>
-          <Toaster />
-        </QueryProvider>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <QueryProvider>
+            <ErrorBoundary>
+              <Suspense fallback={<Loading />}>
+                {children}
+              </Suspense>
+            </ErrorBoundary>
+            <Toaster />
+          </QueryProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );
