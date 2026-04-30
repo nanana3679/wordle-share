@@ -3,6 +3,11 @@
 import type { DeckWord } from "@/types/decks";
 import type { ScriptAdapter } from "./scripts/types";
 
+export type ValidationTranslator = (
+  key: string,
+  values?: Record<string, string | number | Date>,
+) => string;
+
 export interface WordValidationResult {
   isValid: boolean;
   errors: string[];
@@ -11,37 +16,45 @@ export interface WordValidationResult {
 /**
  * 단일 단어의 유효성을 검사합니다.
  */
-export function validateWord(word: string, adapter: ScriptAdapter): WordValidationResult {
+export function validateWord(
+  word: string,
+  adapter: ScriptAdapter,
+  t: ValidationTranslator,
+  charDescription: string,
+): WordValidationResult {
   const errors: string[] = [];
 
-  // 1글자 이상인지 확인
   if (!word || adapter.splitUnits(word).length < 1) {
-    errors.push('단어는 1글자 이상이어야 합니다.');
+    errors.push(t("wordMinLength"));
     return { isValid: false, errors };
   }
 
   if (!adapter.isAllowedWord(word)) {
-    errors.push(`단어는 ${adapter.charDescription}만 사용할 수 있습니다.`);
+    errors.push(t("wordCharsOnly", { charDescription }));
   }
 
   return {
     isValid: errors.length === 0,
-    errors
+    errors,
   };
 }
 
 /**
  * 단어 배열의 유효성을 검사합니다.
  */
-export function validateWords(words: string[], adapter: ScriptAdapter): WordValidationResult {
+export function validateWords(
+  words: string[],
+  adapter: ScriptAdapter,
+  t: ValidationTranslator,
+  charDescription: string,
+): WordValidationResult {
   const errors: string[] = [];
 
   if (!words || words.length === 0) {
-    errors.push('최소 하나의 단어가 필요합니다.');
+    errors.push(t("wordsMinOne"));
     return { isValid: false, errors };
   }
 
-  // 각 단어의 개별 유효성 검사
   const individualErrors: string[] = [];
   const processedWords = new Set<string>();
 
@@ -49,22 +62,26 @@ export function validateWords(words: string[], adapter: ScriptAdapter): WordVali
     const trimmedWord = word.trim();
 
     if (!trimmedWord) {
-      individualErrors.push(`${index + 1}번째 단어가 비어있습니다.`);
+      individualErrors.push(t("wordEmptyAt", { index: index + 1 }));
       return;
     }
 
-    // 중복 검사
     const lowerWord = adapter.normalize(trimmedWord);
     if (processedWords.has(lowerWord)) {
-      individualErrors.push(`"${trimmedWord}"는 중복된 단어입니다.`);
+      individualErrors.push(t("wordDuplicate", { word: trimmedWord }));
       return;
     }
     processedWords.add(lowerWord);
 
-    // 개별 단어 유효성 검사
-    const wordValidation = validateWord(trimmedWord, adapter);
+    const wordValidation = validateWord(trimmedWord, adapter, t, charDescription);
     if (!wordValidation.isValid) {
-      individualErrors.push(`${index + 1}번째 단어 "${trimmedWord}": ${wordValidation.errors.join(', ')}`);
+      individualErrors.push(
+        t("wordError", {
+          index: index + 1,
+          word: trimmedWord,
+          errors: wordValidation.errors.join(", "),
+        }),
+      );
     }
   });
 
@@ -72,7 +89,7 @@ export function validateWords(words: string[], adapter: ScriptAdapter): WordVali
 
   return {
     isValid: errors.length === 0,
-    errors
+    errors,
   };
 }
 
@@ -88,50 +105,59 @@ export function normalizeWord(word: string, adapter: ScriptAdapter): string {
  */
 export function normalizeWords(words: string[], adapter: ScriptAdapter): string[] {
   const normalized = words
-    .map(word => word.trim())
-    .filter(word => word.length > 0)
-    .map(word => adapter.normalize(word));
+    .map((word) => word.trim())
+    .filter((word) => word.length > 0)
+    .map((word) => adapter.normalize(word));
 
-  // 중복 제거
   return Array.from(new Set(normalized));
 }
 
 /**
  * 단어 배열을 정규화하고 유효성을 검사합니다.
  */
-export function processWords(words: string[], adapter: ScriptAdapter): {
+export function processWords(
+  words: string[],
+  adapter: ScriptAdapter,
+  t: ValidationTranslator,
+  charDescription: string,
+): {
   normalizedWords: string[];
   validation: WordValidationResult;
 } {
   const normalizedWords = normalizeWords(words, adapter);
-  const validation = validateWords(normalizedWords, adapter);
+  const validation = validateWords(normalizedWords, adapter, t, charDescription);
 
   return {
     normalizedWords,
-    validation
+    validation,
   };
 }
 
 /**
  * CSV 형태의 문자열을 단어 배열로 변환하고 검증합니다.
  */
-export function parseWordsString(wordsString: string, adapter: ScriptAdapter): {
+export function parseWordsString(
+  wordsString: string,
+  adapter: ScriptAdapter,
+  t: ValidationTranslator,
+  charDescription: string,
+): {
   normalizedWords: string[];
   validation: WordValidationResult;
 } {
-  if (!wordsString || wordsString.trim() === '') {
+  if (!wordsString || wordsString.trim() === "") {
     return {
       normalizedWords: [],
-      validation: { isValid: false, errors: ['단어를 입력해주세요.'] }
+      validation: { isValid: false, errors: [t("wordInputRequired")] },
     };
   }
 
   const words = wordsString
-    .split(',')
-    .map(word => word.trim())
-    .filter(word => word.length > 0);
+    .split(",")
+    .map((word) => word.trim())
+    .filter((word) => word.length > 0);
 
-  return processWords(words, adapter);
+  return processWords(words, adapter, t, charDescription);
 }
 
 /**
@@ -143,11 +169,13 @@ export function toDeckWords(words: string[]): DeckWord[] {
 
 /**
  * DeckWord[] 입력을 정규화하고 유효성을 검사합니다.
- * - 단어: adapter.isAllowedWord 통과만 허용, adapter.normalize로 정규화, 공백 제거, 중복 제거
- *   (먼저 등장한 항목의 태그 보존).
- * - 태그: trim 후 빈 문자열 제외.
  */
-export function validateDeckWords(input: DeckWord[], adapter: ScriptAdapter): {
+export function validateDeckWords(
+  input: DeckWord[],
+  adapter: ScriptAdapter,
+  t: ValidationTranslator,
+  charDescription: string,
+): {
   ok: DeckWord[];
   errors: string[];
 } {
@@ -155,21 +183,25 @@ export function validateDeckWords(input: DeckWord[], adapter: ScriptAdapter): {
   const seen = new Map<string, DeckWord>();
 
   if (!input || input.length === 0) {
-    errors.push("최소 하나의 단어가 필요합니다.");
+    errors.push(t("wordsMinOne"));
     return { ok: [], errors };
   }
 
   input.forEach((entry, index) => {
     const rawWord = (entry?.word ?? "").trim();
     if (!rawWord) {
-      errors.push(`${index + 1}번째 단어가 비어있습니다.`);
+      errors.push(t("wordEmptyAt", { index: index + 1 }));
       return;
     }
 
-    const validation = validateWord(rawWord, adapter);
+    const validation = validateWord(rawWord, adapter, t, charDescription);
     if (!validation.isValid) {
       errors.push(
-        `${index + 1}번째 단어 "${rawWord}": ${validation.errors.join(", ")}`,
+        t("wordError", {
+          index: index + 1,
+          word: rawWord,
+          errors: validation.errors.join(", "),
+        }),
       );
       return;
     }
@@ -177,9 +209,7 @@ export function validateDeckWords(input: DeckWord[], adapter: ScriptAdapter): {
     const normalizedWord = adapter.normalize(rawWord);
     const rawTags = entry?.tags;
     if (rawTags !== undefined && rawTags !== null && !Array.isArray(rawTags)) {
-      errors.push(
-        `${index + 1}번째 단어 "${rawWord}": tags 필드는 배열이어야 합니다.`,
-      );
+      errors.push(t("tagsArray", { index: index + 1, word: rawWord }));
       return;
     }
     const normalizedTags = Array.from(
@@ -191,7 +221,6 @@ export function validateDeckWords(input: DeckWord[], adapter: ScriptAdapter): {
     );
 
     if (seen.has(normalizedWord)) {
-      // 중복 단어는 무시 (먼저 등장한 항목의 태그를 유지)
       return;
     }
 
@@ -202,35 +231,35 @@ export function validateDeckWords(input: DeckWord[], adapter: ScriptAdapter): {
 }
 
 /**
- * 단어가 게임에 적합한지 확인합니다 (추가 게임 관련 제약 조건).
+ * 단어가 게임에 적합한지 확인합니다.
  */
 export function validateWordForGame(
   word: string,
   adapter: ScriptAdapter,
+  t: ValidationTranslator,
+  charDescription: string,
   minLength: number = 3,
-  maxLength: number = 10
+  maxLength: number = 10,
 ): WordValidationResult {
   const errors: string[] = [];
 
-  // 기본 유효성 검사
-  const basicValidation = validateWord(word, adapter);
+  const basicValidation = validateWord(word, adapter, t, charDescription);
   if (!basicValidation.isValid) {
     return basicValidation;
   }
 
-  // 길이 검사
   const unitLength = adapter.splitUnits(word).length;
   if (unitLength < minLength) {
-    errors.push(`단어는 최소 ${minLength}글자 이상이어야 합니다.`);
+    errors.push(t("wordMinChars", { min: minLength }));
   }
 
   if (unitLength > maxLength) {
-    errors.push(`단어는 최대 ${maxLength}글자까지 가능합니다.`);
+    errors.push(t("wordMaxChars", { max: maxLength }));
   }
 
   return {
     isValid: errors.length === 0,
-    errors
+    errors,
   };
 }
 
@@ -240,27 +269,33 @@ export function validateWordForGame(
 export function validateWordsForGame(
   words: string[],
   adapter: ScriptAdapter,
+  t: ValidationTranslator,
+  charDescription: string,
   minLength: number = 3,
-  maxLength: number = 10
+  maxLength: number = 10,
 ): WordValidationResult {
   const errors: string[] = [];
 
-  // 기본 유효성 검사
-  const basicValidation = validateWords(words, adapter);
+  const basicValidation = validateWords(words, adapter, t, charDescription);
   if (!basicValidation.isValid) {
     return basicValidation;
   }
 
-  // 각 단어의 게임 적합성 검사
   words.forEach((word, index) => {
-    const gameValidation = validateWordForGame(word, adapter, minLength, maxLength);
+    const gameValidation = validateWordForGame(word, adapter, t, charDescription, minLength, maxLength);
     if (!gameValidation.isValid) {
-      errors.push(`${index + 1}번째 단어 "${word}": ${gameValidation.errors.join(', ')}`);
+      errors.push(
+        t("wordError", {
+          index: index + 1,
+          word,
+          errors: gameValidation.errors.join(", "),
+        }),
+      );
     }
   });
 
   return {
     isValid: errors.length === 0,
-    errors
+    errors,
   };
 }

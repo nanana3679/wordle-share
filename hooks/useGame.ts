@@ -13,6 +13,7 @@ import type { ScriptAdapter } from "@/lib/scripts/types";
 import { scriptUsesIme } from "@/lib/scripts";
 import { Deck } from "@/types/decks";
 import { getWordStrings } from "@/lib/deckHelpers";
+import { useTranslations } from "next-intl";
 
 export interface UseGameReturn {
   gameState: GameState | null;
@@ -32,19 +33,20 @@ export function useGame(deck: Deck, adapter: ScriptAdapter): UseGameReturn {
   const [showGameResultModal, setShowGameResultModal] = useState(false);
   const [gameResultType, setGameResultType] = useState<'success' | 'failure' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const t = useTranslations('Game.errors');
 
   // 게임 초기화
   useEffect(() => {
     const wordList = getWordStrings(deck);
     if (wordList.length === 0) {
-      throw new Error('이 덱에는 단어가 없습니다.');
+      throw new Error(t('deckEmpty'));
     }
 
     // 랜덤 단어 선택 및 게임 초기화
-    const targetWord = selectRandomWord(wordList);
+    const targetWord = selectRandomWord(wordList, t);
     const initialGameState = initializeGame(targetWord, 6, wordList, adapter);
     setGameState(initialGameState);
-  }, [deck, adapter]);
+  }, [deck, adapter, t]);
 
   // 키보드 입력 처리
   // 줄이 가득 찼는지 검사는 addLetterToGuess 내부에서 어댑터의 splitUnits 기반으로 수행한다.
@@ -78,7 +80,7 @@ export function useGame(deck: Deck, adapter: ScriptAdapter): UseGameReturn {
     setIsSubmitting(true);
 
     // submitGuess를 먼저 실행하여 결과 확인
-    const newState = submitGuess(gameState);
+    const newState = submitGuess(gameState, t);
 
     // submitGuess가 변화 없이 반환한 경우(줄 미충족 등) → 아무것도 안 함
     if (newState === gameState) {
@@ -111,7 +113,7 @@ export function useGame(deck: Deck, adapter: ScriptAdapter): UseGameReturn {
         setTimeout(() => setShowGameResultModal(true), 1200);
       }
     }
-  }, [gameState, isSubmitting]);
+  }, [gameState, isSubmitting, t]);
 
   // 키보드 이벤트 처리
   useEffect(() => {
@@ -170,14 +172,14 @@ export function useGame(deck: Deck, adapter: ScriptAdapter): UseGameReturn {
     const wordList = getWordStrings(deck);
     if (wordList.length === 0) return;
 
-    const targetWord = selectRandomWord(wordList);
+    const targetWord = selectRandomWord(wordList, t);
     const newGameState = initializeGame(targetWord, 6, wordList, adapter);
     setGameState(newGameState);
     setShowResult(false);
     setShowGameResultModal(false);
     setGameResultType(null);
     setIsSubmitting(false);
-  }, [deck, adapter]);
+  }, [deck, adapter, t]);
 
   return {
     gameState,

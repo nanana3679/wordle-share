@@ -4,8 +4,10 @@ import { useOptimistic, useState, startTransition } from "react";
 import { createLike, deleteLike } from "@/app/actions/like";
 import { actionWithToast } from "@/lib/action-with-toast";
 import { Deck } from "@/types/decks";
+import { useTranslations } from "next-intl";
 
 export function useOptimisticLike(deck: Deck) {
+  const t = useTranslations("Deck.like");
   const isLiked = deck.isLiked || false;
   const otherUsersLikeCount = (deck.likes?.length || 0) - (isLiked ? 1 : 0);
   const deckId = deck.id;
@@ -59,10 +61,10 @@ export function useOptimisticLike(deck: Deck) {
       setIsLoading(false);
     } catch (error) {
       // 4. 서버 요청 실패: useOptimistic이 자동으로 낙관적 상태를 초기 상태(likeState)로 롤백
-      console.error("좋아요 처리 실패:", error);
+      console.error("like toggle failed:", error);
       await actionWithToast(async () => ({
         success: false,
-        message: error instanceof Error ? error.message : "좋아요 처리에 실패했습니다.",
+        message: error instanceof Error ? error.message : t("failed"),
       }));
       setIsLoading(false);
     }

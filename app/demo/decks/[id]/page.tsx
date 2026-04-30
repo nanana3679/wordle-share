@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getDeck } from "@/app/actions/deck";
 import { DeckDetailStatic } from "@/components/decks/DeckDetailStatic";
 import { Metadata } from "next";
+import { getLocale, getTranslations } from "next-intl/server";
 
 interface DeckPageProps {
   params: Promise<{
@@ -9,34 +10,51 @@ interface DeckPageProps {
   }>;
 }
 
+const LOCALE_TO_OG: Record<string, string> = {
+  ko: "ko_KR",
+  en: "en_US",
+  ja: "ja_JP",
+};
+
 // 동적 메타데이터 생성
 export async function generateMetadata({ params }: DeckPageProps): Promise<Metadata> {
   const { id } = await params;
   const { data: deck } = await getDeck(id);
-  
+
   if (!deck) {
     notFound();
   }
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
   const deckUrl = `${siteUrl}/demo/decks/${id}`;
-  
+
+  const tMeta = await getTranslations("Pages.deckMeta");
+  const locale = await getLocale();
+
   // 덱 설명이 있으면 사용하고, 없으면 기본 설명 생성
-  const description = deck.description || 
-    `${deck.name} - ${deck.words?.length || 0}개의 단어가 포함된 Wordle 덱입니다. 지금 플레이해보세요!`;
-  
+  const description =
+    deck.description ||
+    tMeta("defaultDescription", {
+      name: deck.name ?? "",
+      count: deck.words?.length || 0,
+    });
+
   // 썸네일 이미지가 있으면 사용하고, 없으면 favicon 사용
   const ogImage = deck.thumbnail_url || `${siteUrl}/favicon.svg`;
-  
+
   // 썸네일이 없을 때는 favicon을 사용하므로 작은 크기
   const imageWidth = deck.thumbnail_url ? 1200 : 512;
   const imageHeight = deck.thumbnail_url ? 630 : 512;
 
+  const titleSuffix = tMeta("titleSuffix");
+  const fullTitle = `${deck.name} - ${titleSuffix}`;
+  const altPreview = tMeta("imageAlt", { name: deck.name ?? "" });
+
   return {
-    title: `${deck.name} - Wordle Deck`,
+    title: fullTitle,
     description,
     openGraph: {
-      title: `${deck.name} - Wordle Deck`,
+      title: fullTitle,
       description,
       url: deckUrl,
       siteName: "wordledecks",
@@ -45,15 +63,15 @@ export async function generateMetadata({ params }: DeckPageProps): Promise<Metad
           url: ogImage,
           width: imageWidth,
           height: imageHeight,
-          alt: `${deck.name} 덱 미리보기`,
+          alt: altPreview,
         },
       ],
-      locale: "ko_KR",
+      locale: LOCALE_TO_OG[locale] ?? "ko_KR",
       type: "website",
     },
     twitter: {
       card: deck.thumbnail_url ? "summary_large_image" : "summary",
-      title: `${deck.name} - Wordle Deck`,
+      title: fullTitle,
       description,
       images: [ogImage],
     },

@@ -1,4 +1,5 @@
 import { ImageResponse } from 'next/og';
+import { getTranslations } from 'next-intl/server';
 
 export const runtime = 'edge';
 
@@ -8,6 +9,7 @@ export async function GET(request: Request) {
     const title = searchParams.get('title') || 'Wordle Deck';
     const words = searchParams.get('words') || '0';
     const description = searchParams.get('description') || '';
+    const t = await getTranslations('Pages.ogImage');
 
     return new ImageResponse(
       (
@@ -123,7 +125,7 @@ export async function GET(request: Request) {
                   fontWeight: '600',
                 }}
               >
-                {words}개 단어
+                {t('wordCount', { count: words })}
               </div>
             </div>
 
@@ -154,7 +156,7 @@ export async function GET(request: Request) {
                   color: '#64748b',
                 }}
               >
-                지금 플레이하세요
+                {t('playNow')}
               </div>
             </div>
           </div>

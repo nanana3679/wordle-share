@@ -7,6 +7,7 @@ import { signInWithGoogle, signOut } from "@/app/actions/auth";
 import { User } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 
 interface AppBarProps {
   title: string;
@@ -16,19 +17,20 @@ interface AppBarProps {
   user: User | null;
 }
 
-export function AppBar({ 
-  title, 
-  showBackButton = false, 
+export function AppBar({
+  title,
+  showBackButton = false,
   onBackClick,
   user
 }: AppBarProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const t = useTranslations("Auth");
   const handleLogin = async () => {
     try {
       await signInWithGoogle();
     } catch (error) {
-      console.error("로그인 실패:", error);
+      console.error("login failed:", error);
     }
   };
 
@@ -37,9 +39,9 @@ export function AppBar({
       await signOut();
       // useAuth 훅에서 로그아웃 상태 변경
       queryClient.invalidateQueries({ queryKey: ["auth", "user"] });
-      toast.success("로그아웃 되었습니다.");
+      toast.success(t("loggedOut"));
     } catch (error) {
-      console.error("로그아웃 실패:", error);
+      console.error("logout failed:", error);
     }
   };
 
@@ -81,12 +83,12 @@ export function AppBar({
           {user ? (
             <Button variant="outline" size="sm" onClick={handleLogout}>
               <LogOut className="h-4 w-4 mr-2" />
-              로그아웃
+              {t("logout")}
             </Button>
           ) : (
             <Button size="sm" onClick={handleLogin}>
               <LogIn className="h-4 w-4 mr-2" />
-              로그인
+              {t("login")}
             </Button>
           )}
         </div>

@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WordRow, type WordRowValue } from "@/components/decks/WordRow";
 import type { ScriptAdapter } from "@/lib/scripts/types";
+import { useTranslations } from "next-intl";
 
 interface WordListProps {
   rows: WordRowValue[];
@@ -30,6 +31,7 @@ export function WordList({
 }: WordListProps) {
   const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
   const pendingFocusAfterIdRef = useRef<string | null>(null);
+  const t = useTranslations("Deck.wordList");
 
   // onAddRow가 부모 상태를 비동기로 갱신하므로, 보류된 포커스 대상을 ref에 저장해두고
   // 새 rows가 도착한 다음 effect에서 다음 행을 찾아 포커스한다.
@@ -103,7 +105,7 @@ export function WordList({
         className="ml-9 gap-1"
       >
         <Plus className="size-4" />
-        단어 추가
+        {t("addWord")}
       </Button>
     </div>
   );

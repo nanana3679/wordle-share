@@ -6,17 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Deck } from "@/types/decks";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 export function LikeButton({ deck }: { deck: Deck }) {
   const { optimisticIsLiked, optimisticLikeCounts, toggleLike, isLoading } = useOptimisticLike(deck);
   const { user } = useAuth();
+  const t = useTranslations("Deck.like");
 
   const handleToggleLike = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     e.preventDefault();
     if (isLoading) return;
     if (!user) {
-      toast.error("로그인이 필요합니다.");
+      toast.error(t("loginRequired"));
       return;
     }
     toggleLike();

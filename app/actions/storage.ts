@@ -3,18 +3,21 @@
 import { createClient } from "@/lib/supabase-server";
 import { ActionResponse } from "@/types/action";
 import { safeAction } from "@/lib/safe-action";
+import { getTranslations } from "next-intl/server";
 
 export async function uploadDeckThumbnail(file: File, deckId: string): Promise<ActionResponse<string>> {
   return safeAction(async () => {
     const supabase = await createClient();
-    
+    const tAuth = await getTranslations("Auth");
+    const tImage = await getTranslations("Image");
+
     // 현재 사용자 정보 가져오기
     const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
+
     if (userError || !user) {
       return {
         success: false,
-        message: "로그인이 필요합니다.",
+        message: tAuth("loginRequired"),
       };
     }
 
@@ -34,7 +37,7 @@ export async function uploadDeckThumbnail(file: File, deckId: string): Promise<A
     if (error) {
       return {
         success: false,
-        message: `이미지 업로드에 실패했습니다: ${error.message}`,
+        message: tImage("errors.uploadFailed", { message: error.message }),
       };
     }
 
@@ -46,14 +49,14 @@ export async function uploadDeckThumbnail(file: File, deckId: string): Promise<A
     if (!urlData?.publicUrl) {
       return {
         success: false,
-        message: "이미지 URL 생성에 실패했습니다.",
+        message: tImage("errors.urlFailed"),
       };
     }
 
     return {
       success: true,
       data: urlData.publicUrl,
-      message: "이미지 업로드에 성공했습니다.",
+      message: tImage("messages.uploadSuccess"),
     };
   });
 }
@@ -61,7 +64,8 @@ export async function uploadDeckThumbnail(file: File, deckId: string): Promise<A
 export async function deleteDeckThumbnail(deckId: string): Promise<ActionResponse> {
   return safeAction(async () => {
     const supabase = await createClient();
-    
+    const tImage = await getTranslations("Image");
+
     // 파일 삭제 (확장자가 다를 수 있으므로 패턴 매칭으로 삭제)
     const { data: files, error: listError } = await supabase.storage
       .from('deck-thumbnails')
@@ -72,7 +76,7 @@ export async function deleteDeckThumbnail(deckId: string): Promise<ActionRespons
     if (listError) {
       return {
         success: false,
-        message: `이미지 목록 조회에 실패했습니다: ${listError.message}`,
+        message: tImage("errors.listFailed", { message: listError.message }),
       };
     }
 
@@ -85,14 +89,14 @@ export async function deleteDeckThumbnail(deckId: string): Promise<ActionRespons
       if (error) {
         return {
           success: false,
-          message: `이미지 삭제에 실패했습니다: ${error.message}`,
+          message: tImage("errors.deleteFailed", { message: error.message }),
         };
       }
     }
 
     return {
       success: true,
-      message: "이미지를 삭제했습니다.",
+      message: tImage("messages.deleted"),
     };
   });
 }

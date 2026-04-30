@@ -6,9 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { useLocale, useTranslations } from 'next-intl';
 
 function TestLoginContent() {
   const { user } = useAuth();
+  const t = useTranslations('Pages.loginDemo');
+  const locale = useLocale();
 
   const handleSignOut = async () => {
     await signOut();
@@ -22,9 +25,9 @@ function TestLoginContent() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Google 로그인 테스트</CardTitle>
+          <CardTitle className="text-2xl">{t('title')}</CardTitle>
           <CardDescription>
-            Supabase + Google OAuth 연동 확인
+            {t('subtitle')}
           </CardDescription>
         </CardHeader>
 
@@ -33,7 +36,7 @@ function TestLoginContent() {
             <div className="space-y-4">
               <Card className="border-green-200 bg-green-50">
                 <CardHeader>
-                  <CardTitle className="text-green-800 text-lg">로그인 성공!</CardTitle>
+                  <CardTitle className="text-green-800 text-lg">{t('successTitle')}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex items-center gap-3">
@@ -49,15 +52,15 @@ function TestLoginContent() {
                   
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="font-medium">사용자 ID:</span>
+                      <span className="font-medium">{t('userIdLabel')}</span>
                       <Badge variant="outline" className="text-xs">
                         {user.id}
                       </Badge>
                     </div>
                     <div className="flex justify-between">
-                      <span className="font-medium">가입일:</span>
+                      <span className="font-medium">{t('joinedLabel')}</span>
                       <span className="text-muted-foreground">
-                        {new Date(user.created_at).toLocaleDateString('ko-KR')}
+                        {new Date(user.created_at).toLocaleDateString(locale)}
                       </span>
                     </div>
                   </div>
@@ -65,12 +68,12 @@ function TestLoginContent() {
               </Card>
 
               <form action={handleSignOut}>
-                <Button 
-                  type="submit" 
-                  variant="destructive" 
+                <Button
+                  type="submit"
+                  variant="destructive"
                   className="w-full"
                 >
-                  로그아웃
+                  {t('logout')}
                 </Button>
               </form>
             </div>
@@ -99,13 +102,13 @@ function TestLoginContent() {
                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                   />
                 </svg>
-                Google로 로그인
+                {t('googleLogin')}
               </Button>
             </form>
           )}
 
           <div className="text-xs text-muted-foreground text-center space-y-1 pt-4 border-t">
-            <p>환경: <Badge variant="secondary" className="ml-1">{process.env.NODE_ENV}</Badge></p>
+            <p>{t('envLabel')} <Badge variant="secondary" className="ml-1">{process.env.NODE_ENV}</Badge></p>
             <p>Redirect URL: {process.env.NEXT_PUBLIC_SITE_URL}/auth/callback</p>
           </div>
         </CardContent>

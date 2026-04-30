@@ -5,10 +5,12 @@ import { redirect } from "next/navigation";
 import { ActionResponse } from "@/types/action";
 import { safeAction } from "@/lib/safe-action";
 import { User } from "@supabase/supabase-js";
+import { getTranslations } from "next-intl/server";
 
 export async function signInWithGoogle(): Promise<ActionResponse<string>> {
   return safeAction(async () => {
     const supabase = await createClient();
+    const t = await getTranslations("Auth.errors");
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -20,7 +22,7 @@ export async function signInWithGoogle(): Promise<ActionResponse<string>> {
     if (error) {
       return {
         success: false,
-        message: `구글 로그인에 실패했습니다: ${error.message}`,
+        message: t("googleFailed", { message: error.message }),
       };
     }
 
@@ -30,7 +32,7 @@ export async function signInWithGoogle(): Promise<ActionResponse<string>> {
 
     return {
       success: false,
-      message: "로그인 URL을 생성하지 못했습니다.",
+      message: t("loginUrlFailed"),
     };
   });
 }
@@ -38,15 +40,16 @@ export async function signInWithGoogle(): Promise<ActionResponse<string>> {
 export async function signOut(): Promise<ActionResponse> {
   return safeAction(async () => {
     const supabase = await createClient();
+    const t = await getTranslations("Auth.errors");
     const { error } = await supabase.auth.signOut();
-    
+
     if (error) {
       return {
         success: false,
-        message: `로그아웃에 실패했습니다: ${error.message}`,
+        message: t("logoutFailed", { message: error.message }),
       };
     }
-    
+
     redirect("/demo/decks");
   });
 }
@@ -54,17 +57,19 @@ export async function signOut(): Promise<ActionResponse> {
 export async function getUser(): Promise<ActionResponse<User | null>> {
   return safeAction(async () => {
     const supabase = await createClient();
+    const tErrors = await getTranslations("Auth.errors");
+    const tMessages = await getTranslations("Auth.messages");
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error) {
       return {
         success: false,
-        message: `사용자 정보를 가져오는데 실패했습니다: ${error.message}`,
+        message: tErrors("userInfoFailed", { message: error.message }),
       };
     }
     return {
       success: true,
       data: user,
-      message: "사용자 정보를 가져왔습니다.",
+      message: tMessages("userInfoSuccess"),
     };
   });
 }

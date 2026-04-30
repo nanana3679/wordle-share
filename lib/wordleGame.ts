@@ -3,6 +3,11 @@
 import { getScriptAdapter } from './scripts';
 import type { ScriptAdapter, ScriptId } from './scripts/types';
 
+export type GameErrorTranslator = (
+  key: string,
+  values?: Record<string, string | number | Date>,
+) => string;
+
 export type LetterState = 'correct' | 'present' | 'absent' | 'empty';
 
 export interface Letter {
@@ -75,7 +80,7 @@ export function removeLetterFromGuess(gameState: GameState): GameState {
   };
 }
 
-export function submitGuess(gameState: GameState): GameState {
+export function submitGuess(gameState: GameState, t: GameErrorTranslator): GameState {
   if (gameState.gameStatus !== 'playing') return gameState;
 
   const adapter = getScriptAdapter(gameState.adapterId);
@@ -89,7 +94,7 @@ export function submitGuess(gameState: GameState): GameState {
     if (!gameState.validWords.includes(currentNormalized)) {
       return {
         ...gameState,
-        errorMessage: '단어 목록에 없는 단어입니다.'
+        errorMessage: t('wordNotInList')
       };
     }
   }
@@ -168,8 +173,8 @@ function evaluateGuess(guessUnits: string[], targetUnits: string[]): Guess {
   return { letters: result };
 }
 
-export function selectRandomWord(words: string[]): string {
-  if (words.length === 0) throw new Error('단어 목록이 비어있습니다.');
+export function selectRandomWord(words: string[], t: GameErrorTranslator): string {
+  if (words.length === 0) throw new Error(t('wordsListEmpty'));
   const randomIndex = Math.floor(Math.random() * words.length);
   return words[randomIndex];
 }

@@ -9,10 +9,13 @@ import { DeckDialog } from "@/components/decks/DeckDialog";
 import { Button } from "@/components/ui/button";
 import { useInfiniteDecks } from "@/hooks/useInfiniteDecks";
 import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
+import { useTranslations } from "next-intl";
 
 export function DecksContentInfinite() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterPublic, setFilterPublic] = useState<string>("all");
+  const t = useTranslations("Deck.list");
+  const tCommon = useTranslations("Common.error");
 
   const {
     data,
@@ -68,7 +71,7 @@ export function DecksContentInfinite() {
     return (
       <div className="container mx-auto px-4 sm:px-6 md:px-8 lg:px-12 py-8">
         <div className="text-center py-8 text-destructive">
-          오류가 발생했습니다: {error instanceof Error ? error.message : "알 수 없는 오류"}
+          {t("errorPrefix", { message: error instanceof Error ? error.message : tCommon("unknown") })}
         </div>
       </div>
     );
@@ -80,7 +83,7 @@ export function DecksContentInfinite() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
-            placeholder="덱 이름이나 설명으로 검색..."
+            placeholder={t("search")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -91,9 +94,9 @@ export function DecksContentInfinite() {
             <Filter className="w-4 h-4" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">전체</SelectItem>
-            <SelectItem value="public">공개</SelectItem>
-            <SelectItem value="private">비공개</SelectItem>
+            <SelectItem value="all">{t("filterAll")}</SelectItem>
+            <SelectItem value="public">{t("filterPublic")}</SelectItem>
+            <SelectItem value="private">{t("filterPrivate")}</SelectItem>
           </SelectContent>
         </Select>
         <DeckDialog>
@@ -109,9 +112,9 @@ export function DecksContentInfinite() {
         </div>
       ) : filteredDecks.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
-          {searchTerm || filterPublic !== "all" 
-            ? "검색 조건에 맞는 덱이 없습니다." 
-            : "아직 생성된 덱이 없습니다. 새 덱을 만들어보세요!"}
+          {searchTerm || filterPublic !== "all"
+            ? t("noResults")
+            : t("empty")}
         </div>
       ) : (
         <>
@@ -129,12 +132,12 @@ export function DecksContentInfinite() {
             {isFetchingNextPage && (
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Loader2 className="w-5 h-5 animate-spin" />
-                <span>더 많은 덱을 불러오는 중...</span>
+                <span>{t("loadMore")}</span>
               </div>
             )}
             {!hasNextPage && allDecks.length > 0 && (
               <div className="text-muted-foreground text-sm">
-                모든 덱을 불러왔습니다
+                {t("allLoaded")}
               </div>
             )}
           </div>

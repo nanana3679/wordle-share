@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { TagPicker } from "@/components/decks/TagPicker";
 import type { ScriptAdapter } from "@/lib/scripts/types";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 export interface WordRowValue {
   id: string;
@@ -47,6 +48,9 @@ export function WordRow({
 }: WordRowProps) {
   const hasError = hasInvalidChars || isDuplicate;
   const errorId = `word-row-${value.id}-error`;
+  const t = useTranslations("Deck.dialog.words");
+  const tScripts = useTranslations("Game.scripts");
+  const charDescription = tScripts(`${adapter.id}.charDescription`);
   return (
     <div className="space-y-1">
       <div className="flex items-start gap-2">
@@ -64,7 +68,7 @@ export function WordRow({
                 onEnter();
               }
             }}
-            placeholder={`단어 (${adapter.charDescription})`}
+            placeholder={t("placeholder", { charDescription })}
             autoComplete="off"
             spellCheck={false}
             className={cn(
@@ -88,7 +92,7 @@ export function WordRow({
           variant="ghost"
           size="icon"
           onClick={onRemove}
-          aria-label={`${index + 1}번째 단어 삭제`}
+          aria-label={t("removeAria", { index: index + 1 })}
           className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
         >
           <X className="size-4" />
@@ -96,9 +100,9 @@ export function WordRow({
       </div>
       {hasError && (
         <p id={errorId} className="pl-9 text-xs text-destructive">
-          {hasInvalidChars && `${adapter.charDescription}만 사용할 수 있습니다.`}
+          {hasInvalidChars && t("charsOnly", { charDescription })}
           {hasInvalidChars && isDuplicate && " "}
-          {isDuplicate && "중복된 단어입니다."}
+          {isDuplicate && t("duplicate")}
         </p>
       )}
     </div>

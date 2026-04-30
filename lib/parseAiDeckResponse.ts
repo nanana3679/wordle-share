@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+export type AiErrorTranslator = (
+  key: string,
+  values?: Record<string, string | number | Date>,
+) => string;
+
 const AiDeckSchema = z.object({
   name: z.string().optional(),
   description: z.string().optional(),
@@ -80,15 +85,18 @@ function tryParseJson(raw: string): { ok: true; value: unknown } | { ok: false }
   return { ok: false };
 }
 
-export function parseAiDeckResponse(raw: string): ParseAiDeckResult {
+export function parseAiDeckResponse(
+  raw: string,
+  t: AiErrorTranslator,
+): ParseAiDeckResult {
   const parsed = tryParseJson(raw);
   if (!parsed.ok) {
-    return { ok: false, error: "JSON 파싱에 실패했습니다 (응답에서 JSON을 찾지 못했습니다)" };
+    return { ok: false, error: t("jsonParseFailed") };
   }
 
   const validation = AiDeckSchema.safeParse(parsed.value);
   if (!validation.success) {
-    return { ok: false, error: "JSON 스키마가 올바르지 않습니다 (필드 누락/타입 오류)" };
+    return { ok: false, error: t("schemaInvalid") };
   }
   const v = validation.data;
 
@@ -139,7 +147,7 @@ export function parseAiDeckResponse(raw: string): ParseAiDeckResult {
   }
 
   if (words.length === 0) {
-    return { ok: false, error: "유효한 단어를 찾지 못했습니다" };
+    return { ok: false, error: t("noValidWords") };
   }
 
   // tags에 등장했지만 categories에 없는 값을 보정 추가 (LLM이 빠뜨린 경우)

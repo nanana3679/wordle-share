@@ -14,6 +14,7 @@ import { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { ActionResponse } from "@/types/action";
 import { Deck } from "@/types/decks";
 import { safeAction } from "@/lib/safe-action";
+import { getTranslations } from "next-intl/server";
 
 const ANON_HANDLE_MIN = 2;
 const ANON_HANDLE_MAX = 20;
@@ -33,29 +34,45 @@ type ScriptResolution =
   | { ok: true; script: string }
   | { ok: false; message: string; fieldErrors?: { [key: string]: string[] } };
 
+type DeckActionTranslator = (
+  key: string,
+  values?: Record<string, string | number | Date>,
+) => string;
+
+type ValidationTranslator = DeckActionTranslator;
+type CategoriesErrorTranslator = DeckActionTranslator;
+
 // formData의 script를 화이트리스트 검증. 누락 시 'latin' 기본값.
-function resolveScript(formData: FormData): ScriptResolution {
+function resolveScript(formData: FormData, t: DeckActionTranslator): ScriptResolution {
   const raw = formData.get("script");
   const script = typeof raw === "string" && raw.trim() ? raw.trim() : "latin";
   if (!(SUPPORTED_SCRIPTS as readonly string[]).includes(script)) {
+    const message = t("scriptUnsupported", { script });
     return {
       ok: false,
-      message: `지원하지 않는 쓰기체계입니다: ${script}`,
-      fieldErrors: { script: [`지원하지 않는 쓰기체계입니다: ${script}`] },
+      message,
+      fieldErrors: { script: [message] },
     };
   }
   return { ok: true, script };
 }
 
-function parseDeckPayload(formData: FormData, script: string = "latin"): DeckPayloadResult {
+function parseDeckPayload(
+  formData: FormData,
+  script: string,
+  tDeck: DeckActionTranslator,
+  tValidation: ValidationTranslator,
+  tCategoriesErr: CategoriesErrorTranslator,
+  charDescription: string,
+): DeckPayloadResult {
   const adapter = getScriptAdapter(script);
 
   const wordsJson = formData.get("words_json");
   if (typeof wordsJson !== "string" || !wordsJson.trim()) {
     return {
       ok: false,
-      message: "단어 목록이 비어있습니다.",
-      fieldErrors: { words: ["단어는 필수입니다."] },
+      message: tDeck("wordsEmpty"),
+      fieldErrors: { words: [tDeck("wordsRequired")] },
     };
   }
 
@@ -65,24 +82,29 @@ function parseDeckPayload(formData: FormData, script: string = "latin"): DeckPay
   } catch {
     return {
       ok: false,
-      message: "단어 목록 형식이 올바르지 않습니다.",
-      fieldErrors: { words: ["단어 목록 JSON 파싱에 실패했습니다."] },
+      message: tDeck("wordsFormatInvalid"),
+      fieldErrors: { words: [tDeck("wordsParseFailed")] },
     };
   }
 
   if (!Array.isArray(rawWords)) {
     return {
       ok: false,
-      message: "단어 목록은 배열이어야 합니다.",
-      fieldErrors: { words: ["단어 목록은 배열이어야 합니다."] },
+      message: tDeck("wordsArrayRequired"),
+      fieldErrors: { words: [tDeck("wordsArrayRequired")] },
     };
   }
 
-  const wordsValidation = validateDeckWords(rawWords as DeckWord[], adapter);
+  const wordsValidation = validateDeckWords(
+    rawWords as DeckWord[],
+    adapter,
+    tValidation,
+    charDescription,
+  );
   if (wordsValidation.errors.length > 0) {
     return {
       ok: false,
-      message: `단어 검증 실패: ${wordsValidation.errors.join(", ")}`,
+      message: tDeck("wordsValidationFailed", { errors: wordsValidation.errors.join(", ") }),
       fieldErrors: { words: wordsValidation.errors },
     };
   }
@@ -95,17 +117,17 @@ function parseDeckPayload(formData: FormData, script: string = "latin"): DeckPay
     } catch {
       return {
         ok: false,
-        message: "카테고리 목록 형식이 올바르지 않습니다.",
-        fieldErrors: { categories: ["카테고리 목록 JSON 파싱에 실패했습니다."] },
+        message: tDeck("categoriesFormatInvalid"),
+        fieldErrors: { categories: [tDeck("categoriesParseFailed")] },
       };
     }
   }
 
-  const categoriesValidation = normalizeCategories(rawCategories);
+  const categoriesValidation = normalizeCategories(rawCategories, tCategoriesErr);
   if (categoriesValidation.errors.length > 0) {
     return {
       ok: false,
-      message: `카테고리 검증 실패: ${categoriesValidation.errors.join(", ")}`,
+      message: tDeck("categoriesValidationFailed", { errors: categoriesValidation.errors.join(", ") }),
       fieldErrors: { categories: categoriesValidation.errors },
     };
   }
@@ -134,9 +156,11 @@ function parseDeckPayload(formData: FormData, script: string = "latin"): DeckPay
 export async function getDecks(page: number = 1, pageSize: number = 24): Promise<ActionResponse<Deck[]> & { total?: number; page?: number; pageSize?: number; totalPages?: number }> {
   return safeAction(async () => {
     const supabase = await createClient();
+    const tDeck = await getTranslations("Deck.actions.errors");
+    const tDeckSuccess = await getTranslations("Deck.actions.success");
 
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     // 전체 개수 가져오기
     const { count, error: countError } = await supabase
       .from("decks")
@@ -145,14 +169,14 @@ export async function getDecks(page: number = 1, pageSize: number = 24): Promise
     if (countError) {
       return {
         success: false,
-        message: `덱 개수를 가져오는데 실패했습니다: ${countError.message}`,
+        message: tDeck("countFailed", { message: countError.message }),
       };
     }
 
     const total = count || 0;
     const totalPages = Math.ceil(total / pageSize);
     const offset = (page - 1) * pageSize;
-    
+
     const { data: decks, error }: PostgrestSingleResponse<Deck[]> = await supabase
       .from("decks")
       .select(`
@@ -169,7 +193,7 @@ export async function getDecks(page: number = 1, pageSize: number = 24): Promise
     if (error) {
       return {
         success: false,
-        message: `덱 목록을 가져오는데 실패했습니다: ${error.message}`,
+        message: tDeck("listFailed", { message: error.message }),
       };
     }
 
@@ -186,7 +210,7 @@ export async function getDecks(page: number = 1, pageSize: number = 24): Promise
     return {
       success: true,
       data: newDecks as Deck[],
-      message: "덱 목록을 가져왔습니다.",
+      message: tDeckSuccess("listFetched"),
       total,
       page,
       pageSize,
@@ -198,8 +222,11 @@ export async function getDecks(page: number = 1, pageSize: number = 24): Promise
 export async function getDeck(deckId: string): Promise<ActionResponse<Deck>> {
   return safeAction(async () => {
     const supabase = await createClient();
+    const tDeck = await getTranslations("Deck.actions.errors");
+    const tDeckSuccess = await getTranslations("Deck.actions.success");
+
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     const { data: deckData, error: deckError } = await supabase
       .from("decks")
       .select(`
@@ -216,7 +243,7 @@ export async function getDeck(deckId: string): Promise<ActionResponse<Deck>> {
     if (deckError) {
       return {
         success: false,
-        message: `덱을 가져오는데 실패했습니다: ${deckError.message}`,
+        message: tDeck("fetchFailed", { message: deckError.message }),
       };
     }
 
@@ -244,10 +271,10 @@ export async function getDeck(deckId: string): Promise<ActionResponse<Deck>> {
           isLiked: false,
           isCreator: false,
         } as Deck,
-        message: "덱을 가져왔습니다.",
+        message: tDeckSuccess("fetched"),
       };
     }
-    
+
     // 인증된 사용자의 경우 - isLiked와 isCreator 정보 추가
     const isLiked = deckData?.likes?.some(like => like.user_id === user.id);
 
@@ -261,7 +288,7 @@ export async function getDeck(deckId: string): Promise<ActionResponse<Deck>> {
     return {
       success: true,
       data: newDeck,
-      message: "덱을 가져왔습니다.",
+      message: tDeckSuccess("fetched"),
     };
   });
 }
@@ -270,14 +297,19 @@ export async function getDeck(deckId: string): Promise<ActionResponse<Deck>> {
 export async function createDeck(formData: FormData): Promise<ActionResponse<Deck>> {
   return safeAction(async () => {
     const supabase = await createClient();
-    
+    const tDeck = await getTranslations("Deck.actions.errors");
+    const tDeckSuccess = await getTranslations("Deck.actions.success");
+    const tValidation = await getTranslations("Game.validation");
+    const tCategoriesErr = await getTranslations("Categories.errors");
+    const tScripts = await getTranslations("Game.scripts");
+
     // 현재 사용자 정보 가져오기
     const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
+
     if (userError || !user) {
       return {
         success: false,
-        message: "로그인이 필요합니다.",
+        message: tDeck("loginRequired"),
       };
     }
 
@@ -289,12 +321,12 @@ export async function createDeck(formData: FormData): Promise<ActionResponse<Dec
     if (!name) {
       return {
         success: false,
-        message: "이름은 필수입니다.",
-        fieldErrors: { name: ["이름은 필수입니다."] },
+        message: tDeck("nameRequired"),
+        fieldErrors: { name: [tDeck("nameRequired")] },
       };
     }
 
-    const scriptResolution = resolveScript(formData);
+    const scriptResolution = resolveScript(formData, tDeck);
     if (!scriptResolution.ok) {
       return {
         success: false,
@@ -303,7 +335,15 @@ export async function createDeck(formData: FormData): Promise<ActionResponse<Dec
       };
     }
 
-    const parsed = parseDeckPayload(formData, scriptResolution.script);
+    const charDescription = tScripts(`${scriptResolution.script}.charDescription`);
+    const parsed = parseDeckPayload(
+      formData,
+      scriptResolution.script,
+      tDeck,
+      tValidation,
+      tCategoriesErr,
+      charDescription,
+    );
     if (!parsed.ok) {
       return {
         success: false,
@@ -330,7 +370,7 @@ export async function createDeck(formData: FormData): Promise<ActionResponse<Dec
     if (error) {
       return {
         success: false,
-        message: `덱 생성에 실패했습니다: ${error.message}`,
+        message: tDeck("createFailed", { message: error.message }),
       };
     }
 
@@ -338,7 +378,7 @@ export async function createDeck(formData: FormData): Promise<ActionResponse<Dec
     return {
       success: true,
       data: data as Deck,
-      message: "덱을 생성했습니다.",
+      message: tDeckSuccess("created"),
     };
   });
 }
@@ -346,12 +386,17 @@ export async function createDeck(formData: FormData): Promise<ActionResponse<Dec
 export async function createAnonymousDeck(formData: FormData): Promise<ActionResponse<Deck>> {
   return safeAction(async () => {
     const supabase = await createClient();
+    const tDeck = await getTranslations("Deck.actions.errors");
+    const tDeckSuccess = await getTranslations("Deck.actions.success");
+    const tValidation = await getTranslations("Game.validation");
+    const tCategoriesErr = await getTranslations("Categories.errors");
+    const tScripts = await getTranslations("Game.scripts");
 
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       return {
         success: false,
-        message: "로그인 상태에서는 익명 덱을 만들 수 없습니다.",
+        message: tDeck("anonLoggedIn"),
       };
     }
 
@@ -361,27 +406,27 @@ export async function createAnonymousDeck(formData: FormData): Promise<ActionRes
     const password = formData.get("password") as string;
 
     const fieldErrors: { [key: string]: string[] } = {};
-    if (!name) fieldErrors.name = ["이름은 필수입니다."];
+    if (!name) fieldErrors.name = [tDeck("nameRequired")];
     if (!authorHandle) {
-      fieldErrors.author_handle = ["표시 이름은 필수입니다."];
+      fieldErrors.author_handle = [tDeck("displayNameRequired")];
     } else if (authorHandle.length < ANON_HANDLE_MIN || authorHandle.length > ANON_HANDLE_MAX) {
-      fieldErrors.author_handle = [`표시 이름은 ${ANON_HANDLE_MIN}~${ANON_HANDLE_MAX}자여야 합니다.`];
+      fieldErrors.author_handle = [tDeck("displayNameLength", { min: ANON_HANDLE_MIN, max: ANON_HANDLE_MAX })];
     }
     if (!password) {
-      fieldErrors.password = ["비밀번호는 필수입니다."];
+      fieldErrors.password = [tDeck("passwordRequired")];
     } else if (password.length < ANON_PASSWORD_MIN || password.length > ANON_PASSWORD_MAX) {
-      fieldErrors.password = [`비밀번호는 ${ANON_PASSWORD_MIN}~${ANON_PASSWORD_MAX}자여야 합니다.`];
+      fieldErrors.password = [tDeck("passwordLength", { min: ANON_PASSWORD_MIN, max: ANON_PASSWORD_MAX })];
     }
 
     if (Object.keys(fieldErrors).length > 0) {
       return {
         success: false,
-        message: "입력값을 확인해주세요.",
+        message: tDeck("checkInputs"),
         fieldErrors,
       };
     }
 
-    const scriptResolution = resolveScript(formData);
+    const scriptResolution = resolveScript(formData, tDeck);
     if (!scriptResolution.ok) {
       return {
         success: false,
@@ -390,7 +435,15 @@ export async function createAnonymousDeck(formData: FormData): Promise<ActionRes
       };
     }
 
-    const parsed = parseDeckPayload(formData, scriptResolution.script);
+    const charDescription = tScripts(`${scriptResolution.script}.charDescription`);
+    const parsed = parseDeckPayload(
+      formData,
+      scriptResolution.script,
+      tDeck,
+      tValidation,
+      tCategoriesErr,
+      charDescription,
+    );
     if (!parsed.ok) {
       return {
         success: false,
@@ -421,7 +474,7 @@ export async function createAnonymousDeck(formData: FormData): Promise<ActionRes
     if (error) {
       return {
         success: false,
-        message: `덱 생성에 실패했습니다: ${error.message}`,
+        message: tDeck("createFailed", { message: error.message }),
       };
     }
 
@@ -429,7 +482,7 @@ export async function createAnonymousDeck(formData: FormData): Promise<ActionRes
     return {
       success: true,
       data: data as Deck,
-      message: "익명 덱을 생성했습니다.",
+      message: tDeckSuccess("anonCreated"),
     };
   });
 }
@@ -437,25 +490,30 @@ export async function createAnonymousDeck(formData: FormData): Promise<ActionRes
 export async function updateDeck(id: string, formData: FormData): Promise<ActionResponse<Deck>> {
   return safeAction(async () => {
     const supabase = await createClient();
-    
+    const tDeck = await getTranslations("Deck.actions.errors");
+    const tDeckSuccess = await getTranslations("Deck.actions.success");
+    const tValidation = await getTranslations("Game.validation");
+    const tCategoriesErr = await getTranslations("Categories.errors");
+    const tScripts = await getTranslations("Game.scripts");
+
     // 현재 사용자 정보 가져오기
     const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
+
     if (userError || !user) {
       return {
         success: false,
-        message: "로그인이 필요합니다.",
+        message: tDeck("loginRequired"),
       };
     }
 
     if (!id || typeof id !== 'string') {
       return {
         success: false,
-        message: "유효하지 않은 덱 ID입니다.",
+        message: tDeck("deckIdInvalid"),
       };
     }
 
-    console.log("덱 ID 검증:", { id, idType: typeof id, idLength: id.length });
+    console.log("deck ID validation:", { id, idType: typeof id, idLength: id.length });
 
     const name = formData.get("name") as string;
     const description = formData.get("description") as string;
@@ -465,8 +523,8 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
     if (!name) {
       return {
         success: false,
-        message: "이름은 필수입니다.",
-        fieldErrors: { name: ["이름은 필수입니다."] },
+        message: tDeck("nameRequired"),
+        fieldErrors: { name: [tDeck("nameRequired")] },
       };
     }
 
@@ -478,10 +536,10 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
       .single();
 
     if (checkError) {
-      console.error("덱 조회 에러:", checkError);
+      console.error("deck lookup error:", checkError);
       return {
         success: false,
-        message: `덱을 찾을 수 없습니다: ${checkError.message}`,
+        message: tDeck("deckNotFound", { message: checkError.message }),
       };
     }
 
@@ -489,11 +547,19 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
     if (!(SUPPORTED_SCRIPTS as readonly string[]).includes(lockedScript)) {
       return {
         success: false,
-        message: `덱의 쓰기체계가 지원되지 않습니다: ${lockedScript}`,
+        message: tDeck("scriptUnsupportedDeck", { script: lockedScript }),
       };
     }
 
-    const parsed = parseDeckPayload(formData, lockedScript);
+    const charDescription = tScripts(`${lockedScript}.charDescription`);
+    const parsed = parseDeckPayload(
+      formData,
+      lockedScript,
+      tDeck,
+      tValidation,
+      tCategoriesErr,
+      charDescription,
+    );
     if (!parsed.ok) {
       return {
         success: false,
@@ -502,21 +568,21 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
       };
     }
 
-    console.log("기존 덱 조회 성공:", { id: existingDeck.id });
+    console.log("deck lookup ok:", { id: existingDeck.id });
 
     // 권한 확인 (사용자 식별자는 로그하지 않음)
     const isAuthorized = existingDeck.creator_id === user.id;
-    console.log("권한 확인:", { id: existingDeck.id, is_authorized: isAuthorized });
+    console.log("authorization check:", { id: existingDeck.id, is_authorized: isAuthorized });
 
     if (!isAuthorized) {
       return {
         success: false,
-        message: "이 덱을 수정할 권한이 없습니다.",
+        message: tDeck("noPermission"),
       };
     }
 
     // 덱 업데이트
-    console.log("덱 업데이트 시작:", {
+    console.log("deck update start:", {
       id,
       name,
       user_id: user.id,
@@ -537,37 +603,37 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
       updated_at: new Date().toISOString(),
     };
     
-    console.log("업데이트할 데이터:", updateData);
-    
+    console.log("update payload:", updateData);
+
     // 먼저 업데이트 실행 (select 없이)
     const { error: updateError, count } = await supabase
       .from("decks")
       .update(updateData)
       .eq("id", id);
 
-    console.log("업데이트 결과:", { 
-      updateError, 
+    console.log("update result:", {
+      updateError,
       count,
-      affectedRows: count 
+      affectedRows: count
     });
 
     if (updateError) {
-      console.error("업데이트 에러:", updateError);
+      console.error("update error:", updateError);
       return {
         success: false,
-        message: `덱 수정에 실패했습니다: ${updateError.message}`,
+        message: tDeck("updateFailed", { message: updateError.message }),
       };
     }
 
     if (count === 0) {
-      console.error("업데이트된 행이 없음:", { id });
+      console.error("no rows updated:", { id });
       return {
         success: false,
-        message: "업데이트할 덱을 찾을 수 없습니다. 덱 ID를 확인해주세요.",
+        message: tDeck("updateNotFound"),
       };
     }
 
-    console.log("업데이트 성공:", { affectedRows: count });
+    console.log("update ok:", { affectedRows: count });
 
     // 업데이트 후 데이터 다시 가져오기
     const { data, error: fetchError } = await supabase
@@ -576,33 +642,33 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
       .eq("id", id)
       .single();
 
-    console.log("업데이트 후 데이터 조회 결과:", { 
-      data: data ? { 
-        id: data.id, 
-        name: data.name, 
+    console.log("post-update fetch:", {
+      data: data ? {
+        id: data.id,
+        name: data.name,
         updated_at: data.updated_at,
-        words_count: data.words?.length 
-      } : null, 
-      error: fetchError 
+        words_count: data.words?.length
+      } : null,
+      error: fetchError
     });
 
     if (fetchError) {
-      console.error("데이터 조회 에러:", fetchError);
+      console.error("fetch error:", fetchError);
       return {
         success: false,
-        message: `덱 수정 후 데이터를 가져오는데 실패했습니다: ${fetchError.message}`,
+        message: tDeck("updateAfterFetchFailed", { message: fetchError.message }),
       };
     }
 
     if (!data) {
-      console.error("업데이트 후 데이터 없음:", { id, user_id: user.id });
+      console.error("no data after update:", { id, user_id: user.id });
       return {
         success: false,
-        message: "덱 수정 후 데이터를 가져올 수 없습니다.",
+        message: tDeck("updateAfterFetchEmpty"),
       };
     }
 
-    console.log("최종 업데이트된 덱:", {
+    console.log("updated deck:", {
       id: data.id,
       name: data.name,
       updated_at: data.updated_at,
@@ -613,11 +679,11 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
     revalidatePath("/demo/decks");
     revalidatePath(`/demo/decks/${id}`);
     revalidatePath("/demo/decks", "page");
-    
+
     return {
       success: true,
       data: data as Deck,
-      message: "덱을 수정했습니다.",
+      message: tDeckSuccess("updated"),
     };
   });
 }
@@ -625,14 +691,15 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
 export async function deleteDeck(id: string): Promise<ActionResponse> {
   return safeAction(async () => {
     const supabase = await createClient();
-    
+    const tDeck = await getTranslations("Deck.actions.errors");
+
     // 현재 사용자 정보 가져오기
     const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
+
     if (userError || !user) {
       return {
         success: false,
-        message: "로그인이 필요합니다.",
+        message: tDeck("loginRequired"),
       };
     }
 
@@ -645,7 +712,7 @@ export async function deleteDeck(id: string): Promise<ActionResponse> {
     if (error) {
       return {
         success: false,
-        message: `덱 삭제에 실패했습니다: ${error.message}`,
+        message: tDeck("deleteFailed", { message: error.message }),
       };
     }
 

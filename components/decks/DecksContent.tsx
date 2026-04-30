@@ -18,6 +18,7 @@ import {
   PaginationPrevious,
   PaginationEllipsis,
 } from "@/components/ui/pagination";
+import { useTranslations } from "next-intl";
 
 interface DecksContentProps {
   initialDecks: Deck[];
@@ -30,6 +31,7 @@ export function DecksContent({ initialDecks, total, currentPage, totalPages }: D
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterPublic, setFilterPublic] = useState<string>("all");
+  const t = useTranslations("Deck.list");
 
   const decks = initialDecks || [];
 
@@ -60,7 +62,7 @@ export function DecksContent({ initialDecks, total, currentPage, totalPages }: D
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
-            placeholder="덱 이름이나 설명으로 검색..."
+            placeholder={t("search")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -71,9 +73,9 @@ export function DecksContent({ initialDecks, total, currentPage, totalPages }: D
             <Filter className="w-4 h-4" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">전체</SelectItem>
-            <SelectItem value="public">공개</SelectItem>
-            <SelectItem value="private">비공개</SelectItem>
+            <SelectItem value="all">{t("filterAll")}</SelectItem>
+            <SelectItem value="public">{t("filterPublic")}</SelectItem>
+            <SelectItem value="private">{t("filterPrivate")}</SelectItem>
           </SelectContent>
         </Select>
         <DeckDialog>
@@ -85,9 +87,9 @@ export function DecksContent({ initialDecks, total, currentPage, totalPages }: D
       
       {filteredDecks.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
-          {searchTerm || filterPublic !== "all" 
-            ? "검색 조건에 맞는 덱이 없습니다." 
-            : "아직 생성된 덱이 없습니다. 새 덱을 만들어보세요!"}
+          {searchTerm || filterPublic !== "all"
+            ? t("noResults")
+            : t("empty")}
         </div>
       ) : (
         <>

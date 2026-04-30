@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   MAX_CATEGORY_NAME_LENGTH,
-  validateCategoryName,
+  makeValidateCategoryName,
 } from "@/lib/deckCategories";
+import { useTranslations } from "next-intl";
 
 interface CategoryPaletteProps {
   categories: string[];
@@ -29,12 +30,15 @@ export function CategoryPalette({
   const [draft, setDraft] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState("");
+  const t = useTranslations("Deck.categories");
+  const tCategoriesErr = useTranslations("Categories.errors");
+  const validateCategoryName = makeValidateCategoryName(tCategoriesErr);
 
   const handleAdd = () => {
     const trimmed = draft.trim();
     const validation = validateCategoryName(trimmed);
     if (!validation.isValid) {
-      toast.error(validation.error ?? "카테고리 이름이 올바르지 않습니다.");
+      toast.error(validation.error ?? t("errors.invalidName"));
       return;
     }
     if (onAdd(trimmed)) {
@@ -57,7 +61,7 @@ export function CategoryPalette({
     }
     const validation = validateCategoryName(trimmed);
     if (!validation.isValid) {
-      toast.error(validation.error ?? "카테고리 이름이 올바르지 않습니다.");
+      toast.error(validation.error ?? t("errors.invalidName"));
       return;
     }
     if (onRename(editing, trimmed)) {
@@ -69,9 +73,7 @@ export function CategoryPalette({
   const handleDelete = (name: string) => {
     const usage = usageCounts[name] ?? 0;
     if (usage > 0) {
-      const ok = window.confirm(
-        `"${name}" 카테고리가 ${usage}개 단어에서 제거됩니다. 계속할까요?`
-      );
+      const ok = window.confirm(t("removeWarning", { name, count: usage }));
       if (!ok) return;
     }
     onDelete(name);
@@ -80,12 +82,12 @@ export function CategoryPalette({
   return (
     <div className="space-y-2 rounded-md border bg-muted/30 p-3">
       <p className="text-xs text-muted-foreground">
-        카테고리는 단어를 분류하는 태그입니다. 각 단어에 최대 5개까지 선택할 수 있어요.
+        {t("hint")}
       </p>
       <div className="flex flex-wrap gap-1.5">
         {categories.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            아직 등록된 카테고리가 없습니다.
+            {t("empty")}
           </p>
         )}
         {categories.map((category) => {
@@ -116,7 +118,7 @@ export function CategoryPalette({
                 <button
                   type="button"
                   onClick={commitRename}
-                  aria-label="저장"
+                  aria-label={t("saveAria")}
                   className="text-muted-foreground hover:text-foreground"
                 >
                   <Check className="size-3" />
@@ -133,7 +135,7 @@ export function CategoryPalette({
                 type="button"
                 onClick={() => handleStartEdit(category)}
                 className="inline-flex items-center gap-1 hover:underline"
-                aria-label={`${category} 이름 변경`}
+                aria-label={t("renameAria", { name: category })}
               >
                 {category}
                 <Pencil className="size-3 opacity-0 group-hover:opacity-60" />
@@ -141,7 +143,7 @@ export function CategoryPalette({
               <button
                 type="button"
                 onClick={() => handleDelete(category)}
-                aria-label={`${category} 삭제`}
+                aria-label={t("deleteAria", { name: category })}
                 className="text-muted-foreground hover:text-destructive"
               >
                 <X className="size-3" />
@@ -155,7 +157,7 @@ export function CategoryPalette({
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           maxLength={MAX_CATEGORY_NAME_LENGTH}
-          placeholder="카테고리 추가..."
+          placeholder={t("addPlaceholder")}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
@@ -171,7 +173,7 @@ export function CategoryPalette({
           onClick={handleAdd}
           disabled={draft.trim().length === 0}
         >
-          추가
+          {t("addButton")}
         </Button>
       </div>
     </div>

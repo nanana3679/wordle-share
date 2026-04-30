@@ -4,8 +4,10 @@ import { FallbackProps } from 'react-error-boundary';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useTranslations } from 'next-intl';
 
 export function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
+  const t = useTranslations('Common.error');
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
@@ -25,18 +27,18 @@ export function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
               />
             </svg>
           </div>
-          <CardTitle className="text-2xl">오류가 발생했습니다</CardTitle>
+          <CardTitle className="text-2xl">{t('title')}</CardTitle>
           <CardDescription>
-            페이지를 불러오는 중 문제가 발생했습니다.
+            {t('description')}
           </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-4">
           <Alert variant="destructive">
-            <AlertTitle>오류 상세 정보</AlertTitle>
+            <AlertTitle>{t('details')}</AlertTitle>
             <AlertDescription>
               <details className="mt-2">
-                <summary className="cursor-pointer font-medium">오류 메시지 보기</summary>
+                <summary className="cursor-pointer font-medium">{t('showDetails')}</summary>
                 <pre className="mt-2 text-xs bg-muted p-2 rounded overflow-auto whitespace-pre-wrap">
                   {error.message}
                 </pre>
@@ -48,7 +50,7 @@ export function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
             onClick={resetErrorBoundary}
             className="w-full"
           >
-            다시 시도
+            {t('retry')}
           </Button>
         </CardContent>
       </Card>

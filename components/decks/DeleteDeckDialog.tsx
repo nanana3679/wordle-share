@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { actionWithToast } from "@/lib/action-with-toast";
+import { useTranslations } from "next-intl";
 
 interface DeleteDeckDialogProps {
   deck: Deck;
@@ -22,6 +23,7 @@ interface DeleteDeckDialogProps {
 export function DeleteDeckDialog({ deck, children }: DeleteDeckDialogProps) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const t = useTranslations("Deck.delete");
 
   async function handleDelete() {
     setIsLoading(true);
@@ -43,22 +45,22 @@ export function DeleteDeckDialog({ deck, children }: DeleteDeckDialogProps) {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
-          <DialogTitle>덱 삭제</DialogTitle>
+          <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>
-            정말로 이 덱을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+            {t("description")}
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="bg-muted p-4 rounded-lg">
-          <h4 className="font-medium">{deck.name || "이름 없음"}</h4>
+          <h4 className="font-medium">{deck.name || t("untitled")}</h4>
           {deck.description && (
             <p className="text-sm text-muted-foreground mt-1">{deck.description}</p>
           )}
           <p className="text-sm text-muted-foreground mt-2">
-            단어 {deck.words?.length || 0}개
+            {t("wordCount", { count: deck.words?.length || 0 })}
           </p>
         </div>
-        
+
         <div className="flex justify-end space-x-2 pt-4">
           <Button
             type="button"
@@ -66,15 +68,15 @@ export function DeleteDeckDialog({ deck, children }: DeleteDeckDialogProps) {
             onClick={() => setOpen(false)}
             disabled={isLoading}
           >
-            취소
+            {t("cancel")}
           </Button>
-          <Button 
-            type="button" 
-            variant="destructive" 
+          <Button
+            type="button"
+            variant="destructive"
             onClick={handleDelete}
             disabled={isLoading}
           >
-            {isLoading ? "삭제 중..." : "삭제"}
+            {isLoading ? t("deleting") : t("delete")}
           </Button>
         </div>
       </DialogContent>

@@ -6,6 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useTranslations } from "next-intl";
 
 type GameResultType = 'success' | 'failure';
 
@@ -26,16 +27,18 @@ export function GameResultModal({
   targetWord,
   onRestart
 }: GameResultModalProps) {
+  const t = useTranslations('Game.result');
+
   const getTitle = () => {
-    return type === 'success' ? '축하합니다!' : '아쉽습니다';
+    return type === 'success' ? t('successTitle') : t('failureTitle');
   };
 
   const getDescription = () => {
     if (type === 'success' && attempts) {
-      return `${attempts}번째 시도에 성공했습니다!`;
+      return t('successDescription', { attempts });
     }
     if (type === 'failure' && targetWord) {
-      return `정답은 ${targetWord.toUpperCase()}였습니다.`;
+      return t('failureDescription', { answer: targetWord.toUpperCase() });
     }
     return '';
   };
@@ -63,10 +66,10 @@ export function GameResultModal({
         
         <div className="flex flex-col gap-2 pt-4">
           <Button onClick={handleRestart} size="lg" className="w-full">
-            다시 플레이
+            {t('playAgain')}
           </Button>
           <Button onClick={handleBackToDeck} variant="outline" size="lg" className="w-full">
-            덱으로 돌아가기
+            {t('backToDeck')}
           </Button>
         </div>
       </DialogContent>

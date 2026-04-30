@@ -23,8 +23,9 @@ import { cn } from "@/lib/utils";
 import {
   MAX_CATEGORY_NAME_LENGTH,
   MAX_TAGS_PER_WORD,
-  validateCategoryName,
+  makeValidateCategoryName,
 } from "@/lib/deckCategories";
+import { useTranslations } from "next-intl";
 
 interface TagPickerProps {
   categories: string[];
@@ -43,6 +44,10 @@ export function TagPicker({
 }: TagPickerProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const t = useTranslations("Deck.tags");
+  const tCategoriesErr = useTranslations("Categories.errors");
+  const tDeckCat = useTranslations("Deck.categories");
+  const validateCategoryName = makeValidateCategoryName(tCategoriesErr);
 
   const toggleTag = (category: string) => {
     if (selected.includes(category)) {
@@ -50,7 +55,7 @@ export function TagPicker({
       return;
     }
     if (selected.length >= MAX_TAGS_PER_WORD) {
-      toast.error(`태그는 단어당 최대 ${MAX_TAGS_PER_WORD}개까지 선택할 수 있습니다.`);
+      toast.error(t("max", { max: MAX_TAGS_PER_WORD }));
       return;
     }
     onChange([...selected, category]);
@@ -62,13 +67,13 @@ export function TagPicker({
 
   const handleCreate = () => {
     if (selected.length >= MAX_TAGS_PER_WORD) {
-      toast.error(`태그는 단어당 최대 ${MAX_TAGS_PER_WORD}개까지 선택할 수 있습니다.`);
+      toast.error(t("max", { max: MAX_TAGS_PER_WORD }));
       return;
     }
     const trimmed = search.trim();
     const validation = validateCategoryName(trimmed);
     if (!validation.isValid) {
-      toast.error(validation.error ?? "카테고리 이름이 올바르지 않습니다.");
+      toast.error(validation.error ?? tDeckCat("errors.invalidName"));
       return;
     }
     const created = onCreateCategory(trimmed);
@@ -95,7 +100,7 @@ export function TagPicker({
           type="button"
           onClick={() => handleRemove(tag)}
           className="inline-flex items-center gap-1 rounded-full bg-secondary text-secondary-foreground px-2 py-0.5 text-xs hover:bg-secondary/80"
-          aria-label={`${tag} 태그 제거`}
+          aria-label={t("removeAria", { tag })}
         >
           {tag}
           <X className="size-3" />
@@ -114,7 +119,7 @@ export function TagPicker({
               selected.length === 0 && "border-dashed"
             )}
           >
-            {selected.length === 0 ? "카테고리 선택" : "추가"}
+            {selected.length === 0 ? t("select") : t("addBadge")}
             <ChevronDown className="size-3" />
           </Button>
         </PopoverTrigger>
@@ -126,15 +131,15 @@ export function TagPicker({
         >
           <Command shouldFilter>
             <CommandInput
-              placeholder="카테고리 검색..."
+              placeholder={t("search")}
               value={search}
               onValueChange={setSearch}
               maxLength={MAX_CATEGORY_NAME_LENGTH}
             />
             <CommandList>
-              <CommandEmpty>일치하는 카테고리가 없습니다.</CommandEmpty>
+              <CommandEmpty>{t("noResults")}</CommandEmpty>
               {categories.length > 0 && (
-                <CommandGroup heading="카테고리">
+                <CommandGroup heading={t("groupTitle")}>
                   {categories.map((category) => {
                     const isSelected = selected.includes(category);
                     return (
@@ -170,7 +175,7 @@ export function TagPicker({
                     >
                       <Plus className="size-3.5" />
                       <span>
-                        &ldquo;{normalizedSearch}&rdquo; 새 카테고리로 추가
+                        {t("createNew", { name: normalizedSearch })}
                       </span>
                     </CommandItem>
                   </CommandGroup>

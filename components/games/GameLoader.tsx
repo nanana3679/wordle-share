@@ -9,6 +9,7 @@ import { getScriptAdapter, scriptUsesIme } from "@/lib/scripts";
 import { useGame } from "@/hooks/useGame";
 import { useImeInput } from "@/hooks/useImeInput";
 import { Deck } from "@/types/decks";
+import { useTranslations } from "next-intl";
 
 interface GameLoaderProps {
   deck: Deck;
@@ -17,6 +18,7 @@ interface GameLoaderProps {
 export function GameLoader({ deck }: GameLoaderProps) {
   const adapter = useMemo(() => getScriptAdapter(deck.script), [deck.script]);
   const usesIme = scriptUsesIme(adapter.id);
+  const t = useTranslations('Game.loader');
 
   const {
     gameState,
@@ -54,7 +56,7 @@ export function GameLoader({ deck }: GameLoaderProps) {
           autoCapitalize="off"
           spellCheck={false}
           autoFocus
-          aria-label="한글 입력"
+          aria-label={t('hangulInputAria')}
           className="ime-hidden-input"
           {...inputProps}
         />

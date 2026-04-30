@@ -38,6 +38,7 @@ import { WordList } from "@/components/decks/WordList";
 import type { WordRowValue } from "@/components/decks/WordRow";
 import { AiImportPanel } from "@/components/decks/AiImportPanel";
 import type { ParsedAiDeck } from "@/lib/parseAiDeckResponse";
+import { useTranslations } from "next-intl";
 
 interface DeckDialogProps {
   deck?: Deck; // deck이 있으면 수정 모드, 없으면 생성 모드
@@ -94,12 +95,20 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
     deck?.script && isSupportedScript(deck.script) ? deck.script : "latin";
   const [script, setScript] = useState<ScriptId>(initialScript);
   const adapter = useMemo(() => getScriptAdapter(script), [script]);
+  const t = useTranslations("Deck.dialog");
+  const tCommon = useTranslations("Common.buttons");
+  const tScripts = useTranslations("Game.scripts");
+  const charDescription = tScripts(`${adapter.id}.charDescription`);
 
   const isEditMode = !!deck;
   const isAnonymousCreate = !isEditMode && !isAuthenticated;
-  const title = isEditMode ? "덱 수정" : isAnonymousCreate ? "익명으로 덱 만들기" : "새 덱 만들기";
-  const submitButtonText = isEditMode ? "덱 수정" : "덱 생성";
-  const loadingText = isEditMode ? "수정 중..." : "생성 중...";
+  const title = isEditMode
+    ? t("title.edit")
+    : isAnonymousCreate
+      ? t("title.anon")
+      : t("title.create");
+  const submitButtonText = isEditMode ? t("submit.edit") : t("submit.create");
+  const loadingText = isEditMode ? t("submit.editing") : t("submit.creating");
 
   // 다이얼로그를 다시 열 때 폼 상태 초기화
   useEffect(() => {
@@ -141,12 +150,12 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      toast.error("이미지 파일만 선택할 수 있습니다.");
+      toast.error(t("errors.imageOnly"));
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("이미지 크기는 5MB 이하여야 합니다.");
+      toast.error(t("errors.imageSize"));
       return;
     }
 
@@ -200,7 +209,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
       const trimmed = name.trim();
       if (!trimmed) return false;
       if (formState.categories.includes(trimmed)) {
-        toast.error(`"${trimmed}"는 이미 등록된 카테고리입니다.`);
+        toast.error(t("errors.categoryDuplicate", { name: trimmed }));
         return false;
       }
       setFormState((prev) =>
@@ -210,7 +219,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
       );
       return true;
     },
-    [formState.categories],
+    [formState.categories, t],
   );
 
   const renameCategory = useCallback(
@@ -218,7 +227,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
       const trimmed = newName.trim();
       if (!trimmed || trimmed === oldName) return false;
       if (formState.categories.includes(trimmed)) {
-        toast.error(`"${trimmed}"는 이미 등록된 카테고리입니다.`);
+        toast.error(t("errors.categoryDuplicate", { name: trimmed }));
         return false;
       }
       setFormState((prev) => {
@@ -234,7 +243,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
       });
       return true;
     },
-    [formState.categories],
+    [formState.categories, t],
   );
 
   const deleteCategory = useCallback((name: string) => {
@@ -349,14 +358,12 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
       });
 
       const droppedCount = parsed.droppedWords.length;
-      toast.success(`${parsed.words.length}개 단어를 추가했습니다.`);
+      toast.success(t("messages.wordsAdded", { count: parsed.words.length }));
       if (droppedCount > 0) {
-        toast.warning(
-          `${droppedCount}개 단어가 영어 소문자 규칙에 맞지 않아 제외되었습니다.`
-        );
+        toast.warning(t("messages.wordsDropped", { count: droppedCount }));
       }
     },
-    [name, description]
+    [name, description, t]
   );
 
   const handleToggleCategories = useCallback((checked: boolean) => {
@@ -407,20 +414,20 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
         .filter((row) => row.word.length > 0);
 
       if (trimmedRows.length === 0) {
-        toast.error("최소 하나의 단어를 입력해주세요.");
+        toast.error(t("errors.minOneWord"));
         return;
       }
 
       const invalidRow = trimmedRows.find((row) => !adapter.isAllowedWord(row.word));
       if (invalidRow) {
-        toast.error(`"${invalidRow.word}"는 ${adapter.charDescription}만 사용할 수 있습니다.`);
+        toast.error(t("errors.wordCharsOnly", { word: invalidRow.word, charDescription }));
         return;
       }
 
       const seen = new Set<string>();
       for (const row of trimmedRows) {
         if (seen.has(row.word)) {
-          toast.error(`"${row.word}"는 중복된 단어입니다.`);
+          toast.error(t("errors.wordDuplicate", { word: row.word }));
           return;
         }
         seen.add(row.word);
@@ -429,7 +436,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
       // 카테고리 토글 ON인데 등록된 카테고리가 0개면 OFF로 전환하고 진행
       let effectiveUsesCategories = formState.usesCategories;
       if (effectiveUsesCategories && formState.categories.length === 0) {
-        toast.warning("카테고리가 비어있어 카테고리 사용을 끕니다.");
+        toast.warning(t("errors.categoriesEmpty"));
         effectiveUsesCategories = false;
       }
 
@@ -450,7 +457,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
       if (isAnonymousCreate) {
         const response = await actionWithToast(() => createAnonymousDeck(formData));
         if (!response.success) {
-          toast.error(response.message || "익명 덱 생성에 실패했습니다.");
+          toast.error(response.message || t("errors.anonCreateFailed"));
           return;
         }
         setOpen(false);
@@ -469,7 +476,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
             { showOnlyError: true }
           );
           if (!uploadResponse.success || !uploadResponse.data) {
-            toast.error(uploadResponse.message || "이미지 업로드에 실패했습니다.");
+            toast.error(uploadResponse.message || t("errors.imageUploadFailed"));
             return;
           }
           finalThumbnailUrl = uploadResponse.data;
@@ -480,7 +487,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
             { showOnlyError: true }
           );
           if (!createResponse.success || !createResponse.data) {
-            toast.error(createResponse.message || "덱 생성에 실패했습니다.");
+            toast.error(createResponse.message || t("errors.deckCreateFailed"));
             return;
           }
 
@@ -489,7 +496,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
             { showOnlyError: true }
           );
           if (!uploadResponse.success || !uploadResponse.data) {
-            toast.error(uploadResponse.message || "이미지 업로드에 실패했습니다.");
+            toast.error(uploadResponse.message || t("errors.imageUploadFailed"));
             return;
           }
           finalThumbnailUrl = uploadResponse.data;
@@ -508,7 +515,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
             () => updateDeck(createResponse.data?.id as string, updateFormData)
           );
           if (!updateResponse.success) {
-            toast.error(updateResponse.message || "덱 업데이트에 실패했습니다.");
+            toast.error(updateResponse.message || t("errors.deckUpdateGenericFailed"));
             return;
           }
 
@@ -526,7 +533,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
       if (isEditMode && deck) {
         const response = await actionWithToast(() => updateDeck(deck.id, formData));
         if (!response.success) {
-          toast.error(response.message || "덱 수정에 실패했습니다.");
+          toast.error(response.message || t("errors.deckUpdateFailed"));
           return;
         }
 
@@ -536,7 +543,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
       } else if (!isEditMode) {
         const response = await actionWithToast(() => createDeck(formData));
         if (!response.success) {
-          toast.error(response.message || "덱 생성에 실패했습니다.");
+          toast.error(response.message || t("errors.deckCreateFailed"));
           return;
         }
 
@@ -545,13 +552,13 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
 
       setOpen(false);
     } catch (error) {
-      console.error("덱 처리 중 오류 발생:", error);
+      console.error("deck operation failed:", error);
       const errorMessage =
         error instanceof Error
           ? error.message
           : isEditMode
-            ? "덱 수정에 실패했습니다."
-            : "덱 생성에 실패했습니다.";
+            ? t("errors.deckUpdateFailed")
+            : t("errors.deckCreateFailed");
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -565,20 +572,20 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
         <DialogHeader className="flex-shrink-0">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            {isEditMode ? "덱 정보를 수정하세요." : "새로운 단어 덱을 만들어 보세요."}
+            {isEditMode ? t("description.edit") : t("description.create")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-1">
           <form action={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">덱 이름 *</Label>
+              <Label htmlFor="name">{t("name.label")}</Label>
               <Input
                 id="name"
                 name="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="예: 동물 단어"
+                placeholder={t("name.placeholder")}
                 required
               />
             </div>
@@ -586,12 +593,12 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
             {/* 이미지 업로드 (익명 생성은 미지원) */}
             {!isAnonymousCreate && (
               <div className="space-y-2">
-                <Label>썸네일 이미지</Label>
+                <Label>{t("thumbnail.label")}</Label>
                 {thumbnailUrl || previewUrl ? (
                   <div className="relative w-full h-32 rounded-lg overflow-hidden border">
                     <Image
                       src={previewUrl || thumbnailUrl}
-                      alt="덱 썸네일"
+                      alt={t("thumbnail.alt")}
                       fill
                       sizes="(max-width: 640px) 100vw, 600px"
                       className="object-cover"
@@ -610,7 +617,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
                   <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
                     <ImageIcon className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                     <p className="text-sm text-muted-foreground mb-2">
-                      이미지를 선택하여 덱에 썸네일을 추가하세요
+                      {t("thumbnail.placeholder")}
                     </p>
                     <input
                       type="file"
@@ -626,30 +633,30 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
                       onClick={() => document.getElementById("thumbnail-upload")?.click()}
                     >
                       <Upload className="h-4 w-4 mr-2" />
-                      이미지 선택
+                      {t("thumbnail.select")}
                     </Button>
                   </div>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  이미지 크기는 5MB 이하여야 합니다.
+                  {t("thumbnail.sizeLimit")}
                 </p>
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="description">설명</Label>
+              <Label htmlFor="description">{t("descriptionField.label")}</Label>
               <Textarea
                 id="description"
                 name="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="덱에 대한 설명을 입력하세요..."
+                placeholder={t("descriptionField.placeholder")}
                 rows={3}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="script">쓰기 체계</Label>
+              <Label htmlFor="script">{t("script.label")}</Label>
               <Select
                 value={script}
                 onValueChange={(v) => setScript(v as ScriptId)}
@@ -659,20 +666,20 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="latin">영어 (Latin)</SelectItem>
-                  <SelectItem value="hangul">한국어 (Hangul)</SelectItem>
+                  <SelectItem value="latin">{t("script.latin")}</SelectItem>
+                  <SelectItem value="hangul">{t("script.hangul")}</SelectItem>
                 </SelectContent>
               </Select>
               {isEditMode && (
                 <p className="text-xs text-muted-foreground">
-                  덱 생성 후에는 쓰기 체계를 변경할 수 없습니다.
+                  {t("script.lockNote")}
                 </p>
               )}
             </div>
 
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-2">
-                <Label>단어 목록 *</Label>
+                <Label>{t("words.label")}</Label>
                 <div className="flex items-center gap-3">
                   {script === "latin" && (
                     <Button
@@ -685,7 +692,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
                       className="h-8 gap-1.5 text-xs"
                     >
                       <Sparkles className="size-3.5" />
-                      {aiPanelOpen ? "AI 패널 접기" : "AI로 가져오기"}
+                      {aiPanelOpen ? t("ai.collapse") : t("ai.expand")}
                     </Button>
                   )}
                   <div className="flex items-center gap-2">
@@ -693,7 +700,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
                       htmlFor="uses_categories"
                       className="text-xs text-muted-foreground"
                     >
-                      카테고리 사용
+                      {t("categoriesToggle.label")}
                     </Label>
                     <Switch
                       id="uses_categories"
@@ -731,36 +738,36 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
                 onCreateCategory={addCategory}
               />
               <p className="text-xs text-muted-foreground pl-9">
-                Enter 키로 다음 행을 추가하고, × 버튼으로 행을 삭제할 수 있어요.
+                {t("words.rowHint")}
               </p>
             </div>
 
             {isAnonymousCreate ? (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="author_handle">표시 이름 *</Label>
+                  <Label htmlFor="author_handle">{t("anon.displayNameLabel")}</Label>
                   <Input
                     id="author_handle"
                     name="author_handle"
-                    placeholder="덱에 표시될 이름 (2~20자)"
+                    placeholder={t("anon.displayNamePlaceholder")}
                     minLength={2}
                     maxLength={20}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password">비밀번호 *</Label>
+                  <Label htmlFor="password">{t("anon.passwordLabel")}</Label>
                   <Input
                     id="password"
                     name="password"
                     type="password"
-                    placeholder="수정/삭제 시 필요 (4자 이상)"
+                    placeholder={t("anon.passwordPlaceholder")}
                     minLength={4}
                     maxLength={64}
                     required
                   />
                   <p className="text-xs text-muted-foreground">
-                    익명 덱은 항상 공개되며, 비밀번호를 분실하면 수정/삭제할 수 없습니다.
+                    {t("anon.warning")}
                   </p>
                 </div>
               </>
@@ -771,7 +778,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
                   name="is_public"
                   defaultChecked={deck?.is_public ?? true}
                 />
-                <Label htmlFor="is_public">공개 덱으로 만들기</Label>
+                <Label htmlFor="is_public">{t("isPublic.label")}</Label>
               </div>
             )}
 
@@ -782,7 +789,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
                 onClick={() => setOpen(false)}
                 disabled={isLoading}
               >
-                취소
+                {tCommon("cancel")}
               </Button>
               <Button type="submit" disabled={isLoading}>
                 {isLoading ? loadingText : submitButtonText}

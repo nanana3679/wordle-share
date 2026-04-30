@@ -9,12 +9,15 @@ import Image from "next/image";
 import { LikeButton } from "@/components/decks/LikeButton";
 import { ShareButton } from "@/components/decks/ShareButton";
 import { DeckCreatorActions } from "@/components/decks/DeckCreatorActions";
+import { useLocale, useTranslations } from "next-intl";
 
 interface DeckDetailStaticProps {
   deck: Deck;
 }
 
 export function DeckDetailStatic({ deck }: DeckDetailStaticProps) {
+  const t = useTranslations("Deck.detail");
+  const locale = useLocale();
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl relative">
@@ -33,7 +36,7 @@ export function DeckDetailStatic({ deck }: DeckDetailStaticProps) {
             <div className="relative w-full h-48 sm:h-64 md:h-80 rounded-lg overflow-hidden">
               <Image
                 src={deck.thumbnail_url}
-                alt={deck.name || "덱 썸네일"}
+                alt={deck.name || t("thumbnail")}
                 fill
                 className="object-cover"
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -48,7 +51,7 @@ export function DeckDetailStatic({ deck }: DeckDetailStaticProps) {
           {deck.creator?.user_metadata?.avatar_url ? (
             <Image
               src={deck.creator?.user_metadata?.avatar_url}
-              alt={deck.creator?.user_metadata?.name || "작성자"}
+              alt={deck.creator?.user_metadata?.name || t("author")}
               width={40}
               height={40}
               className="rounded-full"
@@ -61,7 +64,9 @@ export function DeckDetailStatic({ deck }: DeckDetailStaticProps) {
           <div className="flex-1 flex items-center">
             <p className="font-medium">
               {deck.creator?.user_metadata?.name
-                ?? (deck.author_handle ? `익명 · ${deck.author_handle}` : "익명")}
+                ?? (deck.author_handle
+                  ? t("anonymousLabeled", { handle: deck.author_handle })
+                  : t("anonymous"))}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -70,7 +75,7 @@ export function DeckDetailStatic({ deck }: DeckDetailStaticProps) {
             <Link href={`/demo/play/${deck.id}`}>
               <Button size="lg" className="">
                 <Play className="h-4 w-4 mr-2" />
-                플레이
+                {t("play")}
               </Button>
             </Link>
           </div>
@@ -78,10 +83,10 @@ export function DeckDetailStatic({ deck }: DeckDetailStaticProps) {
 
         {/* 메타 정보 */}
         <div className="flex flex-wrap gap-4 text-sm text-muted-foreground p-3">
-          <span>단어 개수: {deck.words?.length || 0}개</span>
-          <span>생성일: {new Date(deck.created_at).toLocaleDateString('ko-KR')}</span>
-          {deck.is_public && <Badge variant="secondary">공개</Badge>}
-          {!deck.is_public && <Badge variant="outline">비공개</Badge>}
+          <span>{t("wordCount", { count: deck.words?.length || 0 })}</span>
+          <span>{t("createdAt", { date: new Date(deck.created_at).toLocaleDateString(locale) })}</span>
+          {deck.is_public && <Badge variant="secondary">{t("publicBadge")}</Badge>}
+          {!deck.is_public && <Badge variant="outline">{t("privateBadge")}</Badge>}
         </div>
 
         {/* 상세 설명 */}
