@@ -36,11 +36,13 @@ export const metadata: Metadata = {
   description: "Wordle deck sharing platform",
 };
 
+interface RootLayoutProps {
+  children: React.ReactNode;
+}
+
 export default async function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<RootLayoutProps>) {
   const locale = await getLocale();
   const messages = await getMessages();
 

@@ -9,9 +9,13 @@ export async function middleware(request: NextRequest) {
   await supabase.auth.getUser();
 
   if (!request.cookies.get('NEXT_LOCALE')) {
-    const acceptLang = request.headers.get('accept-language');
-    const detected = acceptLang?.split(',')[0]?.split('-')[0];
-    const locale = detected && isLocale(detected) ? detected : defaultLocale;
+    const acceptLang = request.headers.get('accept-language') ?? '';
+    const locale =
+      acceptLang
+        .split(',')
+        .map((part) => part.trim().split(';')[0]?.split('-')[0])
+        .find((lang): lang is string => Boolean(lang && isLocale(lang))) ??
+      defaultLocale;
     response.cookies.set('NEXT_LOCALE', locale, {
       maxAge: 60 * 60 * 24 * 365,
       path: '/',
