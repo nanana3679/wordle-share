@@ -1,18 +1,51 @@
 import type { ScriptAdapter } from './types';
 
-// 가나(히라가나/가타카나) 어댑터 — ことのはたんご 레퍼런스
+// 가나(히라가나/가타카나) 어댑터
 //
-// Contract:
-// - 모라 단위 분해. 기본은 가나 1자 = 1 모라
-// - 요음(ゃゅょ/ャュョ)은 직전 모라에 합쳐 1 단위로 묶는다 (예: 'きゃ' → ['きゃ'])
-// - 탁점·반탁점은 결합 형태(が, ぱ 등)를 1 모라로 본다 (NFC 가정)
-//   분리 형태(か + ゛)로 들어와도 normalize/splitUnits가 NFC로 합성 후 처리
-// - 가타카나 ↔ 히라가나 자동 변환은 하지 않는다 (덱 작성자 의도 보존)
-// - 장음 부호(ー)도 1 모라로 허용
-const SMALL_YA_RE = /[ゃゅょャュョ]/;
+// 정책 (issue #38 확정):
+// - "한 타일 = 한 정규화 문자" 규칙. 모라 단위가 아니라 가나 문자 단위로 분해한다.
+// - 가타카나는 게임 내에서 히라가나로 정규화 (`カ` === `か`).
+//   덱 작성 시점에는 둘 다 입력 허용 (작성자 의도 보존은 표시 단계가 아니라 저장 형태로만).
+// - 요음(`ゃゅょ`), 작은 가나(`ぁぃぅぇぉゎ`), 촉음(`っ`), 장음(`ー`), 발음(`ん`) 모두 독립 칸.
+// - NFC 정규화로 분리된 탁점/반탁점(`か` + `゛`)은 결합 형태(`が`)로 합쳐서 1 문자로 본다.
+const HIRAGANA_BASE = 0x3041; // ぁ
+const HIRAGANA_END = 0x3096; // ゖ
+const KATAKANA_BASE = 0x30a1; // ァ
+const KATAKANA_HIRAGANA_END = 0x30f6; // ヶ — 이 범위까지 히라가나에 1:1 대응 (-0x60)
+const KATAKANA_END = 0x30fa; // ヺ — 입력 허용 범위. ヷヸヹヺ는 히라가나 대응 없음
+const PROLONGED_SOUND_MARK = 0x30fc; // ー
 
-const KANA_CHAR_RE = /^[ぁ-ゖァ-ヺー]$/;
-const KANA_WORD_RE = /^[ぁ-ゖァ-ヺー]+$/;
+const KATAKANA_TO_HIRAGANA_OFFSET = 0x60;
+
+function toHiragana(s: string): string {
+  let result = '';
+  for (const ch of s) {
+    const code = ch.codePointAt(0)!;
+    if (code >= KATAKANA_BASE && code <= KATAKANA_HIRAGANA_END) {
+      result += String.fromCodePoint(code - KATAKANA_TO_HIRAGANA_OFFSET);
+    } else {
+      result += ch;
+    }
+  }
+  return result;
+}
+
+function isKanaCodePoint(code: number): boolean {
+  return (
+    (code >= HIRAGANA_BASE && code <= HIRAGANA_END) ||
+    (code >= KATAKANA_BASE && code <= KATAKANA_END) ||
+    code === PROLONGED_SOUND_MARK
+  );
+}
+
+function isKanaChar(ch: string): boolean {
+  const code = ch.codePointAt(0);
+  return code !== undefined && isKanaCodePoint(code);
+}
+
+function normalize(word: string): string {
+  return toHiragana(word.trim().normalize('NFC'));
+}
 
 // ことのはたんご 자판: 50음 가나표 (gojuon 행 기준 가로 배치) + 탁/반탁 + 작은 가나/장음
 const KEYBOARD_ROWS: string[][] = [
@@ -30,27 +63,24 @@ const KEYBOARD_ROWS: string[][] = [
 export const kana: ScriptAdapter = {
   id: 'kana',
   rtl: false,
-  splitUnits: (word) => {
-    const result: string[] = [];
-    for (const ch of word.normalize('NFC')) {
-      if (!KANA_CHAR_RE.test(ch)) continue;
-      if (SMALL_YA_RE.test(ch) && result.length > 0) {
-        result[result.length - 1] += ch;
-      } else {
-        result.push(ch);
-      }
-    }
-    return result;
+  splitUnits: (word) => Array.from(normalize(word)).filter(isKanaChar),
+  normalize,
+  normalizeChar: (ch) => toHiragana(ch.normalize('NFC')),
+  // 입력 단계에서는 가타카나/히라가나 모두 허용 (덱 작성 자유도 유지)
+  isAllowedChar: (ch) => {
+    const c = ch.normalize('NFC');
+    return Array.from(c).every(isKanaChar) && c.length > 0;
   },
-  normalize: (word) => word.trim().normalize('NFC'),
-  normalizeChar: (ch) => ch.normalize('NFC'),
-  isAllowedChar: (ch) => KANA_CHAR_RE.test(ch.normalize('NFC')),
-  isAllowedWord: (word) => KANA_WORD_RE.test(word.normalize('NFC')),
+  isAllowedWord: (word) => {
+    const w = word.normalize('NFC');
+    if (w.length === 0) return false;
+    return Array.from(w).every(isKanaChar);
+  },
   keyboard: {
     rows: KEYBOARD_ROWS,
     enterLabel: 'ENTER',
     backspaceLabel: 'BACKSPACE',
   },
-  keyId: (ch) => ch,
+  keyId: (ch) => toHiragana(ch),
   charDescription: '가나(히라가나/가타카나)',
 };
