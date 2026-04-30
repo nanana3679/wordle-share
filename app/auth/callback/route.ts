@@ -15,5 +15,5 @@ export async function GET(request: Request) {
   }
 
   const t = await getTranslations('Auth.errors');
-  NextResponse.redirect(`${process.env.NEXT_PUBLIC_SITE_URL}/auth/error?message=${encodeURIComponent(t('missingAuthCode'))}`);
+  return NextResponse.redirect(`${process.env.NEXT_PUBLIC_SITE_URL}/auth/error?message=${encodeURIComponent(t('missingAuthCode'))}`);
 }

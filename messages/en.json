@@ -1,1 +1,360 @@
-{}
+{
+  "Common": {
+    "buttons": {
+      "cancel": "취소",
+      "delete": "삭제",
+      "edit": "수정",
+      "save": "저장",
+      "add": "추가"
+    },
+    "loading": {
+      "title": "로딩 중...",
+      "description": "사용자 정보를 불러오고 있습니다."
+    },
+    "error": {
+      "title": "오류가 발생했습니다",
+      "description": "페이지를 불러오는 중 문제가 발생했습니다.",
+      "details": "오류 상세 정보",
+      "showDetails": "오류 메시지 보기",
+      "retry": "다시 시도",
+      "unknown": "알 수 없는 오류가 발생했습니다."
+    }
+  },
+  "Auth": {
+    "login": "로그인",
+    "logout": "로그아웃",
+    "loggedOut": "로그아웃 되었습니다.",
+    "loginRequired": "로그인이 필요합니다.",
+    "errors": {
+      "googleFailed": "구글 로그인에 실패했습니다: {message}",
+      "loginUrlFailed": "로그인 URL을 생성하지 못했습니다.",
+      "logoutFailed": "로그아웃에 실패했습니다: {message}",
+      "userInfoFailed": "사용자 정보를 가져오는데 실패했습니다: {message}",
+      "missingAuthCode": "인증 코드가 없습니다"
+    },
+    "messages": {
+      "userInfoSuccess": "사용자 정보를 가져왔습니다."
+    },
+    "errorPage": {
+      "title": "인증 오류",
+      "default": "인증 중 오류가 발생했습니다.",
+      "backHome": "홈으로 돌아가기"
+    }
+  },
+  "AppBar": {
+    "deckListTitle": "덱 목록",
+    "deckDetailTitle": "덱 상세",
+    "playFallbackTitle": "Wordle 게임"
+  },
+  "Deck": {
+    "card": {
+      "image": "덱 이미지",
+      "untitled": "이름 없음"
+    },
+    "list": {
+      "search": "덱 이름이나 설명으로 검색...",
+      "filterAll": "전체",
+      "filterPublic": "공개",
+      "filterPrivate": "비공개",
+      "noResults": "검색 조건에 맞는 덱이 없습니다.",
+      "empty": "아직 생성된 덱이 없습니다. 새 덱을 만들어보세요!",
+      "loadMore": "더 많은 덱을 불러오는 중...",
+      "allLoaded": "모든 덱을 불러왔습니다",
+      "errorPrefix": "오류가 발생했습니다: {message}",
+      "fetchFailed": "덱 목록을 가져오는데 실패했습니다."
+    },
+    "detail": {
+      "thumbnail": "덱 썸네일",
+      "author": "작성자",
+      "anonymous": "익명",
+      "anonymousLabeled": "익명 · {handle}",
+      "play": "플레이",
+      "wordCount": "단어 개수: {count}개",
+      "createdAt": "생성일: {date}",
+      "publicBadge": "공개",
+      "privateBadge": "비공개"
+    },
+    "creator": {
+      "edit": "수정",
+      "delete": "삭제"
+    },
+    "share": {
+      "copied": "링크가 클립보드에 복사되었습니다."
+    },
+    "like": {
+      "loginRequired": "로그인이 필요합니다.",
+      "failed": "좋아요 처리에 실패했습니다."
+    },
+    "delete": {
+      "title": "덱 삭제",
+      "description": "정말로 이 덱을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+      "untitled": "이름 없음",
+      "wordCount": "단어 {count}개",
+      "deleting": "삭제 중...",
+      "delete": "삭제",
+      "cancel": "취소"
+    },
+    "dialog": {
+      "title": {
+        "create": "새 덱 만들기",
+        "edit": "덱 수정",
+        "anon": "익명으로 덱 만들기"
+      },
+      "description": {
+        "create": "새로운 단어 덱을 만들어 보세요.",
+        "edit": "덱 정보를 수정하세요."
+      },
+      "submit": {
+        "create": "덱 생성",
+        "edit": "덱 수정",
+        "creating": "생성 중...",
+        "editing": "수정 중..."
+      },
+      "name": {
+        "label": "덱 이름 *",
+        "placeholder": "예: 동물 단어"
+      },
+      "thumbnail": {
+        "label": "썸네일 이미지",
+        "alt": "덱 썸네일",
+        "placeholder": "이미지를 선택하여 덱에 썸네일을 추가하세요",
+        "select": "이미지 선택",
+        "sizeLimit": "이미지 크기는 5MB 이하여야 합니다."
+      },
+      "descriptionField": {
+        "label": "설명",
+        "placeholder": "덱에 대한 설명을 입력하세요..."
+      },
+      "script": {
+        "label": "쓰기 체계",
+        "latin": "영어 (Latin)",
+        "hangul": "한국어 (Hangul)",
+        "lockNote": "덱 생성 후에는 쓰기 체계를 변경할 수 없습니다."
+      },
+      "words": {
+        "label": "단어 목록 *",
+        "rowHint": "Enter 키로 다음 행을 추가하고, × 버튼으로 행을 삭제할 수 있어요.",
+        "addWord": "단어 추가",
+        "placeholder": "단어 ({charDescription})",
+        "removeAria": "{index}번째 단어 삭제",
+        "duplicate": "중복된 단어입니다.",
+        "charsOnly": "{charDescription}만 사용할 수 있습니다."
+      },
+      "ai": {
+        "expand": "AI로 가져오기",
+        "collapse": "AI 패널 접기"
+      },
+      "categoriesToggle": {
+        "label": "카테고리 사용"
+      },
+      "anon": {
+        "displayNameLabel": "표시 이름 *",
+        "displayNamePlaceholder": "덱에 표시될 이름 (2~20자)",
+        "passwordLabel": "비밀번호 *",
+        "passwordPlaceholder": "수정/삭제 시 필요 (4자 이상)",
+        "warning": "익명 덱은 항상 공개되며, 비밀번호를 분실하면 수정/삭제할 수 없습니다."
+      },
+      "isPublic": {
+        "label": "공개 덱으로 만들기"
+      },
+      "errors": {
+        "imageOnly": "이미지 파일만 선택할 수 있습니다.",
+        "imageSize": "이미지 크기는 5MB 이하여야 합니다.",
+        "categoryDuplicate": "\"{name}\"는 이미 등록된 카테고리입니다.",
+        "minOneWord": "최소 하나의 단어를 입력해주세요.",
+        "wordCharsOnly": "\"{word}\"는 {charDescription}만 사용할 수 있습니다.",
+        "wordDuplicate": "\"{word}\"는 중복된 단어입니다.",
+        "categoriesEmpty": "카테고리가 비어있어 카테고리 사용을 끕니다.",
+        "anonCreateFailed": "익명 덱 생성에 실패했습니다.",
+        "imageUploadFailed": "이미지 업로드에 실패했습니다.",
+        "deckCreateFailed": "덱 생성에 실패했습니다.",
+        "deckUpdateFailed": "덱 수정에 실패했습니다.",
+        "deckUpdateGenericFailed": "덱 업데이트에 실패했습니다."
+      },
+      "messages": {
+        "wordsAdded": "{count}개 단어를 추가했습니다.",
+        "wordsDropped": "{count}개 단어가 영어 소문자 규칙에 맞지 않아 제외되었습니다."
+      }
+    },
+    "categories": {
+      "hint": "카테고리는 단어를 분류하는 태그입니다. 각 단어에 최대 5개까지 선택할 수 있어요.",
+      "empty": "아직 등록된 카테고리가 없습니다.",
+      "addPlaceholder": "카테고리 추가...",
+      "addButton": "추가",
+      "saveAria": "저장",
+      "renameAria": "{name} 이름 변경",
+      "deleteAria": "{name} 삭제",
+      "removeWarning": "\"{name}\" 카테고리가 {count}개 단어에서 제거됩니다. 계속할까요?",
+      "errors": {
+        "invalidName": "카테고리 이름이 올바르지 않습니다."
+      }
+    },
+    "tags": {
+      "max": "태그는 단어당 최대 {max}개까지 선택할 수 있습니다.",
+      "removeAria": "{tag} 태그 제거",
+      "select": "카테고리 선택",
+      "addBadge": "추가",
+      "search": "카테고리 검색...",
+      "noResults": "일치하는 카테고리가 없습니다.",
+      "groupTitle": "카테고리",
+      "createNew": "\"{name}\" 새 카테고리로 추가"
+    },
+    "ai": {
+      "panelTitle": "AI로 가져오기",
+      "intro": "프롬프트를 ChatGPT/Claude/Gemini 등에 붙여 결과를 받은 뒤, 응답 전체를 아래에 붙여넣으세요.",
+      "introNote": "기존 입력은 유지되며 결과는 추가만 됩니다.",
+      "promptLabel": "프롬프트",
+      "copyPrompt": "프롬프트 복사",
+      "resultLabel": "결과 붙여넣기",
+      "responsePlaceholder": "LLM 응답을 그대로 붙여넣으세요 (```json ... ``` 코드블록 포함 가능)",
+      "import": "가져오기",
+      "clear": "지우기",
+      "messages": {
+        "promptCopied": "프롬프트가 복사되었습니다",
+        "copyFailed": "복사에 실패했습니다. 직접 선택해 복사해주세요.",
+        "pasteRequired": "LLM 응답을 붙여넣어 주세요."
+      },
+      "errors": {
+        "jsonParseFailed": "JSON 파싱에 실패했습니다 (응답에서 JSON을 찾지 못했습니다)",
+        "schemaInvalid": "JSON 스키마가 올바르지 않습니다 (필드 누락/타입 오류)",
+        "noValidWords": "유효한 단어를 찾지 못했습니다"
+      }
+    },
+    "wordList": {
+      "addWord": "단어 추가"
+    },
+    "actions": {
+      "errors": {
+        "scriptUnsupported": "지원하지 않는 쓰기체계입니다: {script}",
+        "wordsEmpty": "단어 목록이 비어있습니다.",
+        "wordsRequired": "단어는 필수입니다.",
+        "wordsFormatInvalid": "단어 목록 형식이 올바르지 않습니다.",
+        "wordsParseFailed": "단어 목록 JSON 파싱에 실패했습니다.",
+        "wordsArrayRequired": "단어 목록은 배열이어야 합니다.",
+        "wordsValidationFailed": "단어 검증 실패: {errors}",
+        "categoriesFormatInvalid": "카테고리 목록 형식이 올바르지 않습니다.",
+        "categoriesParseFailed": "카테고리 목록 JSON 파싱에 실패했습니다.",
+        "categoriesValidationFailed": "카테고리 검증 실패: {errors}",
+        "countFailed": "덱 개수를 가져오는데 실패했습니다: {message}",
+        "listFailed": "덱 목록을 가져오는데 실패했습니다: {message}",
+        "fetchFailed": "덱을 가져오는데 실패했습니다: {message}",
+        "loginRequired": "로그인이 필요합니다.",
+        "nameRequired": "이름은 필수입니다.",
+        "createFailed": "덱 생성에 실패했습니다: {message}",
+        "anonLoggedIn": "로그인 상태에서는 익명 덱을 만들 수 없습니다.",
+        "displayNameRequired": "표시 이름은 필수입니다.",
+        "displayNameLength": "표시 이름은 {min}~{max}자여야 합니다.",
+        "passwordRequired": "비밀번호는 필수입니다.",
+        "passwordLength": "비밀번호는 {min}~{max}자여야 합니다.",
+        "checkInputs": "입력값을 확인해주세요.",
+        "deckIdInvalid": "유효하지 않은 덱 ID입니다.",
+        "deckNotFound": "덱을 찾을 수 없습니다: {message}",
+        "scriptUnsupportedDeck": "덱의 쓰기체계가 지원되지 않습니다: {script}",
+        "noPermission": "이 덱을 수정할 권한이 없습니다.",
+        "updateFailed": "덱 수정에 실패했습니다: {message}",
+        "updateNotFound": "업데이트할 덱을 찾을 수 없습니다. 덱 ID를 확인해주세요.",
+        "updateAfterFetchFailed": "덱 수정 후 데이터를 가져오는데 실패했습니다: {message}",
+        "updateAfterFetchEmpty": "덱 수정 후 데이터를 가져올 수 없습니다.",
+        "deleteFailed": "덱 삭제에 실패했습니다: {message}"
+      },
+      "success": {
+        "listFetched": "덱 목록을 가져왔습니다.",
+        "fetched": "덱을 가져왔습니다.",
+        "created": "덱을 생성했습니다.",
+        "anonCreated": "익명 덱을 생성했습니다.",
+        "updated": "덱을 수정했습니다."
+      }
+    }
+  },
+  "Game": {
+    "result": {
+      "successTitle": "축하합니다!",
+      "failureTitle": "아쉽습니다",
+      "successDescription": "{attempts}번째 시도에 성공했습니다!",
+      "failureDescription": "정답은 {answer}였습니다.",
+      "playAgain": "다시 플레이",
+      "backToDeck": "덱으로 돌아가기"
+    },
+    "loader": {
+      "hangulInputAria": "한글 입력"
+    },
+    "errors": {
+      "deckEmpty": "이 덱에는 단어가 없습니다.",
+      "wordNotInList": "단어 목록에 없는 단어입니다.",
+      "wordsListEmpty": "단어 목록이 비어있습니다.",
+      "deckNotFound": "덱을 찾을 수 없습니다."
+    },
+    "validation": {
+      "wordMinLength": "단어는 1글자 이상이어야 합니다.",
+      "wordCharsOnly": "단어는 {charDescription}만 사용할 수 있습니다.",
+      "wordsMinOne": "최소 하나의 단어가 필요합니다.",
+      "wordEmptyAt": "{index}번째 단어가 비어있습니다.",
+      "wordDuplicate": "\"{word}\"는 중복된 단어입니다.",
+      "wordError": "{index}번째 단어 \"{word}\": {errors}",
+      "tagsArray": "{index}번째 단어 \"{word}\": tags 필드는 배열이어야 합니다.",
+      "wordInputRequired": "단어를 입력해주세요.",
+      "wordMinChars": "단어는 최소 {min}글자 이상이어야 합니다.",
+      "wordMaxChars": "단어는 최대 {max}글자까지 가능합니다."
+    },
+    "scripts": {
+      "hangul": {
+        "charDescription": "한글"
+      },
+      "latin": {
+        "charDescription": "영문자(a-z, A-Z)"
+      }
+    }
+  },
+  "Image": {
+    "errors": {
+      "uploadFailed": "이미지 업로드에 실패했습니다: {message}",
+      "urlFailed": "이미지 URL 생성에 실패했습니다.",
+      "listFailed": "이미지 목록 조회에 실패했습니다: {message}",
+      "deleteFailed": "이미지 삭제에 실패했습니다: {message}"
+    },
+    "messages": {
+      "uploadSuccess": "이미지 업로드에 성공했습니다.",
+      "deleted": "이미지를 삭제했습니다."
+    }
+  },
+  "Like": {
+    "errors": {
+      "createFailed": "좋아요 추가에 실패했습니다: {message}",
+      "deleteFailed": "좋아요 삭제에 실패했습니다: {message}"
+    },
+    "messages": {
+      "created": "좋아요를 추가했습니다.",
+      "deleted": "좋아요를 취소했습니다."
+    }
+  },
+  "Categories": {
+    "errors": {
+      "nameEmpty": "카테고리 이름은 비어있을 수 없습니다.",
+      "nameTooLong": "카테고리 이름은 최대 {max}자까지 가능합니다.",
+      "listArrayRequired": "카테고리 목록은 배열이어야 합니다.",
+      "itemMustBeString": "카테고리는 문자열이어야 합니다.",
+      "invalidName": "카테고리 이름이 올바르지 않습니다."
+    }
+  },
+  "Pages": {
+    "loginDemo": {
+      "title": "Google 로그인 테스트",
+      "subtitle": "Supabase + Google OAuth 연동 확인",
+      "successTitle": "로그인 성공!",
+      "userIdLabel": "사용자 ID:",
+      "joinedLabel": "가입일:",
+      "logout": "로그아웃",
+      "googleLogin": "Google로 로그인",
+      "envLabel": "환경:"
+    },
+    "ogImage": {
+      "wordCount": "{count}개 단어",
+      "playNow": "지금 플레이하세요"
+    },
+    "deckMeta": {
+      "titleSuffix": "Wordle Deck",
+      "defaultDescription": "{name} - {count}개의 단어가 포함된 Wordle 덱입니다. 지금 플레이해보세요!",
+      "imageAlt": "{name} 덱 미리보기"
+    }
+  }
+}

@@ -49,7 +49,11 @@ export async function deleteLike(deckId: string): Promise<ActionResponse> {
         message: tAuth("loginRequired"),
       };
     }
-    const { data, error } = await supabase.from("likes").delete().eq("deck_id", deckId);
+    const { data, error } = await supabase
+      .from("likes")
+      .delete()
+      .eq("deck_id", deckId)
+      .eq("user_id", user.id);
     console.log("deleteLike", data, error);
 
     if (error) {
