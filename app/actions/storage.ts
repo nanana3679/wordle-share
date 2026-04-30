@@ -64,7 +64,16 @@ export async function uploadDeckThumbnail(file: File, deckId: string): Promise<A
 export async function deleteDeckThumbnail(deckId: string): Promise<ActionResponse> {
   return safeAction(async () => {
     const supabase = await createClient();
+    const tAuth = await getTranslations("Auth");
     const tImage = await getTranslations("Image");
+
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return {
+        success: false,
+        message: tAuth("loginRequired"),
+      };
+    }
 
     // 파일 삭제 (확장자가 다를 수 있으므로 패턴 매칭으로 삭제)
     const { data: files, error: listError } = await supabase.storage

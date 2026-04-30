@@ -31,11 +31,16 @@ export async function generateMetadata({ params }: DeckPageProps): Promise<Metad
   const tMeta = await getTranslations("Pages.deckMeta");
   const locale = await getLocale();
 
+  const titleSuffix = tMeta("titleSuffix");
+  const deckName = deck.name?.trim() ?? "";
+  const fullTitle = deckName ? `${deckName} - ${titleSuffix}` : titleSuffix;
+  const altPreview = tMeta("imageAlt", { name: deckName });
+
   // 덱 설명이 있으면 사용하고, 없으면 기본 설명 생성
   const description =
     deck.description ||
     tMeta("defaultDescription", {
-      name: deck.name ?? "",
+      name: deckName,
       count: deck.words?.length || 0,
     });
 
@@ -45,10 +50,6 @@ export async function generateMetadata({ params }: DeckPageProps): Promise<Metad
   // 썸네일이 없을 때는 favicon을 사용하므로 작은 크기
   const imageWidth = deck.thumbnail_url ? 1200 : 512;
   const imageHeight = deck.thumbnail_url ? 630 : 512;
-
-  const titleSuffix = tMeta("titleSuffix");
-  const fullTitle = `${deck.name} - ${titleSuffix}`;
-  const altPreview = tMeta("imageAlt", { name: deck.name ?? "" });
 
   return {
     title: fullTitle,

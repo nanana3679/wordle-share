@@ -8,8 +8,12 @@ import { useTranslations } from "next-intl";
 export function ShareButton() {
   const t = useTranslations("Deck.share");
   const handleShare = async () => {
-    await navigator.clipboard.writeText(window.location.href);
-    toast.success(t("copied"));
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast.success(t("copied"));
+    } catch {
+      toast.error(t("failed"));
+    }
   };
 
   return (

@@ -513,8 +513,6 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
       };
     }
 
-    console.log("deck ID validation:", { id, idType: typeof id, idLength: id.length });
-
     const name = formData.get("name") as string;
     const description = formData.get("description") as string;
     const isPublic = formData.get("is_public") === "on";
@@ -536,7 +534,7 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
       .single();
 
     if (checkError) {
-      console.error("deck lookup error:", checkError);
+      console.error("deck lookup error:", checkError.message);
       return {
         success: false,
         message: tDeck("deckNotFound", { message: checkError.message }),
@@ -568,11 +566,8 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
       };
     }
 
-    console.log("deck lookup ok:", { id: existingDeck.id });
-
     // 권한 확인 (사용자 식별자는 로그하지 않음)
     const isAuthorized = existingDeck.creator_id === user.id;
-    console.log("authorization check:", { id: existingDeck.id, is_authorized: isAuthorized });
 
     if (!isAuthorized) {
       return {
@@ -580,17 +575,6 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
         message: tDeck("noPermission"),
       };
     }
-
-    // 덱 업데이트
-    console.log("deck update start:", {
-      id,
-      name,
-      user_id: user.id,
-      words: parsed.words.slice(0, 3).map((w) => w.word), // 처음 3개 단어만 로그
-      categories: parsed.categories,
-      is_public: isPublic,
-      thumbnail_url: thumbnailUrl,
-    });
 
     // 업데이트할 데이터 준비
     const updateData = {
@@ -602,8 +586,6 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
       thumbnail_url: thumbnailUrl || null,
       updated_at: new Date().toISOString(),
     };
-    
-    console.log("update payload:", updateData);
 
     // 먼저 업데이트 실행 (select 없이)
     const { error: updateError, count } = await supabase
@@ -611,14 +593,8 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
       .update(updateData)
       .eq("id", id);
 
-    console.log("update result:", {
-      updateError,
-      count,
-      affectedRows: count
-    });
-
     if (updateError) {
-      console.error("update error:", updateError);
+      console.error("deck update error:", updateError.message);
       return {
         success: false,
         message: tDeck("updateFailed", { message: updateError.message }),
@@ -626,14 +602,11 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
     }
 
     if (count === 0) {
-      console.error("no rows updated:", { id });
       return {
         success: false,
         message: tDeck("updateNotFound"),
       };
     }
-
-    console.log("update ok:", { affectedRows: count });
 
     // 업데이트 후 데이터 다시 가져오기
     const { data, error: fetchError } = await supabase
@@ -642,18 +615,8 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
       .eq("id", id)
       .single();
 
-    console.log("post-update fetch:", {
-      data: data ? {
-        id: data.id,
-        name: data.name,
-        updated_at: data.updated_at,
-        words_count: data.words?.length
-      } : null,
-      error: fetchError
-    });
-
     if (fetchError) {
-      console.error("fetch error:", fetchError);
+      console.error("deck fetch-after-update error:", fetchError.message);
       return {
         success: false,
         message: tDeck("updateAfterFetchFailed", { message: fetchError.message }),
@@ -661,19 +624,11 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
     }
 
     if (!data) {
-      console.error("no data after update:", { id, user_id: user.id });
       return {
         success: false,
         message: tDeck("updateAfterFetchEmpty"),
       };
     }
-
-    console.log("updated deck:", {
-      id: data.id,
-      name: data.name,
-      updated_at: data.updated_at,
-      words_count: data.words?.length
-    });
 
     // 캐시 무효화 - 더 포괄적으로
     revalidatePath("/demo/decks");

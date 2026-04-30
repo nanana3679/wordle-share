@@ -8,6 +8,7 @@ import { useTranslations } from 'next-intl';
 
 export function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
   const t = useTranslations('Common.error');
+  const showDetails = process.env.NODE_ENV !== 'production';
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
@@ -34,17 +35,19 @@ export function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
         </CardHeader>
 
         <CardContent className="space-y-4">
-          <Alert variant="destructive">
-            <AlertTitle>{t('details')}</AlertTitle>
-            <AlertDescription>
-              <details className="mt-2">
-                <summary className="cursor-pointer font-medium">{t('showDetails')}</summary>
-                <pre className="mt-2 text-xs bg-muted p-2 rounded overflow-auto whitespace-pre-wrap">
-                  {error.message}
-                </pre>
-              </details>
-            </AlertDescription>
-          </Alert>
+          {showDetails && (
+            <Alert variant="destructive">
+              <AlertTitle>{t('details')}</AlertTitle>
+              <AlertDescription>
+                <details className="mt-2">
+                  <summary className="cursor-pointer font-medium">{t('showDetails')}</summary>
+                  <pre className="mt-2 text-xs bg-muted p-2 rounded overflow-auto whitespace-pre-wrap">
+                    {error.message}
+                  </pre>
+                </details>
+              </AlertDescription>
+            </Alert>
+          )}
 
           <Button
             onClick={resetErrorBoundary}
