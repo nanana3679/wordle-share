@@ -17,3 +17,35 @@ Shared Word Deck 도메인의 캐노니컬 용어. 새 문서·코드·대화는
 - script 하나만 가짐 (`roman` | `hangul` | `hiragana`)
 
 관련 ADR: 없음 (자명한 UGC 결정. ADR 불필요)
+
+---
+
+## Round (라운드)
+
+**한 단어 풀이 단위**. 한 Round = 한 Target Word + N개 Attempt.
+
+- 시도 횟수 상한 = `글자수 + 1`, 5~8 클램프
+- 끝 조건: 정답 맞춤 OR 시도 소진
+- Daily mode = Round 1개. Challenge mode = Round N개를 Run에 묶음
+
+## Run (런)
+
+여러 Round로 구성된 시퀀스. **Challenge mode에만 존재**.
+
+- 1일 1회 시작 (ADR 0006)
+- 점수 = 완료한 Round 수
+- 데일리에는 Run 추상화 도입 X (인위적 상위 계층 회피)
+
+## Attempt (시도, = Guess)
+
+단일 추측 입력. NYT 워들의 한 줄 입력에 대응.
+
+- 글자별 green / yellow / gray 피드백 (로마자)
+- 한글/히라가나 피드백 룰은 보류 (음절 vs 자모)
+
+## DailyRound, ChallengeRun (data model)
+
+각각 데일리 Round 1개, 챌린지 Run 1개에 대한 `(anon_id, deck_id, date)` 기록.
+이전 `Solve` 엔티티는 결과 함의(`solved: bool`이 따로 있음에도 이름이 성공을 함의)를 제거하기 위해 **`DailyRound`로 리네임**.
+
+관련 ADR: 0006(챌린지 게이트), 0009(낙관적 락).

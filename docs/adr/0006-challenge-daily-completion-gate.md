@@ -18,7 +18,7 @@ Accepted
 
 - 챌린지는 `(anon_id, deck_id, date)` 단위로 **1일 1회**만 시작 가능
 - **게이트**: 그날 데일리 라운드 완료 (솔브 OR 시도 소진) 후에만 챌린지 잠금 해제
-  - `Solve.status = "completed"` 확인
+  - `DailyRound.status = "completed"` 확인
 - 챌린지 시드는 데일리와 별개 (`hash(deck_id + date + "endurance")`)
 - 시드가 분리되어 있어서 데일리 단어가 챌린지 시퀀스에 포함될 수 있음 — **그대로 둠** (라이트 스포일러 감수)
 - 한 라운드에서 시도 소진 시 런 종료, 점수 = 풀어낸 단어 수
