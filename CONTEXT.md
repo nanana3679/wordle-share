@@ -72,3 +72,41 @@ Deck 안의 풀이 대상. 영구 ID + soft-delete (`active` flag).
 - 단순 알파벳 덱 → 깔끔한 a-z. 숫자/하이픈 포함 덱 → 사용된 만큼만 추가 표시
 
 관련 ADR: 0010(영구 ID + soft-delete), 0014(허용 문자 + 정규화)
+
+---
+
+## DailyWord (lock)
+
+특정 (deck, date)에 잠긴 target Word. PK: `(deck_id, date)`.
+
+- 시드: `hash(deck_id + date) % active_words.length` — 라운드 시작 시점 active 집합 기준 (= 캡처된 deck_version)
+- date = **client-local date** — 각 시간대가 자기 자정에 갱신
+- 같은 date string의 lock은 글로벌 단일 row. 먼저 풀이 시작한 사람이 lock 생성, 결정적 시드라 누가 먼저든 결과 동일
+- Word.id 영구 + soft-delete라 lock 후 단어 삭제돼도 그날 데일리는 그 단어 유지
+
+## DailyRound 라이프사이클
+
+- 사용자가 Game 페이지 접속 시 시작 → **`(date, deck_version)` 캡처**
+- 자정 넘어도 같은 round 계속 (date 고정)
+- 추측마다 캡처된 deck_version의 active word 집합으로 검증
+- in_progress인 채로 무기한 유지 가능 — 사용자가 마저 풀거나 영영 안 풀거나
+- 새 날짜 라운드는 별개 row (different PK) — 이전 날 미완료 라운드와 동시 진행 가능
+- UI에 "이어풀기" 옵션으로 미완료 과거 라운드 노출
+
+## ChallengeRun 라이프사이클
+
+- 시작 시 게이트: `DailyRound(anon, deck, today).status === "completed"` (solved=true 또는 시도 소진)
+- 시작 시 `(date, deck_version)` 캡처
+- 자정 넘김/덱 편집과 무관하게 캡처된 스냅샷 기준으로 진행
+- 게이트는 시작 시 한 번만 평가 — 진행 중 재평가 X
+- 1일 1회 — 같은 (anon, deck, date) PK 중복 차단
+
+관련 ADR: 0006(챌린지 게이트), 0009(낙관적 락), 0015(라운드 상태 캡처)
+
+## deck.version
+
+Deck의 word membership 변경 시 increment되는 정수. Round 시작 시 캡처됨.
+
+- Word 추가/비활성화마다 +1 (메타데이터 변경은 무관)
+- Word는 `added_at_version`과 `removed_at_version` 보유 → "version V 시점 active 집합" 판정 가능
+- Round.deck_version으로 진행 중 라운드 ↔ 진행 중 덱 편집 분리

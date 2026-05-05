@@ -29,6 +29,7 @@
 
 ### 엔지니어링
 - [0009](./0009-optimistic-locking-with-version.md) — 모든 액션에 expected_version 동봉
+- [0015](./0015-round-state-capture.md) — Round 시작 시 (date, deck_version) 캡처
 
 ### 운영
 - [0011](./0011-operator-seed-via-public-api.md) — 운영자 시드 덱은 일반 API 호출 + 지속 업데이트
