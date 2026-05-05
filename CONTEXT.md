@@ -49,3 +49,26 @@ Shared Word Deck 도메인의 캐노니컬 용어. 새 문서·코드·대화는
 이전 `Solve` 엔티티는 결과 함의(`solved: bool`이 따로 있음에도 이름이 성공을 함의)를 제거하기 위해 **`DailyRound`로 리네임**.
 
 관련 ADR: 0006(챌린지 게이트), 0009(낙관적 락).
+
+---
+
+## Word (단어)
+
+Deck 안의 풀이 대상. 영구 ID + soft-delete (`active` flag).
+
+- **저장 = 정규화된 단일 텍스트**. 원본 보존 X. 표시도 정규화 형태 (수정 후에도 정규화된 모습으로 보임)
+- **공백 불허** — 다중-단어 IP명은 분할 또는 결합 (예: "고무고무 열매" → "고무고무열매" 또는 별개 두 Word)
+- **허용 문자** = `script 알파벳 + 0-9 + - + ' + .`
+  - script 알파벳: roman `a-z` / hangul `가-힣` / hiragana `ぁ-ゖゝゞ`
+  - 그 외 (공백, `@#$%&` 등 기호, 다른 script, control char) 모두 reject
+- **정규화**: NFC + roman script만 lowercase
+- 같은 Deck 내 동일 canonical text는 단일 Word — `(deck_id, text)` 유니크 인덱스
+- Tag union: 동일 Word를 다른 tag로 다시 추가하면 tag 합집합
+
+### 키보드 UI (smart rendering)
+
+- `effective_alphabet = union(active_words.chars)`
+- on-screen 키보드는 effective alphabet만 render — 사용 안 된 키는 미표시
+- 단순 알파벳 덱 → 깔끔한 a-z. 숫자/하이픈 포함 덱 → 사용된 만큼만 추가 표시
+
+관련 ADR: 0010(영구 ID + soft-delete), 0014(허용 문자 + 정규화)

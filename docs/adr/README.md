@@ -25,6 +25,7 @@
 ### 게임 메커닉
 - [0008](./0008-no-guess-autocomplete.md) — 추측 입력 자동완성/덱 노출 없음
 - [0010](./0010-word-soft-delete-with-permanent-ids.md) — 단어 영구 ID + soft-delete
+- [0014](./0014-word-character-set-and-canonical-form.md) — 단어 허용 문자 + canonical form + smart 키보드
 
 ### 엔지니어링
 - [0009](./0009-optimistic-locking-with-version.md) — 모든 액션에 expected_version 동봉
