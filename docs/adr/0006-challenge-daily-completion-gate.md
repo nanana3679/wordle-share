@@ -30,3 +30,4 @@ Accepted
 - 데일리 완료 = 시도 다 써도 인정 → "솔브 못해도 일단 시작은 가능" 흐름 보장
 - 라이트 스포일러 (데일리 단어가 챌린지에 등장) 감수. 스코프 작아 무시 가능
 - 자정 직후 풀이/탭 동시 진행 시 status 갱신 race는 [0009](./0009-optimistic-locking-with-version.md)로 처리
+- **암시적 이어하기**: 명시 "pause/resume" UI는 도입 X. 탭 닫고 게임 URL 다시 열면 서버에 남은 in_progress 상태가 자연 복원됨. 단일 세션 ritual은 보존하되 phone-call edge case는 흡수

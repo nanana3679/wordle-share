@@ -31,6 +31,7 @@ Accepted
 
 - 디바이스 변경/시크릿 모드/캐시 삭제 시 anon_id가 새로 발급됨 → "내 덱" 목록은 localStorage 의존이라 손실. 단 nick+pw를 알면 어떤 디바이스에서도 수정 가능
 - nick은 전역 유일이 아님 (충돌 가능). 같은 nick을 다른 사람이 써도 문제 없음 — pw가 자원별 잠금
+- **표시 disambiguation**: UI는 `{nick}#{anon_id의 앞 4 hex}` 형식으로 표시 (예: `철수#a3f9`). nick 입력에 `#` 불허
 - 약한 pw 사용자가 다른 사람 덱 접근하는 보안 사고를 enumeration 차단으로 완화
 - `decks.author_xor` 제약 (creator_id XOR (handle+pw_hash))은 폐기. 신규 스키마에서는 둘 다 필수: `creator_id = auth.uid()` + `creator_nick` + `creator_pw_hash`
 - OAuth 콜백(`/auth/callback`)은 미사용 → 제거 ([0001과 별개로 진행])
