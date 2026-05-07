@@ -57,11 +57,12 @@ docs/
 - 구조/네이밍/시나리오를 보여주기 위한 간략한 예시는 허용
 - 코드 분량이 커지면 별도 문서로 분리
 
-## 길이
+## 표기 컨벤션 (도메인 문서)
 
-- 일반 문서는 ~80줄 목표 (강제는 아님)
-- 단일 reference 문서(`DATABASE_SCHEMA`, `PAGE_STRUCTURE`, `FEATURES` 등 전체 스키마/라우트/기능 인덱스)는 ~150줄까지 허용 — 분할 시 단일 source 가치 손실
-- 초과 시 주제별 별도 파일로 분할 고려
+- 엔티티/타입: `PascalCase` (`DailyWord`, `ChallengeRun`)
+- DB 컬럼/SQL 식별자: `snake_case` (`deck_version`, `word_id`)
+- 결합 표기: `Entity.column_name` (예: `DailyWord.active_word_ids`)
+- 코드(TS) 변수는 `camelCase` 별도 컨벤션 — ORM(예: Drizzle)이 snake↔camel 자동 매핑
 
 ## 문서 작성 시점
 

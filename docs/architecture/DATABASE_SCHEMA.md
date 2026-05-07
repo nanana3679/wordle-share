@@ -16,7 +16,6 @@ Postgres (Supabase). 9개 도메인 테이블 + Supabase auth.users.
 - `creator_anon_id` UUID FK auth.users
 - `creator_nick` text — 표시용 (전역 유일 X)
 - `creator_pw_hash` text — bcrypt
-- `version` int default 0 — word 변경마다 increment
 - `like_count` int default 0 — 캐시
 - `report_count` int default 0
 - `hidden` bool default false — 자동 가림 또는 운영자
@@ -27,27 +26,25 @@ Postgres (Supabase). 9개 도메인 테이블 + Supabase auth.users.
 - `id` bigserial PK
 - `deck_id` text FK decks
 - `text` text — 정규화된 canonical (NFC + roman lowercase)
-- `added_at_version` int — Word 추가 시 deck.version
-- `removed_at_version` int nullable — soft-delete 시 deck.version
+- `active` bool default true
 - `created_at`
-- **Partial unique**: `UNIQUE(deck_id, text) WHERE removed_at_version IS NULL` (활성 word만 text 유일. 비활성은 같은 text 중복 가능 — re-add 시 새 ID + 새 row)
-- 인덱스: `(deck_id, removed_at_version)` for active 조회
+- 유니크: `UNIQUE(deck_id, text)` (전체 unique — re-add는 active toggle)
+- 인덱스: `(deck_id, active)` for active 조회
 
 ## daily_words
 
 - `deck_id` text FK
 - `date` date — client local YYYY-MM-DD
 - `word_id` bigint FK words
-- `deck_version` int — lock 생성 시점의 deck.version (DailyRound·ChallengeRun이 모두 이 version 사용)
+- `active_word_ids` bigint[] — lock 시점의 active word ID 스냅샷 (DailyRound·ChallengeRun 검증·셔플 source)
 - `locked_at` timestamptz
 - PK: `(deck_id, date)`
-- 첫 풀이자 발견 시 `INSERT ... ON CONFLICT DO NOTHING`. 같은 (deck, date) 모든 사용자는 같은 deck_version 캡처
+- 첫 풀이자 발견 시 `INSERT ... ON CONFLICT DO NOTHING`. snapshot이 lock-time freeze 책임
 
 ## daily_rounds
 
 - `anon_id` UUID, `deck_id` text, `date` date
-- `word_id` bigint — daily_words에서 참조한 word
-- `deck_version` int — 시작 시 캡처
+- `word_id` bigint — daily_words.word_id 참조 (검증은 daily_words.active_word_ids 사용)
 - `current_tries` jsonb — 추측 기록
 - `tries_used` int
 - `solved` bool default false
@@ -59,8 +56,7 @@ Postgres (Supabase). 9개 도메인 테이블 + Supabase auth.users.
 ## challenge_runs
 
 - `anon_id`, `deck_id`, `date`
-- `deck_version` int — 시작 시 캡처
-- `current_word_index` int default 0
+- `current_word_index` int default 0 — daily_words.active_word_ids에서 셔플된 시퀀스의 현재 인덱스
 - `current_tries` jsonb
 - `score` int default 0 — 풀어낸 라운드 수
 - `status` text enum (`in_progress` | `ended`)

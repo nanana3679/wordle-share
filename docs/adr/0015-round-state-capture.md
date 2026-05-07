@@ -1,104 +1,100 @@
-# 0015. Round 시작 시 (date, deck_version) 캡처 — DailyWord lock 우선
+# 0015. DailyWord에 active_word_ids 스냅샷 + 라운드는 date만 캡처
 
 ## Status
 
-Accepted (revised after PR #54 리뷰 — DailyWord lock vs deck_version 충돌 해소)
+Accepted (revised after PR #54 리뷰 — snapshot 모델로 단순화)
 
 ## Context
 
-Daily mode은 client-local date 기준 갱신 (Q5 결정). 이로 인한 라이프사이클 모호성:
+Daily mode은 client-local date 기준 갱신. 이로 인한 라이프사이클 모호성:
 
 - 자정 가로지르는 라운드: 23:55 시작, 00:05 추측 — 어느 날의 라운드?
 - 덱 편집 중 진행 중인 라운드: 제작자가 word 비활성화 → 진행 중 라운드의 단어/시드 흔들림
 - 챌린지 게이트: 자정 넘으면 "오늘 데일리 완료" 조건이 깨질 수 있음
-- **DailyWord lock vs deck_version 충돌**: 첫 풀이자가 V1에서 word=W lock. 같은 날 제작자가 W 비활성화(V2). 두 번째 풀이자가 V2 캡처하면 W가 active 집합에 없어서 검증 깨짐
+- 챌린지 시퀀스 결정성: 같은 (deck, date)의 모든 사용자가 같은 셔플을 봐야 함
 
 후보:
-- (a) 매 액션 시 현재 date·active 집합 평가 → 자정/편집 시 라운드 깨짐. 거절
-- (b) **시작 시점 (date, deck_version) 캡처, DailyWord lock 우선** (본 결정)
-- (c) 시작 시점 capture + 24h TTL → 추가 cron 비용 vs 효용 적음
+- (a) per-round `deck_version` 캡처 + per-word version history → version-aware query 복잡, lock 충돌 케이스 발생
+- (b) **DailyWord에 `active_word_ids` snapshot 저장** (본 결정) — Word는 simple `active: bool` ([ADR 0010](./0010-word-soft-delete-with-permanent-ids.md))
+- (c) 매 액션 시 현재 active 평가 → 셔플 결정성 깨짐, 라운드 중 편집 시 검증 흔들림
 
 ## Decision
 
-### DailyWord에 lock된 deck_version 저장
-
-`daily_words` 테이블에 lock 생성 시점의 `deck_version`을 명시 저장:
+### DailyWord에 snapshot 저장
 
 ```
 daily_words:
-  deck_id, date, word_id, deck_version, locked_at
+  deck_id, date, word_id, active_word_ids JSONB[], locked_at
   PK: (deck_id, date)
 ```
 
-### DailyRound 시작 시 캡처 룰
+- `active_word_ids`: lock 생성 시점의 active word ID 배열
+- 시드: `hash(deck + date) % active_word_ids.length` — lock 생성 시 1회 계산해 word_id 결정
+
+### 라운드/런은 date만 캡처
+
+- `DailyRound`: `(anon_id, deck_id, date)` PK + 진행 상태. **deck_version 캡처 X**
+- `ChallengeRun`: 동일 PK 패턴
+- 검증·셔플은 `DailyWord.active_word_ids`에서 직접 조회
+
+### 첫 풀이자 lock 생성 룰
 
 ```
 DailyRound 시작 시:
-  IF DailyWord(deck, date) 존재:
-    DailyRound.deck_version = DailyWord.deck_version  # lock 우선
-  ELSE:
-    deck_version = 현재 deck.version
-    INSERT DailyWord(deck, date, word_id=seed_pick(deck, date, deck_version),
-                     deck_version) ON CONFLICT DO NOTHING
-    DailyRound.deck_version = DailyWord.deck_version  # lock의 version 사용
-  
-  DailyRound.date = client_local_date_at_start
+  DailyWord(deck, date) 존재? 
+    YES → 그대로 사용
+    NO  → 현재 active words = words WHERE deck_id=X AND active=true
+          INSERT DailyWord(deck, date, word_id=seed_pick, 
+                           active_word_ids=[현재 active], locked_at=now())
+          ON CONFLICT DO NOTHING (race-safe)
 ```
 
-**핵심**: 같은 (deck, date)의 모든 사용자는 같은 `deck_version`을 캡처 — DailyWord.deck_version 단일 source. word_id와 active set 모두 그 시점 기준.
+**핵심**: 같은 (deck, date)의 모든 사용자는 동일 lock(같은 word + 같은 active set + 같은 셔플 가능) 사용.
 
-### ChallengeRun도 같은 lock 사용
+### 편집 propagation
 
-챌린지 시퀀스도 모든 사용자에게 동일해야 함 (기획서 "모든 유저 동일 셔플").
+편집 시점에 존재하는 lock은 변경 없음. 미존재 미래 date의 lock은 첫 풀이자 시점에 새 active set으로 생성:
+
+```
+오늘 lock 미존재 → 편집 즉시 반영 (다음 풀이자가 새 set으로 lock)
+오늘 lock 존재 → 오늘은 변경 X. 내일 lock 미존재 시 내일부터 반영
+시차로 미래(내일) lock 미리 존재 → 그 lock 유지, 모레부터 반영
+```
+
+자연스럽게 lock 생성 시점 freeze.
+
+### 챌린지 셔플
 
 ```
 ChallengeRun 시작 시:
-  IF DailyWord(deck, date) 존재:
-    ChallengeRun.deck_version = DailyWord.deck_version
-  ELSE:
-    # 챌린지 단독으로 시작하는 케이스 — 데일리 게이트 위반
-    # 게이트 검증에서 이미 reject됨
-    error
-  
-  ChallengeRun.date = client_local_date_at_start
+  DailyWord.active_word_ids 가져옴 (DailyRound 게이트 통과했으므로 존재)
+  shuffle = deterministic_shuffle(active_word_ids, hash(deck + date + "endurance"))
+  ChallengeRun.shuffle_order JSONB 저장 (또는 매번 재계산)
 ```
 
-→ 챌린지 게이트가 데일리 완료를 요구하므로 항상 DailyWord.deck_version 존재.
-
-### 검증·시드 룰
-
-이후 모든 검증·시드는 capture된 `deck_version` 기준:
-
-- 추측 검증: `deck_version` 시점의 active word 집합
-- 데일리 시드: `hash(deck + date) % len(active_at_version)` (lock 시점 한 번만 계산)
-- 챌린지 시드: `hash(deck + date + "endurance")` 셔플, active set는 `deck_version`
-- 챌린지 게이트: 시작 시 한 번만 평가, 진행 중 재평가 X
-
-자정 넘어도 같은 라운드 계속. 진행 중 덱 편집 발생해도 라운드는 고정.
+같은 (deck, date) 모든 사용자 동일 셔플 보장.
 
 ### Date trust boundary
 
-`client_local_date`는 **보안 경계가 아님**. 클라이언트가 임의 date를 보낼 수 있고 그 결과 미래/과거 DailyRound·Comment 생성 가능.
+`client_local_date`는 **보안 경계가 아님**. 클라이언트가 임의 date를 보낼 수 있음.
 
-- 챌린지 1일 1회·랭킹 우회 인센티브 없음 (ADR 0003 사용자 점수 랭킹 없음)
-- 제품 의사결정으로 ritual scaffolding이라 허용 가능한 abuse
-
-서버는 클라이언트가 보낸 IANA timezone을 받아 request 시각 + tz로 local date 계산 권장 (V2 강화 가능). MVP는 client-supplied date string을 그대로 신뢰.
+- 챌린지 1일 1회·랭킹 우회 인센티브 없음 ([ADR 0003](./0003-no-public-user-leaderboard.md) 사용자 점수 랭킹 없음)
+- 제품 의사결정으로 ritual scaffolding이라 허용 가능한 abuse — 별도 강화 안 함
 
 ## Consequences
 
 ### 데이터 모델
-- `daily_words`에 `deck_version: int` 컬럼 추가
-- `DailyRound`, `ChallengeRun`에 `deck_version: int` 캡처
-- `Deck`에 `version: int` (word 추가/비활성화마다 +1)
-- `Word`에 `added_at_version`, `removed_at_version` (nullable, 활성 interval 추적은 [ADR 0010](./0010-word-soft-delete-with-permanent-ids.md))
+- `daily_words`에 `active_word_ids: bigint[]` 컬럼 (덱당 50-500 ints, 무시 가능)
+- `Word`는 `active: bool`만 ([ADR 0010](./0010-word-soft-delete-with-permanent-ids.md))
+- `DailyRound`, `ChallengeRun`은 `deck_version` 컬럼 X
+- `Deck`은 `version` 컬럼 X (per-row optimistic locking은 [ADR 0009](./0009-optimistic-locking-with-version.md)로 별도)
 
 ### UX
 - 자정 넘김 라운드 자연 작동
 - 사용자 간 같은 데일리 word + 같은 챌린지 시퀀스 보장
-- 덱 편집과 진행 중 라운드 완전 분리
+- 덱 편집과 진행 중 라운드 완전 분리 (snapshot이 격리)
 
 ### 운영
-- `deck.version` race: [ADR 0009](./0009-optimistic-locking-with-version.md) 낙관적 락
 - DailyWord race: `INSERT ... ON CONFLICT DO NOTHING` + 기존 row 재읽기
-- 클라이언트 date 조작 시 abuse 가능성 인지 — V2에서 IANA timezone 검증 강화 가능
+- 클라이언트 date 조작 가능성 인지 — abuse 인센티브 약하므로 허용
+- snapshot 저장 비용은 lock당 1회, 무시 가능

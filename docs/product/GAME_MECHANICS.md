@@ -7,11 +7,11 @@
 ## Daily mode
 
 - 덱마다 매일 1단어. 하루 1회 풀이
-- 시드: `hash(deck_id + date) % len(active_words_at_version)`
-- 첫 풀이자 발견 시 `DailyWord(deck, date)` lock 생성. 이후 모두 같은 단어
+- 시드: `hash(deck_id + date) % DailyWord.active_word_ids.length` — lock 생성 시 1회 계산
+- 첫 풀이자 발견 시 `DailyWord(deck, date)` lock 생성. lock에 active word IDs 스냅샷 저장. 이후 모두 같은 단어 + 같은 active set
 - 시도 횟수: `글자수 + 1`, 5~8 클램프
 - date = client local date (사용자 시간대 자정 갱신)
-- Round = (date, deck_version) 캡처 후 라이프사이클 동안 고정
+- DailyRound: `date`만 캡처. 검증·시드는 `DailyWord.active_word_ids` 사용
 - 끝 조건: 정답 OR 시도 소진 → `status = "completed"`
 
 관련 ADR: [0005](../adr/0005-daily-and-challenge-modes.md), [0015](../adr/0015-round-state-capture.md)
@@ -20,8 +20,8 @@
 
 - **하루 1회**, 단어 시퀀스 연속 풀이
 - 게이트: 그날 `DailyRound.status === "completed"` (solved OR 시도 소진)
-- 시드: `hash(deck_id + date + "endurance")` → 결정적 셔플 시퀀스
-- 시작 시 `(date, deck_version)` 캡처 → 이후 덱 편집/자정 무관
+- 시드: `hash(deck_id + date + "endurance")` → 결정적 셔플 시퀀스 (input set은 `DailyWord.active_word_ids`)
+- ChallengeRun은 `date`만 캡처. 셔플 source는 `DailyWord.active_word_ids` — 같은 (deck, date) 모든 사용자 동일 시퀀스
 - 한 라운드 시도 다 써서 못 맞춤 = 런 종료, 점수 = 풀어낸 라운드 수
 - 덱 전체 다 풀면 만점 클리어 (`deck_size / deck_size`)
 - 게이트는 시작 시 한 번만 평가. 진행 중 재평가 X
@@ -32,7 +32,7 @@
 ## 추측 입력
 
 - 자동완성/단어 리스트 노출 X — IP 지식 자체가 진입 장벽
-- 서버 검증: 활성 단어 ID 스냅샷(round_start_version)에 있으면 처리, 없으면 일반 거절
+- 서버 검증: `DailyWord.active_word_ids` 스냅샷에 있으면 처리, 없으면 일반 거절
 - 키보드 UI: deck의 `effective_alphabet = union(active_words.chars)`만 render
 
 관련 ADR: [0008](../adr/0008-no-guess-autocomplete.md), [0014](../adr/0014-word-character-set-and-canonical-form.md)

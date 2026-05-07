@@ -63,9 +63,10 @@ Deck 안의 풀이 대상. 영구 ID + soft-delete (`active` flag).
   - script 알파벳: roman `a-z` / hangul `가-힣` / hiragana `ぁ-ゖゝゞ`
   - 그 외 (공백, `@#$%&` 등 기호, 다른 script, control char) 모두 reject
 - **정규화**: NFC + roman script만 lowercase
-- 같은 Deck 내 동일 canonical text는 단일 Word — `(deck_id, text)` 유니크 인덱스
+- 같은 Deck 내 동일 canonical text는 단일 Word — `UNIQUE(deck_id, text)` (전체 unique)
+- **Soft-delete + reactivate**: 비활성화는 `active: false`. 같은 text 재추가는 동일 row의 `active`를 다시 `true`로 toggle. Word.id는 영구 (재사용·재할당 X)
 
-> Tag 기능은 MVP 범위 밖 (ADR 0016). Word 모델은 `{text}`만.
+> Tag 기능은 MVP 범위 밖 (ADR 0016). Word 모델은 `{text, active}`만.
 
 ### 키보드 UI (smart rendering)
 
@@ -79,22 +80,23 @@ Deck 안의 풀이 대상. 영구 ID + soft-delete (`active` flag).
 
 ## DailyWord (lock)
 
-특정 (deck, date)에 잠긴 target Word + 그 시점의 deck_version. PK: `(deck_id, date)`.
+특정 (deck, date)에 잠긴 target Word + 그 시점의 active word ID 스냅샷. PK: `(deck_id, date)`.
 
-- 컬럼: `(deck_id, date, word_id, deck_version, locked_at)`
-- 시드: `hash(deck_id + date) % active_at_version.length` — lock 생성 시점의 deck.version 기준
-- **DailyRound / ChallengeRun은 모두 `DailyWord.deck_version`을 캡처** (자기 시작 시점의 deck.version 아님) — 같은 (deck, date) 모든 사용자가 같은 active set·같은 시퀀스 보장
+- 컬럼: `(deck_id, date, word_id, active_word_ids JSONB[], locked_at)`
+- 시드: `hash(deck_id + date) % active_word_ids.length` — lock 시점에 1회 계산
+- **DailyRound·ChallengeRun 모두 `DailyWord.active_word_ids`를 검증·셔플 source로 사용** — 같은 (deck, date) 모든 사용자가 같은 단어·같은 시퀀스·같은 검증 set
 - date = **client-local date** — 각 시간대가 자기 자정에 갱신
 - 같은 date string의 lock은 글로벌 단일 row. 먼저 풀이 시작한 사람이 lock 생성, 결정적 시드라 누가 먼저든 결과 동일
 - **첫 솔버 저장 안 함** — anon_id 비기록 (YAGNI)
-- Word.id 영구 + soft-delete라 lock 후 단어 비활성화돼도 그날 데일리는 그 word 유지 (lock의 deck_version 시점에서 active였음)
+- Word.id 영구 — lock 후 word.active toggle돼도 lock의 word_id는 유효 (Word row 영구 존재)
+- **편집 propagation**: 편집 시점에 미존재 lock부터 새 active set 반영. 시차로 미래 lock이 미리 만들어졌으면 그 lock 유지, 더 미래 날짜부터 새 set
 - date string은 **보안 경계가 아님** — 클라이언트 조작으로 미래/과거 round 접근 가능. 공개 랭킹 없으므로 abuse 인센티브 약함 (ADR 0015)
 
 ## DailyRound 라이프사이클
 
-- 사용자가 Game 페이지 접속 시 시작 → **`(date, deck_version)` 캡처**
+- 사용자가 Game 페이지 접속 시 시작 → `date` 캡처 (client local)
 - 자정 넘어도 같은 round 계속 (date 고정)
-- 추측마다 캡처된 deck_version의 active word 집합으로 검증
+- 추측 검증·시드 모두 `DailyWord.active_word_ids` 사용
 - in_progress인 채로 무기한 유지 가능 — 사용자가 마저 풀거나 영영 안 풀거나
 - 새 날짜 라운드는 별개 row (different PK) — 이전 날 미완료 라운드와 동시 진행 가능
 - UI에 "이어풀기" 옵션으로 미완료 과거 라운드 노출
@@ -102,21 +104,14 @@ Deck 안의 풀이 대상. 영구 ID + soft-delete (`active` flag).
 ## ChallengeRun 라이프사이클
 
 - 시작 시 게이트: `DailyRound(anon, deck, today).status === "completed"` (solved=true 또는 시도 소진)
-- 시작 시 `(date, deck_version)` 캡처
-- 자정 넘김/덱 편집과 무관하게 캡처된 스냅샷 기준으로 진행
+- 시작 시 `date` 캡처
+- 셔플은 `DailyWord.active_word_ids` 기준 — 같은 (deck, date) 모든 사용자 동일 시퀀스
+- 자정 넘김/덱 편집과 무관 (snapshot 고정)
 - 게이트는 시작 시 한 번만 평가 — 진행 중 재평가 X
 - 1일 1회 — 같은 (anon, deck, date) PK 중복 차단
 - **암시적 이어하기**: 명시 "pause/resume" UI 없음. 탭 닫고 게임 URL 다시 열면 서버에 남은 in_progress 상태로 자연 복원
 
 관련 ADR: 0006(챌린지 게이트), 0009(낙관적 락), 0015(라운드 상태 캡처)
-
-## deck.version
-
-Deck의 word membership 변경 시 increment되는 정수. Round 시작 시 캡처됨.
-
-- Word 추가/비활성화마다 +1 (메타데이터 변경은 무관)
-- Word는 `added_at_version`과 `removed_at_version` 보유 → "version V 시점 active 집합" 판정 가능
-- Round.deck_version으로 진행 중 라운드 ↔ 진행 중 덱 편집 분리
 
 ---
 

@@ -1,64 +1,66 @@
-# 0010. 단어 영구 ID + soft-delete + active-only partial unique
+# 0010. 단어 영구 ID + soft-delete + reactivate via toggle
 
 ## Status
 
-Accepted (revised after PR #54 리뷰 — re-add 정책 확정)
+Accepted (revised after PR #54 리뷰 — snapshot 모델 도입으로 단순화)
 
 ## Context
 
 덱 편집은 자유롭게 허용한다 — IP 확장(새 시즌·캐릭터)을 흡수해야 함. 하지만 다음 문제가 있다:
 
-- 데일리 잠금 레코드가 특정 단어를 가리키고 있음 — 그 단어를 hard delete하면 과거 풀이 기록이 깨짐
-- 추측 검증을 단어 ID 스냅샷 기준으로 수행 ([0008](./0008-no-guess-autocomplete.md)) — ID가 사라지면 검증 깨짐
+- DailyWord lock의 word_id가 가리키는 row가 사라지면 과거 데이터 깨짐
+- 추측 검증을 라운드 lock 시점 active 집합 기준으로 수행 ([0008](./0008-no-guess-autocomplete.md), [0015](./0015-round-state-capture.md))
 - 같은 단어를 추가/삭제 반복 시 ID가 바뀌면 통계/기록 신뢰성 저하
-- "비활성화한 word를 같은 text로 다시 추가"가 가능해야 UX 자연스러움 (오타 수정 등)
+- 비활성화한 word를 같은 text로 다시 추가 (오타 수정 등) UX 자연스러움 필요
+
+후보:
+- (a) per-word version history (`added_at_version`/`removed_at_version`) — 정확한 version-aware query 가능, 복잡
+- (b) interval table — 가장 정확, 매우 복잡
+- (c) **simple `active: bool` + DailyWord에 active set snapshot** ([0015](./0015-round-state-capture.md)) (본 결정)
 
 ## Decision
 
-### 영구 ID + soft-delete
-
-- 단어는 별도 `words` 테이블 (덱 row의 JSONB 컬럼이 아님)
-- 각 단어는 **영구 ID** (시퀀스 또는 nanoid). 한 번 발급되면 변경 불가
-- 삭제는 **soft-delete** (`removed_at_version` 설정) — row 자체는 유지
-- `added_at_version`, `removed_at_version` 컬럼으로 active interval 추적
-- 단어 활성 판정 (version V 기준): `added_at_version <= V AND (removed_at_version IS NULL OR removed_at_version > V)`
-
-### Active-only partial unique
-
-`words(deck_id, text)`에 **partial unique 인덱스**:
-
-```sql
-UNIQUE(deck_id, text) WHERE removed_at_version IS NULL
-```
-
-- 활성 word 중에서만 text 유일 강제
-- 비활성 word는 같은 text로 여러 row 가능 (과거 history 보존)
-
-### Re-add 정책
-
-비활성화한 word를 같은 text로 다시 추가 시 → **새 ID로 새 row insert**.
+### Word 모델 단순화
 
 ```
-Word A: id=1, text="x", added=1, removed=3   # 비활성
-사용자가 "x" 다시 추가 (deck.version 5에서) →
-Word B: id=2, text="x", added=5, removed=NULL  # 신규
+words:
+  id, deck_id, text, active: bool, created_at
+  UNIQUE(deck_id, text)  -- 전체 유니크
 ```
 
-- 두 row가 같은 text를 가질 수 있음 (단, active는 한 번에 하나)
-- 각 word는 최대 한 번의 active interval만 가짐 (간단성)
-- "수정 = 비활성화 + 신규 추가" 패턴이 자연스럽게 작동
-- ID는 절대 재사용 X — DailyWord lock이 가리키는 옛 word_id는 영원히 안전
+- 영구 ID — 한 번 발급 후 재사용·재할당 X
+- `active: bool` — true(활성) / false(soft-delete)
+- 같은 deck 내 동일 text는 단일 row 영구 보유 (active 여부와 무관)
+
+### Re-add via reactivate
+
+비활성화한 word를 같은 text로 다시 추가하면 **기존 row의 `active`를 `true`로 toggle**:
+
+```
+초기:        Word#1 (text="피카츄", active=true)
+비활성화:     Word#1 (text="피카츄", active=false)
+재추가 시도:  Word#1 (text="피카츄", active=true)  -- 같은 row, 같은 ID
+```
+
+- ID 영구 — DailyWord lock의 word_id는 영원히 유효
+- 통계도 word ID 단위라 history 일관
 
 ### 단어 텍스트 수정
 
-지원 안 함. 텍스트 변경하려면 비활성화 + 신규 추가 (위 룰).
+지원 안 함. 텍스트 변경하려면 비활성화 + 다른 text로 신규 추가.
+
+### Lock 보호 (snapshot)
+
+DailyWord lock이 `active_word_ids` 스냅샷을 보유 ([ADR 0015](./0015-round-state-capture.md)). 따라서:
+- lock 후 word.active toggle돼도 lock의 active set은 변하지 않음
+- 진행 중 라운드/런은 lock 시점 set로 검증 — 일관성 보장
 
 ## Consequences
 
-- 과거 풀이 기록·댓글·통계 무결성 보장 — DailyWord lock의 word_id가 비활성 word를 가리켜도 row 살아있음
-- DB 크기는 미세하게 늘어남 (soft-deleted row + 같은 text의 신·구 row 잔존) — 무시 가능
-- 활성 단어 조회 query: `WHERE deck_id = ? AND removed_at_version IS NULL` (인덱스 활용)
-- Version-aware 조회: `WHERE added_at_version <= V AND (removed_at_version IS NULL OR removed_at_version > V)`
-- Re-add는 **새 ID** — 통계/기록은 word ID 단위라 reactivate 패턴은 의도적으로 안 씀 (history 명확성)
-- 덱 hard delete 시 cascade 정책: ON DELETE CASCADE (단어/풀이/댓글/좋아요 모두 삭제) — 기본 채택
-- 동일 text의 active 중복은 partial unique로 차단됨
+- 데이터 모델 단순 — Word는 `active: bool` 한 컬럼. version history 추적 X
+- DailyWord lock의 `active_word_ids` snapshot이 lock-time 정합성 책임 (storage 비용 감수)
+- Re-add 자연스러움 — 사용자 mental model "같은 text = 같은 entity" 보존
+- DB 크기: 비활성 word도 영구 잔존 — text 영원히 unique이므로 행 수 폭증 없음
+- 덱 hard delete 시 cascade: ON DELETE CASCADE (단어/풀이/댓글/좋아요 모두 삭제)
+- 활성 단어 조회 query: `WHERE deck_id = ? AND active = true`
+- 편집 중 라운드 진행 영향 없음 — DailyWord.active_word_ids snapshot이 격리
