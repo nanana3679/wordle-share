@@ -1,76 +1,128 @@
 # 데이터베이스 스키마
 
-## 인증 구조 (이중 신원)
+Postgres (Supabase). 9개 도메인 테이블 + Supabase auth.users.
 
-### 세션 신원: `auth.users` (Supabase Anonymous Auth)
+## auth.users (Supabase 관리)
 
-사이트 방문 시 자동으로 익명 사용자 레코드가 생성됩니다. `is_anonymous = true` 이며, 향후 Google/Discord OAuth 로 업그레이드 가능합니다.
+- 첫 방문 시 익명 세션 자동 발급 (`is_anonymous = true`)
+- `id` UUID = `anon_id`, RLS·신원 식별 기준
+- OAuth 업그레이드 경로 보존 (V2 백업 코드)
 
-- **용도**: 게임 기록, 좋아요 중복 방지, (향후) 개인 랭킹
-- **생명 주기**: 쿠키 기반 세션. 계정 업그레이드 전까지 기기 단위로 존재
-- **RLS**: `auth.uid()` 가 세션 신원으로 사용됨
+## decks
 
-### 덱 편집 신원: `decks.password_hash`
+- `id` text PK (nanoid 10자)
+- `name` text — 표시·검색 매칭 대상
+- `script` text enum (`roman` | `hangul` | `hiragana`)
+- `creator_anon_id` UUID FK auth.users
+- `creator_nick` text — 표시용 (전역 유일 X)
+- `creator_pw_hash` text — bcrypt
+- `version` int default 0 — word 변경마다 increment
+- `like_count` int default 0 — 캐시
+- `report_count` int default 0
+- `hidden` bool default false — 자동 가림 또는 운영자
+- `created_at`, `updated_at`
 
-덱 자체에 비밀번호 해시를 저장하고, 수정/삭제 시 Server Action 에서 검증합니다.
+## words
 
-- **용도**: 기기/세션과 무관하게 덱 편집 가능
-- **저장**: bcrypt 해시 (평문 금지)
-- **검증**: Server Action 에서 수동 검증 (RLS 로는 처리 불가)
+- `id` bigserial PK
+- `deck_id` text FK decks
+- `text` text — 정규화된 canonical (NFC + roman lowercase)
+- `added_at_version` int — Word 추가 시 deck.version
+- `removed_at_version` int nullable — soft-delete 시 deck.version
+- `created_at`
+- 유니크: `(deck_id, text)` (active만 강제하면 충분)
+- 인덱스: `(deck_id, removed_at_version)` for active 조회
 
-## Decks 테이블
+## daily_words
 
-- `id`: UUID (PK)
-- `name`: 덱 이름
-- `description`: 덱 설명
-- `words`: 단어 배열 (text[])
-- `thumbnail_url`: 썸네일 이미지 URL
-- `is_public`: 공개 여부
-- `created_at` / `updated_at`: 타임스탬프
-- `nickname`: 작성자 닉네임
-- `password_hash`: 덱 편집 비밀번호 (bcrypt)
-- `creator_session_id`: 최초 생성 시 `auth.uid()` (익명 세션 추적용, nullable)
+- `deck_id` text FK
+- `date` date — client local YYYY-MM-DD
+- `word_id` bigint FK words
+- `locked_at` timestamptz
+- PK: `(deck_id, date)`
+- 첫 풀이자 발견 시 `INSERT ... ON CONFLICT DO NOTHING`
 
-## Likes 테이블
+## daily_rounds
 
-- `deck_id`: 덱 ID (FK → Decks.id)
-- `user_id`: `auth.users.id` (익명 세션 포함)
-- `created_at`: 타임스탬프
+- `anon_id` UUID, `deck_id` text, `date` date
+- `word_id` bigint — daily_words에서 참조한 word
+- `deck_version` int — 시작 시 캡처
+- `current_tries` jsonb — 추측 기록
+- `tries_used` int
+- `solved` bool default false
+- `status` text enum (`in_progress` | `completed`)
+- `version` int default 0 — 낙관적 락
+- `started_at`, `last_action_at`, `completed_at`
+- PK: `(anon_id, deck_id, date)`
 
-**Primary Key**: `(deck_id, user_id)` 복합키
+## challenge_runs
 
-## (향후) GameRecords 테이블
+- `anon_id`, `deck_id`, `date`
+- `deck_version` int — 시작 시 캡처
+- `current_word_index` int default 0
+- `current_tries` jsonb
+- `score` int default 0 — 풀어낸 라운드 수
+- `status` text enum (`in_progress` | `ended`)
+- `ended_reason` text enum (`failed` | `completed` | null)
+- `version` int — 낙관적 락
+- `started_at`, `last_action_at`, `ended_at`
+- PK: `(anon_id, deck_id, date)`
 
-Phase 3 랭킹 도입 시 추가 예정:
+## comments
 
-- `id`, `deck_id`, `user_id` (auth.uid), `attempts`, `duration_ms`, `success`, `created_at`
+- `id` text PK (nanoid)
+- `deck_id` text FK
+- `thread_date` date — 작성자의 client local date at write time
+- `anon_id` UUID — 작성 시점
+- `nick` text, `pw_hash` text bcrypt
+- `text` text
+- `deleted` bool default false
+- `hidden` bool default false (신고 임계)
+- `report_count` int default 0
+- `created_at`
+- 인덱스: `(deck_id, thread_date, created_at DESC)`
 
-## 관계
+## likes
 
-```
-auth.users (1) ──── (N) Likes
-                    (N) GameRecords (향후)
+- `deck_id` text FK
+- `ip_hash` text — SHA-256(ip + 고정_salt)
+- `created_at`
+- PK: `(deck_id, ip_hash)`
+- 트리거: insert/delete 시 `decks.like_count` ±1
 
-Decks (1) ──── (N) Likes
-          ───── (N) GameRecords (향후)
-```
+## reports
 
-## 인덱스
+- `id` text PK
+- `target_type` text enum (`deck` | `comment`)
+- `target_id` text
+- `reporter_anon_id` UUID
+- `reason` text nullable
+- `resolved` bool default false
+- `created_at`
+- 유니크: `(target_type, target_id, reporter_anon_id)` — 중복 신고 차단
+- 트리거: insert 시 `target.report_count` +1, 임계 도달 시 `hidden = true`
 
-- `decks.is_public`, `decks.created_at`
-- `decks.creator_session_id` — "내가 만든 덱" 조회용 (localStorage 백업)
-- `likes.deck_id` — 덱별 좋아요 집계
+## user_deck_stats
 
-## Row Level Security (RLS)
+- `anon_id` UUID, `deck_id` text
+- `best_challenge_score` int default 0
+- `total_clears` int default 0 — 만점 클리어 횟수
+- `current_daily_streak` int default 0
+- `last_played_at`
+- PK: `(anon_id, deck_id)`
+- **본인에게만 SELECT** (RLS) — 공개 노출 금지
 
-### Decks
+## RLS 요약
 
-- **SELECT**: `is_public = true` OR `creator_session_id = auth.uid()`
-- **INSERT**: 누구나 (익명 세션 포함). `nickname` / `password_hash` 필수
-- **UPDATE / DELETE**: RLS 로 차단 → **Server Action 에서 비밀번호 해시 검증 후 service_role 로 수행**
+- 쓰기 대부분: server actions에서 service_role + 자체 인증 검증
+- SELECT 공개: decks (where hidden=false), comments (where not hidden + 게이트), likes
+- SELECT 본인: daily_rounds, challenge_runs, user_deck_stats — `auth.uid() = anon_id`
 
-### Likes
+## 인덱스 / 성능
 
-- **SELECT**: 모두
-- **INSERT**: `auth.uid() IS NOT NULL` (익명 세션도 OK), `user_id = auth.uid()`
-- **DELETE**: `user_id = auth.uid()`
+- `decks.like_count DESC` partial where `hidden = false` — 좋아요순 정렬
+- `decks.created_at DESC` partial where `hidden = false` — 최신순
+- Hot score는 materialized view 또는 cron 갱신
+- `comments(deck_id, thread_date, created_at DESC)` — 스레드 조회
+
+관련 ADR: 전체 (0001~0016)

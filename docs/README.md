@@ -5,21 +5,21 @@
 
 ## 최상위
 
-- [PROJECT_OVERVIEW.md](./PROJECT_OVERVIEW.md) — 프로젝트 컨셉·MVP 정의 (rewrite 예정)
+- [PROJECT_OVERVIEW.md](./PROJECT_OVERVIEW.md) — 프로젝트 컨셉·MVP 정의
 - [DESIGN_PRINCIPLES.md](./DESIGN_PRINCIPLES.md) — 9개 파생 디자인 원칙
 - todo.md — `to-issues` 스킬로 GitHub 이슈 이전 예정
 
 ## product/ — 사용자 관점
 
 - [GAME_MECHANICS.md](./product/GAME_MECHANICS.md) — 데일리/챌린지 메커닉, 시드, 게이트
-- [FEATURES.md](./product/FEATURES.md) (rewrite 예정)
-- [PAGE_STRUCTURE.md](./product/PAGE_STRUCTURE.md) (rewrite 예정)
+- [FEATURES.md](./product/FEATURES.md) — 9개 주요 기능 + 도메인 문서 cross-link
+- [PAGE_STRUCTURE.md](./product/PAGE_STRUCTURE.md) — URL 트리, 페이지별 컴포넌트, 진입 플로우
 
 ## architecture/ — 기술 구조
 
 - [IDENTITY_MODEL.md](./architecture/IDENTITY_MODEL.md) — Supabase Anon Auth + nick/pw + IP hash
-- [DATABASE_SCHEMA.md](./architecture/DATABASE_SCHEMA.md) (rewrite 예정)
-- [TECH_STACK.md](./architecture/TECH_STACK.md) (OAuth 항목 제거 필요)
+- [DATABASE_SCHEMA.md](./architecture/DATABASE_SCHEMA.md) — 9개 테이블 + RLS + 인덱스
+- [TECH_STACK.md](./architecture/TECH_STACK.md) — Next.js / Supabase / shadcn / React Query
 
 ## domain/ — 도메인 규칙
 

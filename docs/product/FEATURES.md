@@ -1,179 +1,98 @@
-# 주요 기능 상세
+# 주요 기능
 
-## 1. 사용자 신원 시스템
+각 기능의 상세 룰·결정 근거는 도메인별 문서 또는 ADR 참고.
 
-회원가입/로그인 없이 덱 생성부터 편집까지 모든 작업이 가능합니다. 두 층의 신원 시스템을 조합합니다.
+## 1. 신원 / 인증
 
-### 덱 편집 신원 (닉네임 + 비밀번호)
+3-layer 익명 모델:
 
-- 덱 생성 시 닉네임과 비밀번호(덱 전용 PIN) 입력
-- 비밀번호는 서버에서 bcrypt 해시로 저장 (평문 저장 금지)
-- 같은 비밀번호 입력 시 어떤 기기/브라우저에서든 해당 덱 수정/삭제 가능
-- 링크 공유 중심 설계의 핵심 메커니즘
+- 디바이스 식별 = Supabase Anonymous Auth (`auth.uid()`)
+- 자원 단위 인증 = 단일 (nick, pw) 쌍, bcrypt
+- 좋아요 식별 = IP hash (salt 영구 고정)
 
-### 세션 신원 (Supabase Anonymous Auth)
+회원가입/사회 로그인 없음. 디바이스 변경 시 nick+pw로 자기 자원 접근.
 
-- 사이트 첫 방문 시 자동으로 익명 세션 발급 (사용자 액션 불필요)
-- `auth.uid()` 가 쿠키 기반으로 유지됨
-- 게임 기록·좋아요·(향후) 개인 기록 등 "기기 기준" 데이터와 연결
-- 향후 Google/Discord OAuth 로 업그레이드 가능 (데이터 보존)
+→ [architecture/IDENTITY_MODEL.md](../architecture/IDENTITY_MODEL.md), [ADR 0001](../adr/0001-anon-auth-and-nick-pw-identity.md), [ADR 0002](../adr/0002-ip-hash-for-likes.md)
 
-### 내 덱 목록 (localStorage 기반)
+## 2. 덱 관리 (UGC)
 
-- 본인이 만든/편집한 덱 ID 와 닉네임을 브라우저 localStorage 에 저장
-- "내 덱" 페이지에서 목록 조회
-- 다른 기기에서는 덱 링크 + 비밀번호로 접근
+- 자유 이름 + script(roman/hangul/hiragana) + 단어 리스트
+- 단어 영구 ID + soft-delete — 과거 풀이 기록 무결
+- 자유 편집 (nick+pw 인증). 시즌 업데이트 흡수 가능
+- 단어 수 하한 없음 — organic filtering
+- 같은 IP에 여러 덱 허용 (UGC 정신)
 
-## 2. 덱 관리
+→ [CONTEXT.md Deck/Word](../../CONTEXT.md), [ADR 0010](../adr/0010-word-soft-delete-with-permanent-ids.md), [ADR 0014](../adr/0014-word-character-set-and-canonical-form.md)
 
-### 덱 생성
+## 3. 게임 — 데일리 + 챌린지
 
-- 사용자가 커스텀 단어 세트 생성
-- 덱 메타데이터 입력
-  - 이름 (필수)
-  - 설명 (선택)
-  - 썸네일 이미지 (선택)
-  - 단어 배열 (필수, 5글자 단어)
-- 단어 배열 유효성 검사
-  - 중복 단어 체크
-  - 글자 수 체크 (5글자)
-  - 최소 단어 개수 (예: 10개 이상)
+- **데일리**: 매일 1단어. 시드 `hash(deck + date)`. client local date 기준
+- **챌린지**: 1일 1회, 데일리 완료 게이트, 단어 시퀀스 연속 풀이
+- 시도 = `글자수 + 1`, 5~8 클램프
+- 추측 자동완성 X — IP 지식이 진입 장벽
+- Round 시작 시 `(date, deck_version)` 캡처 → 자정/덱편집 무관
 
-### 덱 조회
+→ [GAME_MECHANICS.md](./GAME_MECHANICS.md), [ADR 0005](../adr/0005-daily-and-challenge-modes.md), [ADR 0006](../adr/0006-challenge-daily-completion-gate.md), [ADR 0015](../adr/0015-round-state-capture.md)
 
-- 공개 덱 목록 보기
-- 덱 상세 정보 확인
-- 덱 통계 (플레이 횟수, 좋아요 수)
+## 4. 댓글 시스템
 
-### 덱 수정
+- (deck_id, thread_date) 단위 thread. 최신순 + 날짜 헤더
+- 가림 룰: 과거 thread는 항상 공개, 오늘/미래는 본인 라운드 완료 시 열람
+- 작성: nick+pw. 디바이스 무관 삭제. 편집 미지원
+- 결과 공유는 클립보드 복사 → 사용자 직접 paste (자동 부착 X)
 
-- 소유자만 수정 가능
-- 덱 정보 업데이트
-- 단어 추가/삭제
+→ [domain/COMMENT_SYSTEM.md](../domain/COMMENT_SYSTEM.md), [ADR 0007](../adr/0007-comment-solve-gate.md)
 
-### 덱 삭제
+## 5. 디스커버리 — 메인 피드 + 검색
 
-- 소유자만 삭제 가능
-- 삭제 확인 모달
-- 연관 데이터 처리 (좋아요 등)
+- 메인 피드 3 탭: Hot / 좋아요순 / 최신순
+- Hot 알고리즘 = Reddit식 시간 가중
+- 검색: 덱 이름 매칭. 단어 내용 X (정답 누설 방지)
+- 자동 가림된 덱은 피드/검색/sitemap 제외
 
-### 권한 관리
+→ [domain/FEED_AND_SEARCH.md](../domain/FEED_AND_SEARCH.md)
 
-- 덱 생성: 누구나 (닉네임 + 비밀번호 입력)
-- 덱 수정/삭제: 덱 비밀번호를 아는 사람만 (Server Action 에서 해시 검증)
-- 덱 플레이: 누구나
-- 비공개 덱: URL 을 아는 사람만 접근
+## 6. 좋아요
 
-## 3. 공유 시스템
+- (deck_id, ip_hash) PK. IP당 한 덱 1좋아요
+- 풀이 무관, 누구나 가능 (디스커버리 시그널)
+- 낙관적 UI — 즉시 반영 + 서버 confirm async
 
-### URL 공유
+→ [domain/LIKE_SYSTEM.md](../domain/LIKE_SYSTEM.md), [ADR 0002](../adr/0002-ip-hash-for-likes.md), [ADR 0004](../adr/0004-content-likes-vs-user-scores-threat-model.md)
 
-- 고유한 URL을 통한 덱 공유
-- 덱 ID 기반 라우팅 (`/decks/[id]`)
-- 공유 버튼 (링크 복사, SNS 공유)
+## 7. 모더레이션
 
-### 공개/비공개 설정
+- 신고 버튼 + 자동 임시 가림 (덱 5회 / 댓글 3회)
+- 운영자 알림 + 수동 검토
+- AI 모더레이션은 V2
 
-- 공개 덱: 모두 접근 가능, 검색 노출
-- 비공개 덱: 소유자만 접근, 검색 비노출
-- URL을 알면 비공개 덱도 접근 (선택적 구현)
+→ [domain/MODERATION.md](../domain/MODERATION.md), [ADR 0013](../adr/0013-report-based-moderation-with-auto-hide.md)
 
-### 덱 접근 권한
+## 8. SEO / 외부 공유
 
-- Row Level Security (RLS)로 권한 관리
-- 비공개 덱 접근 시도 시 404 또는 403
-- 소유자 확인 로직
+- 공개 페이지 SSR (메인 피드, 덱 상세, 검색)
+- 게임 페이지 noindex (정답 누설 방지)
+- 슬러그 URL → canonical 301
+- OG 이미지 동적 생성 (`/og/{deck_id}.png`)
+- 사이트맵 일별 갱신
 
-## 4. 게임 플레이
+→ [platform/SEO.md](../platform/SEO.md), [ADR 0012](../adr/0012-ssr-public-deck-pages.md)
 
-### Wordle 게임 로직
+## 9. 운영자 시드 도구
 
-- 6번의 시도 기회
-- 5글자 단어 입력
-- 타일 색상 피드백
-  - 🟩 GREEN: 정답 위치 일치
-  - 🟨 YELLOW: 글자는 있지만 위치 틀림
-  - ⬜ GRAY: 글자 없음
-- 키보드 상태 업데이트
-- 정답 맞추기/실패 처리
+- 콜드 스타트용 long-tail IP 덱 자동 생성
+- 일반 사용자 API 호출 (도그푸딩)
+- 시즌/스토리 업데이트 시 PUT 지속 호출
+- 공개 API/외부 onboarding 없음
 
-### 커스텀 덱 게임
+→ [operations/OPERATOR_SEED_TOOL.md](../operations/OPERATOR_SEED_TOOL.md), [ADR 0011](../adr/0011-operator-seed-via-public-api.md)
 
-- 선택한 덱의 단어 배열에서 랜덤 선택
-- 덱 정보 표시 (덱 이름, 설명)
-- 게임 중 덱 정보 접근
+## V2 후보
 
-### 게임 결과
-
-- 성공/실패 표시
-- 시도 횟수 기록
-- 공유 기능 (이모지 그리드)
-- 다시 플레이 버튼
-
-### 게임 히스토리
-
-- 플레이한 게임 기록을 익명 세션(`auth.uid()`) 기준으로 저장
-- 덱별 통계 (성공률, 평균 시도 횟수)
-- 같은 브라우저에서 히스토리 유지, 향후 계정 업그레이드 시 여러 기기 동기화
-
-## 5. 커뮤니티 기능
-
-### 덱 검색
-
-- 키워드 검색 (덱 이름, 설명)
-- 실시간 검색 결과
-- 검색 결과 하이라이팅
-
-### 덱 필터링
-
-- 공개/비공개 필터
-- 내가 만든 덱 필터
-- 좋아요 많은 순
-- 최신순/인기순
-
-### 덱 정렬
-
-- 최신순 (created_at DESC)
-- 인기순 (likes 많은 순)
-- 플레이 많은 순 (향후 구현)
-
-### 좋아요 시스템
-
-- 익명 세션(`auth.uid()`) 기반 중복 방지 (1회 제한)
-- 좋아요 개수 표시
-- Optimistic UI 업데이트 (React Query)
-- 좋아요 취소 미지원 (MVP)
-
-### 인기 덱 추천
-
-- 메인 페이지에 인기 덱 표시
-- 좋아요 많은 순으로 정렬
-- 최근 1주일/1개월 기준 필터링 (선택적)
-
-## 6. 향후 확장 기능 (Phase 3-4)
-
-### 게임 모드 확장
-
-- 데일리 챌린지 (전체 공통 덱)
-- 시간 제한 모드
-- 멀티플레이어 대결
-
-### 랭킹 시스템
-
-- 덱별 리더보드 (최단 시간 / 최소 시도 횟수)
-- 시즌 랭킹 / 누적 랭킹
-- ⚠️ 랭킹 도입 시: 어뷰징 방어를 위해 **계정 업그레이드 (Google/Discord)** 를 선택적으로 유도
-
-### 계정 업그레이드
-
-- 익명 세션을 Google/Discord 계정으로 연결
-- 기존 게임 기록·좋아요·제작 덱 모두 보존
-- 여러 기기에서 동기화
-
-### 카테고리/태그 시스템
-
-- 덱 카테고리 분류, 태그 기반 검색
-
-### 댓글/리뷰
-
-- 덱에 대한 사용자 피드백, 평점 시스템
+- 댓글 좋아요 / 이모지 리액션
+- 자유 플레이 모드
+- WebSocket 실시간 sync
+- 백업 코드 export/import
+- AI 모더레이션
+- 비공개 덱 / 접근 코드 덱
+- Tag 필터 UI ([ADR 0016](../adr/0016-defer-tags-to-v2.md))
