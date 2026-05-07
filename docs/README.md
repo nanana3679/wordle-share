@@ -7,7 +7,6 @@
 
 - [PROJECT_OVERVIEW.md](./PROJECT_OVERVIEW.md) — 프로젝트 컨셉·MVP 정의
 - [DESIGN_PRINCIPLES.md](./DESIGN_PRINCIPLES.md) — 9개 파생 디자인 원칙
-- todo.md — `to-issues` 스킬로 GitHub 이슈 이전 예정
 
 ## product/ — 사용자 관점
 
