@@ -57,7 +57,3 @@
 ## issue/ — 이슈/마이그레이션 기록
 
 - [redesign-migration.md](./issue/redesign-migration.md) — 신규 기획 마이그레이션 계획
-
-## feature/ — 폐기 예정
-
-`feature/` 폴더의 남은 5개 문서(`google-login-flow`, `anonymous-deck-creation`, `likes-flow`, `deck-pagination`, `deck-infinite-scroll`)는 신규 기획 충돌로 후속 PR에서 삭제 예정.
