@@ -63,7 +63,8 @@ Deck 안의 풀이 대상. 영구 ID + soft-delete (`active` flag).
   - 그 외 (공백, `@#$%&` 등 기호, 다른 script, control char) 모두 reject
 - **정규화**: NFC + roman script만 lowercase
 - 같은 Deck 내 동일 canonical text는 단일 Word — `(deck_id, text)` 유니크 인덱스
-- Tag union: 동일 Word를 다른 tag로 다시 추가하면 tag 합집합
+
+> Tag 기능은 MVP 범위 밖 (ADR 0016). Word 모델은 `{text}`만.
 
 ### 키보드 UI (smart rendering)
 
