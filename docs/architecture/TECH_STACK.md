@@ -18,7 +18,7 @@
 - **데이터베이스**: Supabase Postgres
 - **인증**: **Supabase Anonymous Auth만 사용** — 첫 방문 시 자동 익명 세션
   - 자원 단위 인증은 nick+pw bcrypt (`auth.users`와 별개 layer)
-  - 사회 로그인 / OAuth 미사용 ([IDENTITY_MODEL](./IDENTITY_MODEL.md), [ADR 0001](../adr/0001-anon-auth-and-nick-pw-identity.md))
+  - **OAuth 관련 route/provider/UI는 MVP에서 모두 제거**. Supabase Anonymous Auth라 기술적으로 향후 OAuth 업그레이드는 가능하지만 제품 기능으로 제공하지 않음 ([IDENTITY_MODEL](./IDENTITY_MODEL.md), [ADR 0001](../adr/0001-anon-auth-and-nick-pw-identity.md))
 - **API**: Next.js Server Actions + Route Handlers
   - 쓰기는 server actions에서 service_role + 자체 인증 검증
   - RLS는 단순 SELECT 룰만

@@ -12,10 +12,10 @@
 
 ## Layer 2: 자원 단위 인증 (nick + pw)
 
-- **단일 (nick, pw) 쌍** — 한 디바이스 = 한 쌍
-- localStorage에 캐시, 쓰기 폼 자동 채움
-- 첫 쓰기 액션 시 명시 입력
-- pw는 bcrypt 해시 저장
+- **단일 (nick, pw) 사용 convention** — 사용자는 같은 (nick, pw)를 여러 자원(덱·댓글)에 반복 사용
+- localStorage에 **nick만** 캐시 (pw는 매번 입력)
+- 각 자원(deck row, comment row)에 bcrypt pw_hash 별도 저장 — 중앙 identity table 없음
+- 인증 흐름: 사용자가 raw pw 제출 → 서버가 자원의 `pw_hash`와 bcrypt verify
 - 용도: 덱·댓글 작성/수정/삭제 인증
 - 디바이스 변경/시크릿 모드여도 nick+pw 알면 어디서든 자기 자원 조작
 
@@ -58,10 +58,14 @@
 
 ```
 {
-  identity: { nick, pw_hash },          // 첫 쓰기 후
+  identity: { nick },                   // 첫 쓰기 후 nick만 저장
   my_decks: [{ deck_id, last_visited_at }],
   first_visit_dismissed: boolean         // 튜토리얼
 }
 ```
 
-쿠키 X. anon_id는 Supabase가 관리하는 별도 쿠키.
+- **`pw`는 localStorage에 저장하지 않는다** — bcrypt 해시는 클라이언트가 재생성 못 하고, raw pw 저장은 보안 위험
+- 쓰기/수정/삭제 시 사용자가 매번 입력 (UX는 nick 자동 채움 + pw input field 노출)
+- 쿠키 X. anon_id는 Supabase가 관리하는 별도 쿠키
+
+> 같은 nick+pw가 다수 자원(덱·댓글)에 반복 저장되는 점은 의도된 단순성 — "단일 자격증명"은 사용자가 동일 값을 여러 자원에 재사용하는 UX convention이지, 중앙 identity row가 있는 모델이 아님

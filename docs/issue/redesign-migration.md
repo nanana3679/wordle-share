@@ -33,7 +33,7 @@
 
 - **Phase 0** — 신규 기획서 + ADR 추가, 폐기 대상 확정
 - **Phase 1** — OAuth 콜백/Google provider/관련 컴포넌트 삭제. 익명 세션 미들웨어는 유지
-- **Phase 2** — Supabase 마이그레이션 1개로 신규 9개 테이블 + 트리거(좋아요 캐시·자동 가림)
+- **Phase 2** — Supabase 마이그레이션 1개로 신규 9개 도메인 테이블(auth.users 제외) + 좋아요 캐시 트리거 (자동 가림은 server action 처리)
 - **Phase 3** — `lib/`: 단일 nick/pw identity, daily 시드, challenge 셔플, optimistic lock, ip hash
 - **Phase 4** — 라우트 트리 재구성 (`/demo/*` 폐기, `/d/[id]`·`/search`·`/sitemap`·`/robots`)
 - **Phase 5** — 컴포넌트 재작성 (FeedTabs, DailyGame/ChallengeGame, DeckDetail, CommentThread, DeckForm, ResultCopy, ReportButton)

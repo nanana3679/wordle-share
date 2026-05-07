@@ -79,13 +79,16 @@ Deck 안의 풀이 대상. 영구 ID + soft-delete (`active` flag).
 
 ## DailyWord (lock)
 
-특정 (deck, date)에 잠긴 target Word. PK: `(deck_id, date)`.
+특정 (deck, date)에 잠긴 target Word + 그 시점의 deck_version. PK: `(deck_id, date)`.
 
-- 시드: `hash(deck_id + date) % active_words.length` — 라운드 시작 시점 active 집합 기준 (= 캡처된 deck_version)
+- 컬럼: `(deck_id, date, word_id, deck_version, locked_at)`
+- 시드: `hash(deck_id + date) % active_at_version.length` — lock 생성 시점의 deck.version 기준
+- **DailyRound / ChallengeRun은 모두 `DailyWord.deck_version`을 캡처** (자기 시작 시점의 deck.version 아님) — 같은 (deck, date) 모든 사용자가 같은 active set·같은 시퀀스 보장
 - date = **client-local date** — 각 시간대가 자기 자정에 갱신
 - 같은 date string의 lock은 글로벌 단일 row. 먼저 풀이 시작한 사람이 lock 생성, 결정적 시드라 누가 먼저든 결과 동일
-- **첫 솔버 저장 안 함** — `(deck_id, date, word_id, locked_at)`만. anon_id 비기록 (YAGNI)
-- Word.id 영구 + soft-delete라 lock 후 단어 삭제돼도 그날 데일리는 그 단어 유지
+- **첫 솔버 저장 안 함** — anon_id 비기록 (YAGNI)
+- Word.id 영구 + soft-delete라 lock 후 단어 비활성화돼도 그날 데일리는 그 word 유지 (lock의 deck_version 시점에서 active였음)
+- date string은 **보안 경계가 아님** — 클라이언트 조작으로 미래/과거 round 접근 가능. 공개 랭킹 없으므로 abuse 인센티브 약함 (ADR 0015)
 
 ## DailyRound 라이프사이클
 

@@ -30,7 +30,7 @@ Postgres (Supabase). 9개 도메인 테이블 + Supabase auth.users.
 - `added_at_version` int — Word 추가 시 deck.version
 - `removed_at_version` int nullable — soft-delete 시 deck.version
 - `created_at`
-- 유니크: `(deck_id, text)` (active만 강제하면 충분)
+- **Partial unique**: `UNIQUE(deck_id, text) WHERE removed_at_version IS NULL` (활성 word만 text 유일. 비활성은 같은 text 중복 가능 — re-add 시 새 ID + 새 row)
 - 인덱스: `(deck_id, removed_at_version)` for active 조회
 
 ## daily_words
@@ -38,9 +38,10 @@ Postgres (Supabase). 9개 도메인 테이블 + Supabase auth.users.
 - `deck_id` text FK
 - `date` date — client local YYYY-MM-DD
 - `word_id` bigint FK words
+- `deck_version` int — lock 생성 시점의 deck.version (DailyRound·ChallengeRun이 모두 이 version 사용)
 - `locked_at` timestamptz
 - PK: `(deck_id, date)`
-- 첫 풀이자 발견 시 `INSERT ... ON CONFLICT DO NOTHING`
+- 첫 풀이자 발견 시 `INSERT ... ON CONFLICT DO NOTHING`. 같은 (deck, date) 모든 사용자는 같은 deck_version 캡처
 
 ## daily_rounds
 
@@ -94,13 +95,13 @@ Postgres (Supabase). 9개 도메인 테이블 + Supabase auth.users.
 
 - `id` text PK
 - `target_type` text enum (`deck` | `comment`)
-- `target_id` text
+- `target_id` text — polymorphic (FK 못 검). 무결성은 server action에서 검증
 - `reporter_anon_id` UUID
 - `reason` text nullable
 - `resolved` bool default false
 - `created_at`
 - 유니크: `(target_type, target_id, reporter_anon_id)` — 중복 신고 차단
-- 트리거: insert 시 `target.report_count` +1, 임계 도달 시 `hidden = true`
+- **`report_count` / `hidden` 갱신은 server action에서 처리** (DB 트리거 X — polymorphic target에 대한 cross-table update는 server-side가 명확)
 
 ## user_deck_stats
 

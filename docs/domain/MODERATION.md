@@ -20,7 +20,7 @@
 
 - 임계치는 보수적 시작 — false-positive 늘려도 운영자 복구 가능. 운영하며 조정
 - 환경변수로 분리해 코드 변경 없이 조정
-- DB 트리거: `report_count` 증가 → 임계 도달 시 `hidden = true`
+- **갱신은 server action에서 처리** (DB 트리거 X) — `reports.target_id`가 polymorphic이라 cross-table update를 server-side에서 명시적으로 수행. report insert 트랜잭션에서 `target.report_count` +1 + 임계 도달 시 `hidden = true` 같이 처리
 
 관련 ADR: [0013](../adr/0013-report-based-moderation-with-auto-hide.md)
 

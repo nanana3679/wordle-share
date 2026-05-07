@@ -22,8 +22,9 @@ Accepted
 ## Decision
 
 - **anon_id = `auth.uid()`** (Supabase Anonymous Auth로 발급되는 UUID). 첫 방문 시 미들웨어가 자동 발급
-- **단일 (nick, pw)**: 한 디바이스 = 하나의 (nick, pw) 쌍. localStorage에 캐시 후 자동 채움. 첫 쓰기 액션 시 명시 입력
-- nick은 표시용, pw는 bcrypt 해시로 저장
+- **단일 (nick, pw) 사용 convention**: 사용자가 동일 (nick, pw)를 여러 자원에 반복 사용하는 UX 패턴. 중앙 identity table 없음 — 각 자원(deck/comment row)에 bcrypt `pw_hash` 별도 저장
+- localStorage에는 **nick만** 캐시 (pw는 매번 입력 — 클라이언트가 bcrypt 해시 재생성 못 하고, raw pw 저장은 보안 위험)
+- 인증: 사용자 raw pw 제출 → 서버가 자원의 `pw_hash`와 bcrypt verify
 - 덱·댓글 모두 같은 자격증명으로 작성/수정/삭제
 - enumeration 방어: nick+pw로 "이 사람의 덱 모두 보여줘" 검색 기능 없음
 

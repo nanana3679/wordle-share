@@ -38,4 +38,4 @@ Accepted
 - 신고 spam 위협 — 한 사용자가 같은 덱에 여러 번 신고 시 1회로 카운트 (`(target, reporter_anon_id)` 유니크)
 - 임계치 수치는 운영하며 튜닝 — 환경변수로 분리해 코드 변경 없이 조정 가능
 - 자동 가림된 덱은 sitemap에서도 제외 ([0012](./0012-ssr-public-deck-pages.md))
-- 트리거로 `report_count` → `hidden = true` 자동 갱신
+- `report_count` / `hidden` 갱신은 server action에서 처리 (DB 트리거 X — `reports.target_id`가 polymorphic이라 cross-table update를 server-side에서 명시적으로)
