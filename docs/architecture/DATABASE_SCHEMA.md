@@ -30,6 +30,7 @@ Postgres (Supabase). 9개 도메인 테이블 + Supabase auth.users.
 - `created_at`
 - 유니크: `UNIQUE(deck_id, text)` (전체 unique — re-add는 active toggle)
 - 인덱스: `(deck_id, active)` for active 조회
+- **Invariant** (server action enforce, DB constraint X): 한 덱당 `count(active) >= 1`. 마지막 active 비활성화 reject (ADR 0010)
 
 ## daily_words
 

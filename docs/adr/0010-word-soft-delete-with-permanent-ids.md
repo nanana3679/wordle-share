@@ -49,6 +49,13 @@ words:
 
 지원 안 함. 텍스트 변경하려면 비활성화 + 다른 text로 신규 추가.
 
+### Invariant: count(active) >= 1
+
+- 덱 생성·편집·시드 스크립트 모두 **active word 최소 1개** 강제
+- 마지막 active 단어 비활성화 시도는 server action에서 reject
+- 이유: `DailyWord` lock 시 `hash(deck + date) % active_word_ids.length`에서 `length = 0` 회피 (modulo by zero)
+- DB CHECK 제약 X (트리거 복잡) — server action 레벨 enforce
+
 ### Lock 보호 (snapshot)
 
 DailyWord lock이 `active_word_ids` 스냅샷을 보유 ([ADR 0015](./0015-round-state-capture.md)). 따라서:
