@@ -34,11 +34,19 @@ Word는 게임 격자·키보드 UI·추측 검증·dedupe·검색의 근본 단
 - 저장 = 정규화된 단일 텍스트. 원본 보존 X. 수정 후에도 정규화 형태로 표시
 - `(deck_id, text)` 유니크로 dedupe 강제
 
-### 키보드 UI (smart rendering)
+### 키보드 UI (hybrid rendering)
 
-- `deck.effective_alphabet = union(active_words.chars)`
-- 키보드는 effective alphabet만 render — 사용 안 된 키는 미표시
-- 데이터 모델에 `allow_digits` 같은 토글 컬럼 없음. `script`만 유지
+플레이 페이지의 on-screen 키보드는 두 부분으로 구성:
+
+- **기본 script 알파벳: 항상 전체 표시** — `a-z` (roman) / `가-힣` (hangul) / `ひらがな`
+  - snapshot/current 무관, 고정 레이아웃
+  - spoiler 누설 0
+- **특수문자(0-9, `-`, `'`, `.`): `DailyWord.active_word_ids` snapshot에서 derive**
+  - snapshot 기준 → 추측 검증 source와 일치 (race-free)
+  - "이 덱/날짜에 하이픈 단어 있음" 정도 약한 누설 감수
+  - 사용 안 된 특수문자는 미표시 (UI 노이즈 ↓)
+
+데이터 모델에 `allow_digits` 같은 토글 컬럼 없음. `script`만 유지.
 
 ### 위반 처리
 
@@ -51,6 +59,7 @@ Word는 게임 격자·키보드 UI·추측 검증·dedupe·검색의 근본 단
 - 모든 덱이 같은 알파벳 규칙 → 플레이어 학습 비용 0
 - 80%+ IP명 자연 수용 (X-Men, L'Arc, Mr., 1세대, FF14)
 - 케이스 정보 손실(LoL → lol) 감수 — IP 팬은 자연 매핑
-- 키보드 UI가 deck 내용에서 derive → 약한 정보 노출 ("이 덱에 하이픈 단어 있음") 감수. 단어 자체 누설 X
+- 키보드 메인 알파벳은 고정이라 누설 0. 특수문자만 snapshot에서 derive → 약한 누설 ("이 덱/날짜에 하이픈 단어 있음") 감수
+- 특수문자 source가 `DailyWord.active_word_ids` snapshot이라 검증과 일치 (현재 active words 기준이면 lock 후 편집 시 키보드/검증 mismatch 발생)
 - script 혼용은 약한 경고(기획서 입장 그대로)
 - 향후 `~` `+` `&` 등 추가 필요시 allowlist 확장 = 한 줄 변경. **축소(이미 쓰이는 문자 제거)는 어려움** — 기존 Word 무효화 필요

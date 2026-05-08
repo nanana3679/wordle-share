@@ -33,7 +33,7 @@
 
 - 자동완성/단어 리스트 노출 X — IP 지식 자체가 진입 장벽
 - 서버 검증: `DailyWord.active_word_ids` 스냅샷에 있으면 처리, 없으면 일반 거절
-- 키보드 UI: deck의 `effective_alphabet = union(active_words.chars)`만 render
+- 키보드 UI: 메인 script 알파벳은 항상 전체 고정 + 특수문자(0-9, `-`, `'`, `.`)는 snapshot에서 derive (검증 source와 일치)
 
 관련 ADR: [0008](../adr/0008-no-guess-autocomplete.md), [0014](../adr/0014-word-character-set-and-canonical-form.md)
 

@@ -68,11 +68,12 @@ Deck 안의 풀이 대상. 영구 ID + soft-delete (`active` flag).
 
 > Tag 기능은 MVP 범위 밖 (ADR 0016). Word 모델은 `{text, active}`만.
 
-### 키보드 UI (smart rendering)
+### 키보드 UI (hybrid rendering)
 
-- `effective_alphabet = union(active_words.chars)`
-- on-screen 키보드는 effective alphabet만 render — 사용 안 된 키는 미표시
-- 단순 알파벳 덱 → 깔끔한 a-z. 숫자/하이픈 포함 덱 → 사용된 만큼만 추가 표시
+플레이 페이지 on-screen 키보드는 두 부분 구성:
+
+- **기본 script 알파벳**: 항상 전체 고정 (a-z / 가-힣 / ひらがな) — snapshot/current 무관, spoiler 누설 0
+- **특수문자 (0-9, `-`, `'`, `.`)**: `DailyWord.active_word_ids` snapshot에서 derive — 검증 source와 일치 (race-free). 사용 안 된 특수문자는 미표시
 
 관련 ADR: 0010(영구 ID + soft-delete), 0014(허용 문자 + 정규화)
 
