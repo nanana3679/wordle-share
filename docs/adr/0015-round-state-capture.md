@@ -43,13 +43,18 @@ daily_words:
 DailyRound 시작 시:
   DailyWord(deck, date) 존재? 
     YES → 그대로 사용
-    NO  → 현재 active words = words WHERE deck_id=X AND active=true
+    NO  → SELECT id FROM words 
+            WHERE deck_id=X AND active=true 
+            ORDER BY id ASC                       -- 결정적 정렬 필수
           INSERT DailyWord(deck, date, word_id=seed_pick, 
-                           active_word_ids=[현재 active], locked_at=now())
+                           active_word_ids=[정렬된 id 배열], locked_at=now())
           ON CONFLICT DO NOTHING (race-safe)
 ```
 
-**핵심**: 같은 (deck, date)의 모든 사용자는 동일 lock(같은 word + 같은 active set + 같은 셔플 가능) 사용.
+**핵심**:
+- 같은 (deck, date)의 모든 사용자는 동일 lock(같은 word + 같은 active set + 같은 셔플) 사용
+- `active_word_ids`는 **`Word.id ASC` 정렬 강제** — 정렬 안 하면 query plan/race에 따라 다른 배열 → 시드/셔플 비결정적
+- re-add via toggle 시 Word.id 영구이므로 정렬 안정 ([ADR 0010](./0010-word-soft-delete-with-permanent-ids.md))
 
 ### 편집 propagation
 

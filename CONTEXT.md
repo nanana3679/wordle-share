@@ -83,6 +83,7 @@ Deck 안의 풀이 대상. 영구 ID + soft-delete (`active` flag).
 특정 (deck, date)에 잠긴 target Word + 그 시점의 active word ID 스냅샷. PK: `(deck_id, date)`.
 
 - 컬럼: `(deck_id, date, word_id, active_word_ids bigint[], locked_at)`
+- `active_word_ids`는 **`Word.id ASC` 정렬** 강제 — race/query plan에 따른 비결정성 차단
 - 시드: `hash(deck_id + date) % active_word_ids.length` — lock 시점에 1회 계산
 - **DailyRound·ChallengeRun 모두 `DailyWord.active_word_ids`를 검증·셔플 source로 사용** — 같은 (deck, date) 모든 사용자가 같은 단어·같은 시퀀스·같은 검증 set
 - date = **client-local date** — 각 시간대가 자기 자정에 갱신

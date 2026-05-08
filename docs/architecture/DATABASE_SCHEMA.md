@@ -36,7 +36,7 @@ Postgres (Supabase). 9개 도메인 테이블 + Supabase auth.users.
 - `deck_id` text FK
 - `date` date — client local YYYY-MM-DD
 - `word_id` bigint FK words
-- `active_word_ids` bigint[] — lock 시점의 active word ID 스냅샷 (DailyRound·ChallengeRun 검증·셔플 source)
+- `active_word_ids` bigint[] — lock 시점의 active word ID 스냅샷 (DailyRound·ChallengeRun 검증·셔플 source). **`Word.id ASC` 정렬로 채움** (시드/셔플 결정성 보장)
 - `locked_at` timestamptz
 - PK: `(deck_id, date)`
 - 첫 풀이자 발견 시 `INSERT ... ON CONFLICT DO NOTHING`. snapshot이 lock-time freeze 책임
