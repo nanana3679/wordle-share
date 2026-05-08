@@ -11,7 +11,7 @@
 | 좋아요 신원 | (deck_id, user_id) PK | (deck_id, ip_hash) PK | REPLACE |
 | OAuth | Google OAuth 콜백 와이어링 | 사회 로그인 안 함 | DELETE |
 | decks | creator_id FK, is_public, thumbnail, description, categories[] | creator_nick·pw_hash, script, like_count, hidden, report_count, version | MODIFY |
-| words | JSONB[] 컬럼 | 별도 테이블 + 영구 ID + active(soft-delete) | REPLACE |
+| words | jsonb 컬럼 (배열 저장) | 별도 테이블 + 영구 ID + active(soft-delete) | REPLACE |
 | 게임 모드 | 단일 자유 플레이 | 데일리 + 챌린지 (잠금/게이트) | REWRITE |
 | 댓글 | 없음 | (deck_id, date) 단위 + 풀이 게이트 | NEW |
 | 신고/모더레이션 | 없음 | 신고 + 자동 임시 가림 | NEW |

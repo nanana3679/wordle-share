@@ -24,7 +24,7 @@ Daily mode은 client-local date 기준 갱신. 이로 인한 라이프사이클 
 
 ```
 daily_words:
-  deck_id, date, word_id, active_word_ids JSONB[], locked_at
+  deck_id, date, word_id, active_word_ids bigint[], locked_at
   PK: (deck_id, date)
 ```
 
@@ -84,7 +84,7 @@ ChallengeRun 시작 시:
 ## Consequences
 
 ### 데이터 모델
-- `daily_words`에 `active_word_ids: bigint[]` 컬럼 (덱당 50-500 ints, 무시 가능)
+- `daily_words`에 `active_word_ids bigint[]` 컬럼 (덱당 50-500 ints, 무시 가능)
 - `Word`는 `active: bool`만 ([ADR 0010](./0010-word-soft-delete-with-permanent-ids.md))
 - `DailyRound`, `ChallengeRun`은 `deck_version` 컬럼 X
 - `Deck`은 `version` 컬럼 X (per-row optimistic locking은 [ADR 0009](./0009-optimistic-locking-with-version.md)로 별도)
