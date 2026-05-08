@@ -86,6 +86,20 @@ ChallengeRun 시작 시:
 - 챌린지 1일 1회·랭킹 우회 인센티브 없음 ([ADR 0003](./0003-no-public-user-leaderboard.md) 사용자 점수 랭킹 없음)
 - 제품 의사결정으로 ritual scaffolding이라 허용 가능한 abuse — 별도 강화 안 함
 
+### Future lock 영향 범위 (freeze 공격 분석)
+
+리뷰어 우려: attacker가 임의 future date에 lock 생성 → 작성자 편집이 그 date에 반영 안 됨 ("freeze 공격").
+
+snapshot 모델의 영향 범위:
+
+- future date에 lock 생성되면 **그 date 1건만** stale snapshot. 다른 date는 정상 진행
+- 작성자 편집은 lock 미존재 미래 date부터 자연 반영 — 글로벌 freeze 발생 X
+- DB row 누적: attacker가 모든 future date를 채우려면 매 date마다 별도 요청 필요. 현실적 cost 큼
+- 디스커버리(메인 피드)는 lock과 무관 — Hot/좋아요순/최신순 모두 deck 메타 기반
+- **rate limit/window 가드 도입 X** (MVP 인센티브 < 운영 비용)
+
+작성자 보호 시나리오: 의도적으로 미리 lock된 date 발견 시 운영자 권한으로 row 삭제 → 자연 재-lock 유도. 일반 사용자는 이런 abuse 거의 안 함 (인센티브 약함).
+
 ## Consequences
 
 ### 데이터 모델
