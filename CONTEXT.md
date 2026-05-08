@@ -74,6 +74,7 @@ Deck 안의 풀이 대상. 영구 ID + soft-delete (`active` flag).
 
 - **기본 script 알파벳**: 항상 전체 고정 (a-z / 가-힣 / ひらがな) — snapshot/current 무관, spoiler 누설 0
 - **특수문자 (0-9, `-`, `'`, `.`)**: `DailyWord.active_word_ids` snapshot에서 derive — 검증 source와 일치 (race-free). 사용 안 된 특수문자는 미표시
+- **특수문자 derive 근거**: 플레이어는 "이 단어에 하이픈/마침표가 있나?" 직관이 없음 (메인 알파벳은 IP 자체가 힌트). 키보드에 노출 안 하면 punctuation-포함 단어 시도 못 함 → 약한 spoiler 비용 vs playability 이익 → playability 우선
 
 관련 ADR: 0010(영구 ID + soft-delete), 0014(허용 문자 + 정규화)
 

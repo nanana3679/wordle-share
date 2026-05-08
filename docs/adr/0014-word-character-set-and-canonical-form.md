@@ -45,6 +45,7 @@ Word는 게임 격자·키보드 UI·추측 검증·dedupe·검색의 근본 단
   - snapshot 기준 → 추측 검증 source와 일치 (race-free)
   - "이 덱/날짜에 하이픈 단어 있음" 정도 약한 누설 감수
   - 사용 안 된 특수문자는 미표시 (UI 노이즈 ↓)
+  - **derive 근거**: 플레이어는 "이 덱/날짜에 하이픈/마침표가 들어가는 단어가 있나?" 직관이 없음. 메인 알파벳은 IP 자체가 힌트지만 특수문자는 추측 영역 밖 — 키보드에 노출 안 하면 punctuation-포함 단어를 거의 시도 못 함. 약한 spoiler 비용 vs playability 이익 → playability 우선
 
 데이터 모델에 `allow_digits` 같은 토글 컬럼 없음. `script`만 유지.
 
