@@ -74,10 +74,12 @@ DailyRound 시작 시:
 ChallengeRun 시작 시:
   DailyWord.active_word_ids 가져옴 (DailyRound 게이트 통과했으므로 존재)
   shuffle = deterministic_shuffle(active_word_ids, hash(deck + date + "endurance"))
-  ChallengeRun.shuffle_order JSONB 저장 (또는 매번 재계산)
+  ChallengeRun.shuffle_order bigint[] = shuffle (저장 — 매번 재계산 X)
 ```
 
-같은 (deck, date) 모든 사용자 동일 셔플 보장.
+같은 (deck, date) 모든 사용자 동일 셔플 보장 (입력 + 시드가 같으니 결정적).
+
+**셔플 저장 근거**: 알고리즘 변경 시 기존 run의 시퀀스 안정성, in_progress run 무기한 보존 정책상 재로드 시 일관성, 디버깅 시 "이 run이 본 시퀀스" 추적 가능.
 
 ### Date trust boundary
 

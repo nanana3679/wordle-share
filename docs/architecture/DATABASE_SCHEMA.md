@@ -57,7 +57,8 @@ Postgres (Supabase). 9개 도메인 테이블 + Supabase auth.users.
 ## challenge_runs
 
 - `anon_id`, `deck_id`, `date`
-- `current_word_index` int default 0 — daily_words.active_word_ids에서 셔플된 시퀀스의 현재 인덱스
+- `shuffle_order` bigint[] NOT NULL — 시작 시점에 결정적 셔플로 채운 word ID 시퀀스 (매번 재계산 X)
+- `current_word_index` int default 0 — `shuffle_order`의 현재 인덱스
 - `current_tries` jsonb
 - `score` int default 0 — 풀어낸 라운드 수
 - `status` text enum (`in_progress` | `ended`)
