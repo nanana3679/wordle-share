@@ -113,8 +113,11 @@ Postgres (Supabase). 9개 도메인 테이블 + Supabase auth.users.
 ## RLS 요약
 
 - 쓰기 대부분: server actions에서 service_role + 자체 인증 검증
-- SELECT 공개: decks (where hidden=false), comments (where not hidden + 게이트), likes
-- SELECT 본인: daily_rounds, challenge_runs, user_deck_stats — `auth.uid() = anon_id`
+- SELECT 공개:
+  - `decks` (where `hidden = false`)
+  - `likes`
+- SELECT 본인: `daily_rounds`, `challenge_runs`, `user_deck_stats` — `auth.uid() = anon_id`
+- **`comments`는 클라이언트 direct SELECT 금지** — 게이트가 `reader.local_today` + DailyRound 상태 + thread_date 조합 판정이라 RLS로 표현 어려움. 조회는 **server action / route handler** 통과. RLS는 `hidden = true` 차단 정도 최소 보호만 ([ADR 0007](../adr/0007-comment-solve-gate.md))
 
 ## 인덱스 / 성능
 

@@ -23,14 +23,29 @@ Accepted (revised after grill-with-docs Q7)
 ### 단일 가시성 룰
 
 ```
-Comment thread (deck, T) visible to reader R iff:
-  T < R.local_today
-  OR DailyRound(R, deck, T).status === "completed"
+Comment thread (deck, T) visible/writeable to reader R iff:
+
+1. T < R.local_today
+   → 과거 thread, 항상 공개
+
+2. T == R.local_today
+   AND DailyRound(R, deck, T).status === "completed"
+   → 오늘 thread, 본인 그날 데일리 완료 시 공개
+
+3. T > R.local_today
+   → 미래 thread, **항상 비공개** (다른 시간대 사용자가 먼저 작성했어도 R이 해당 날짜에 도달 전엔 차단)
 ```
 
-- 과거: 게이트 없음. 풀이 이력 무관
-- 오늘 (T == R.local_today): 본인 데일리 완료(solved 또는 시도 소진) 후 열람·작성
-- 미래 (T > R.local_today): 사실상 가림 — R이 그 시각에 도달 + 라운드 완료 시 열람
+- 시차 누설 방지: Sydney 사용자가 `2026-05-11` thread 작성한 것을 KST `2026-05-10` 사용자가 미리 보는 것을 차단
+- 클라이언트 date 조작으로 future DailyRound `completed`를 위조해도 룰 #3이 우선 적용 → 차단
+
+### 구현 경계 — RLS 아닌 server action
+
+게이트는 `reader.local_today` + `DailyRound` 상태 + `comment.thread_date` 조합 판정이라 Supabase RLS만으로 깔끔히 처리 어려움 (client-local date는 요청별 입력값).
+
+- **comments 테이블 client direct SELECT 금지** — Supabase JS SDK로 직접 query 하지 않음
+- 댓글 조회는 **server action / route handler**에서 게이트 계산
+- RLS는 최소 보호만 (예: hidden=true 차단, 본인 댓글 식별 같은 단순 룰)
 
 ### 식별 / 권한
 

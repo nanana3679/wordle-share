@@ -15,14 +15,25 @@
 
 ```
 사용자 R이 (deck, T) thread 열람·작성 가능 ⇔
-  T < R.local_today                              (과거 — 항상 공개)
-  OR DailyRound(R, deck, T).status === completed (오늘/미래 — 본인 라운드 완료)
+  T < R.local_today                                          (과거 — 항상 공개)
+  OR (T == R.local_today
+      AND DailyRound(R, deck, T).status === "completed")     (오늘 — 본인 라운드 완료)
+
+T > R.local_today → 무조건 비공개
 ```
 
 - 과거 thread: 게이트 없음. 풀이 이력 무관
 - 오늘 (T = R.local_today): 본인 데일리 완료(solved 또는 시도 소진) 후 열람·작성
-- 미래 (T > R.local_today): 사실상 가림 — R이 그 시각에 도달 + 라운드 완료 시 열람
-- 시차 cross-pollination 자연 흐름 — KST 작성 5/5 댓글이 PST 5/5(=KST 5/5+12h) 도달 reader에게 자동 노출
+- **미래 (T > R.local_today): 항상 차단** — 시차로 다른 timezone 사용자가 미리 작성한 thread도 R이 그 날짜 도달 + 완료 전엔 노출 X
+- 시차 cross-pollination 자연 흐름 — KST 작성 5/5 댓글이 PST 5/5(=KST 5/5+12h) 도달 reader에게 자동 노출 (둘 다 같은 thread_date)
+
+## 구현 경계 — server action only
+
+게이트가 `reader.local_today` + DailyRound 상태 + thread_date 조합이라 Supabase RLS만으로 표현 어려움 (client-local date는 요청별 입력값).
+
+- **comments 클라이언트 direct SELECT 금지**
+- 조회는 **server action / route handler**에서 게이트 계산 후 허용된 댓글만 반환
+- RLS는 최소 보호 (`hidden = true` 차단, 본인 댓글 식별 등)
 
 관련 ADR: [0007](../adr/0007-comment-solve-gate.md)
 

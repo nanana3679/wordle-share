@@ -135,14 +135,22 @@ Deck 안의 풀이 대상. 영구 ID + soft-delete (`active` flag).
 가림의 유일한 사유 = 데일리 라운드 결과 스포일러 방지.
 
 ```
-사용자 R이 (deck, T) thread 열람 가능 ⇔
-  T < R.local_today                              (과거 — 항상 공개)
-  OR DailyRound(R, deck, T).status === completed (오늘/미래 — 본인 라운드 완료)
+사용자 R이 (deck, T) thread 열람·작성 가능 ⇔
+  T < R.local_today                                            (과거 — 항상 공개)
+  OR (T == R.local_today
+      AND DailyRound(R, deck, T).status === "completed")       (오늘 — 본인 라운드 완료)
+
+T > R.local_today → 무조건 비공개 (시차로 다른 사용자 미리 작성해도 차단)
 ```
 
 - 과거 thread는 게이트 없음 (스포일러 무관)
-- 미래 thread (T > today)는 사실상 가림 — 시차로 인해 다른 timezone 사용자가 미리 작성 가능. R이 자기 시간대로 그 날짜에 도달 + 라운드 완료 후 열람
+- 오늘 thread는 본인 데일리 완료 후 공개
+- **미래 thread는 무조건 차단** — Sydney `2026-05-11` 작성 댓글을 KST `2026-05-10` 사용자에게 노출 X
 - 작성도 같은 게이트 — 본인이 풀이한 thread에만 글 쓸 수 있음
+
+### 구현 경계 — server action only
+
+게이트가 `reader.local_today` + DailyRound 상태 + thread_date 조합 판정이라 Supabase RLS만으로 처리 어려움. **comments 클라이언트 direct SELECT 금지**, 조회는 **server action**으로. RLS는 최소 보호 (`hidden = true` 차단).
 
 ### 결과 공유 ↔ 댓글 결합 X
 
