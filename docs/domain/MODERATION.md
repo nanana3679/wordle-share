@@ -15,8 +15,16 @@
 
 | 대상 | 임계 | 효과 |
 |---|---|---|
-| Deck | 5회 | `Deck.hidden = true`. 메인 피드/검색/sitemap 제외. 직접 링크는 접근 가능 |
+| Deck | 5회 | `Deck.hidden = true`. 메인 피드/검색/sitemap 제외. 직접 링크는 접근 가능 (hidden banner + noindex) |
 | Comment | 3회 | `Comment.hidden = true`. 즉시 숨김 |
+
+### Hidden deck 직접 링크 접근 시 동작
+
+- 상세 페이지 server action: hidden 상태 detect → "이 덱은 신고로 비공개됐습니다" banner 표시
+- `<meta name="robots" content="noindex">` — 검색 엔진 인덱싱 차단
+- 작성자 본인(nick+pw 인증)은 수정 페이지 접근 가능 — 모더레이션 대응
+- 게임 시작 / 좋아요 / 댓글 작성 등 인터랙션은 server action에서 reject (UX 디테일은 후속 이슈)
+- OG 이미지: hidden deck도 placeholder 응답 또는 404 (후속 이슈)
 
 - 임계치는 보수적 시작 — false-positive 늘려도 운영자 복구 가능. 운영하며 조정
 - 환경변수로 분리해 코드 변경 없이 조정

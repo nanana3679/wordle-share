@@ -33,6 +33,7 @@ Accepted
 ## Consequences
 
 - 자동 가림 임계 도달 시 즉시 노출 차단 — 메인 피드 신뢰 보호
+- **RLS는 deck row 자체 SELECT 허용**. 피드/검색/sitemap query level에서 `hidden = false` 필터. hidden deck 상세는 직접 링크로 접근 가능하되 server action이 banner + `noindex` 처리. 작성자 본인은 수정 페이지 접근 가능 → 모더레이션 대응
 - 작성자가 가림 알림 받음 → 수정/대응 가능 (직접 링크는 살아있음)
 - false-positive 발생 시 운영자가 복구 — 보수적 임계로 복구 부담은 감수
 - 신고 spam 위협 — 한 사용자가 같은 덱에 여러 번 신고 시 1회로 카운트 (`(target, reporter_anon_id)` 유니크)

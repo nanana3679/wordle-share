@@ -116,7 +116,7 @@ Postgres (Supabase). 9개 도메인 테이블 + Supabase auth.users.
 
 - 쓰기 대부분: server actions에서 service_role + 자체 인증 검증
 - SELECT 공개:
-  - `decks` (where `hidden = false`)
+  - **`decks` 모든 row** (hidden 포함) — 직접 링크 접근 허용. 피드/검색/sitemap **query level에서 `hidden = false` 필터**. hidden deck 상세는 server action에서 banner + `noindex` 처리 ([ADR 0013](../adr/0013-report-based-moderation-with-auto-hide.md))
   - `likes`
 - SELECT 본인: `daily_rounds`, `challenge_runs`, `user_deck_stats` — `auth.uid() = anon_id`
 - **`comments`는 클라이언트 direct SELECT 금지** — 게이트가 `reader.local_today` + DailyRound 상태 + thread_date 조합 판정이라 RLS로 표현 어려움. 조회는 **server action / route handler** 통과. RLS는 `hidden = true` 차단 정도 최소 보호만 ([ADR 0007](../adr/0007-comment-solve-gate.md))
