@@ -24,12 +24,15 @@ Daily mode은 client-local date 기준 갱신. 이로 인한 라이프사이클 
 
 ```
 daily_words:
-  deck_id, date, word_id, active_word_ids bigint[], locked_at
+  deck_id, date, word_id,
+  active_word_ids bigint[] NOT NULL CHECK (cardinality(active_word_ids) >= 1),
+  locked_at
   PK: (deck_id, date)
 ```
 
 - `active_word_ids`: lock 생성 시점의 active word ID 배열
-- 시드: `hash(deck + date) % active_word_ids.length` — lock 생성 시 1회 계산해 word_id 결정
+- `NOT NULL` + `cardinality >= 1` row-local invariant DB 강제 (수동 migration/raw SQL 보호)
+- 시드: `hash(deck + date) % cardinality(active_word_ids)` — lock 생성 시 1회 계산해 word_id 결정
 
 ### 라운드/런은 date만 캡처
 
