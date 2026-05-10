@@ -39,9 +39,13 @@
 
 ## 피드백
 
-- 로마자: NYT 워들 표준 (green / yellow / gray)
-- 가변 길이라 격자 칸 수 동적
-- 한글/히라가나 피드백 룰: **보류** (음절 단위 vs 자모 분해 별도 결정)
+- 격자 칸 수 = char count (가변)
+- **char 단위 비교**:
+  - roman: letter (a-z) per cell
+  - hangul: **자모 (jamo)** per cell — Word.text 완성형 NFC 저장, gameplay에서 자모 분해
+  - hiragana: kana per cell (각 kana가 char)
+- NYT 워들 표준 색칠 (green / yellow / gray) — 모든 script 동일
+- 자모/kana 단위로 그룹별 색칠 같은 추가 디테일은 구현 단계에서 결정
 
 ## 상태 일관성
 

@@ -59,6 +59,7 @@ Shared Word Deck 도메인의 캐노니컬 용어. 새 문서·코드·대화는
 Deck 안의 풀이 대상. 영구 ID + soft-delete (`active` flag).
 
 - **저장 = 정규화된 단일 텍스트**. 원본 보존 X. 표시도 정규화 형태 (수정 후에도 정규화된 모습으로 보임)
+- **gameplay 분해**: hangul script는 저장은 완성형 NFC지만 격자/키보드/비교 모두 **자모 단위**. roman/hiragana는 char 그대로
 - **공백 불허** — 다중-단어 IP명은 분할 또는 결합 (예: "고무고무 열매" → "고무고무열매" 또는 별개 두 Word)
 - **허용 문자** = `script 알파벳 + 0-9 + - + ' + .`
   - script 알파벳: roman `a-z` / hangul `가-힣` / hiragana `ぁ-ゖゝゞ`

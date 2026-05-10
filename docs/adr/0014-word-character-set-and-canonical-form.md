@@ -38,7 +38,10 @@ Word는 게임 격자·키보드 UI·추측 검증·dedupe·검색의 근본 단
 
 플레이 페이지의 on-screen 키보드는 두 부분으로 구성:
 
-- **기본 script 알파벳: 항상 전체 표시** — `a-z` (roman) / `가-힣` (hangul) / `ひらがな`
+- **기본 script 알파벳: 항상 전체 표시 (script별 char 단위)**
+  - roman: `a-z` (26 키)
+  - hangul: **자모 (~24 키)** — Word.text는 완성형 NFC 저장이지만 gameplay에서 자모로 분해. 격자 칸·키보드·비교 모두 자모 단위
+  - hiragana: kana (~46 + dakuten 변형) — 각 kana가 char 단위
   - snapshot/current 무관, 고정 레이아웃
   - spoiler 누설 0
 - **특수문자(0-9, `-`, `'`, `.`): `DailyWord.active_word_ids` snapshot에서 derive**
