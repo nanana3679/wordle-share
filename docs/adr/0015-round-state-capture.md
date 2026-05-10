@@ -56,6 +56,24 @@ DailyRound 시작 시:
 - `active_word_ids`는 **`Word.id ASC` 정렬 강제** — 정렬 안 하면 query plan/race에 따라 다른 배열 → 시드/셔플 비결정적
 - re-add via toggle 시 Word.id 영구이므로 정렬 안정 ([ADR 0010](./0010-word-soft-delete-with-permanent-ids.md))
 
+### active_word_ids 무결성
+
+`bigint[]` 원소는 Postgres FK가 자동 검증하지 않음 (배열 타입의 한계):
+- 같은 deck 소속 검증, word 존재성 검증, dangling reference 모두 DB 보장 X
+- soft-delete 모델이라 일반 편집 흐름에선 dangling 거의 발생 X
+- 단, 수동 DB 조작 / 잘못된 migration 시 무결성 깨질 수 있음
+
+**생성 규칙 (server action only)**:
+1. `active_word_ids`는 **client 입력 금지** — 서버가 `words` 테이블에서 직접 조회
+2. `SELECT id FROM words WHERE deck_id = $1 AND active = true ORDER BY id ASC` 결과만 저장
+3. `word_id`는 `active_word_ids`의 원소 중에서 시드로 선택
+4. 배열 원소는 모두 같은 `deck_id`의 active Word.id여야 함
+
+**정규화 대안 (채택 안 함)**:
+- `daily_word_pool(deck_id, date, word_id, position)` 같은 join table로 word_id에 FK 걸 수도 있음
+- 장점: DB 강제 무결성. 단점: lock 1개당 N개 row insert, join 비용, 셔플/검증 로직 복잡
+- MVP 과잉 — 단순 bigint[] snapshot + server action 검증으로 충분
+
 ### 편집 propagation
 
 편집 시점에 존재하는 lock은 변경 없음. 미존재 미래 date의 lock은 첫 풀이자 시점에 새 active set으로 생성:
