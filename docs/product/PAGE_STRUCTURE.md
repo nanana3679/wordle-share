@@ -53,10 +53,10 @@
 ### `/d/{deck_id}/play` 게임
 
 - mode 분기: daily / challenge (query param 또는 state)
-- `GameBoard` — 격자, 가변 길이
-- `Keyboard` — smart rendering (effective_alphabet 기반)
+- `GameBoard` — 격자, 가변 길이 (char 단위)
+- `Keyboard` — hybrid (메인 알파벳 고정 + 특수문자 snapshot derive)
 - `AttemptHistory`
-- 라운드 시작 시 `(date, deck_version)` 캡처
+- 라운드 시작 시 `date` 캡처. 검증·시드는 `DailyWord.active_word_ids` snapshot
 - 결과 화면: "결과 클립보드 복사" 버튼
 
 ### `/d/new` 덱 생성
@@ -68,9 +68,9 @@
 ### `/d/{deck_id}/edit` 덱 편집
 
 - nick+pw 검증 게이트
-- 단어 추가/비활성화 (soft-delete)
-- 변경 시 `decks.version` increment
-- 진행 중 라운드는 `deck_version` 캡처로 보호
+- 단어 추가 / 비활성화 / 재활성화 (active toggle)
+- 진행 중 라운드는 `DailyWord.active_word_ids` snapshot이 격리 ([ADR 0015](../adr/0015-round-state-capture.md))
+- invariant: `count(active) >= 1` — 마지막 active 비활성화 reject ([ADR 0010](../adr/0010-word-soft-delete-with-permanent-ids.md))
 
 ### `/my` 내 덱
 

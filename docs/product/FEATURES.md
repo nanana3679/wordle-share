@@ -30,7 +30,7 @@
 - **챌린지**: 1일 1회, 데일리 완료 게이트, 단어 시퀀스 연속 풀이
 - 시도 = `글자수 + 1`, 5~8 클램프
 - 추측 자동완성 X — IP 지식이 진입 장벽
-- Round 시작 시 `(date, deck_version)` 캡처 → 자정/덱편집 무관
+- DailyWord에 `active_word_ids` snapshot 저장 → 자정/덱편집 무관. Round는 date만 캡처
 
 → [GAME_MECHANICS.md](./GAME_MECHANICS.md), [ADR 0005](../adr/0005-daily-and-challenge-modes.md), [ADR 0006](../adr/0006-challenge-daily-completion-gate.md), [ADR 0015](../adr/0015-round-state-capture.md)
 

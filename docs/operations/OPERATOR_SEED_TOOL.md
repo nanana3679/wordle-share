@@ -28,14 +28,14 @@ scripts/ai/
 2. propose-topics 또는 수동 prompt → 추가/제거할 단어 식별
 3. generate-decks PUT 호출 → API에 단어 목록 전송
 4. API 측에서 diff 계산:
-   - 신규 단어 → Word insert (active=true, added_at_version = new_version)
-   - 사라진 단어 → 기존 Word soft-delete (removed_at_version)
-   - 동일 단어 → 변경 없음 (멱등성)
-5. Deck.version 자동 increment
+   - 신규 단어 → Word insert (active=true)
+   - 사라진 단어 → 기존 Word soft-delete (active=false)
+   - 동일 단어 → 변경 없음 (멱등성). 비활성 row가 같은 text로 있으면 reactivate (active=true toggle)
+5. invariant 체크: count(active words) >= 1 — 미달 시 reject
 ```
 
 - 멱등성: 같은 단어 목록을 두 번 PUT해도 동일 결과
-- 진행 중인 라운드는 영향 없음 — Round의 `deck_version` 캡처가 보호 ([0015](../adr/0015-round-state-capture.md))
+- 진행 중인 라운드는 영향 없음 — `DailyWord.active_word_ids` snapshot이 격리 ([ADR 0015](../adr/0015-round-state-capture.md))
 
 ## 인증 / 권한 분리
 
