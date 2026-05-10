@@ -39,13 +39,15 @@ Comment thread (deck, T) visible/writeable to reader R iff:
 - 시차 누설 방지: Sydney 사용자가 `2026-05-11` thread 작성한 것을 KST `2026-05-10` 사용자가 미리 보는 것을 차단
 - 클라이언트 date 조작으로 future DailyRound `completed`를 위조해도 룰 #3이 우선 적용 → 차단
 
-### 구현 경계 — RLS 아닌 server action
+### 구현 경계 — server action only (강제)
 
 게이트는 `reader.local_today` + `DailyRound` 상태 + `comment.thread_date` 조합 판정이라 Supabase RLS만으로 깔끔히 처리 어려움 (client-local date는 요청별 입력값).
 
-- **comments 테이블 client direct SELECT 금지** — Supabase JS SDK로 직접 query 하지 않음
-- 댓글 조회는 **server action / route handler**에서 게이트 계산
-- RLS는 최소 보호만 (예: hidden=true 차단, 본인 댓글 식별 같은 단순 룰)
+**룰** (강제):
+- **comments 테이블 client direct 접근 전면 금지** — Supabase JS SDK로 SELECT/INSERT/UPDATE/DELETE 모두 X
+- 모든 read/write/delete/report는 **server action 또는 route handler만 사용**
+- RLS는 **방어적 fallback이며 제품 권한 모델의 source 아님** — `hidden = true` 차단 정도 최소 보호
+- 게이트 계산은 항상 server action에서 수행 (reader local_today 검증 + DailyRound 조회 + thread_date 비교)
 
 ### 식별 / 권한
 

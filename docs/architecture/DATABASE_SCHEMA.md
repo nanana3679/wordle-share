@@ -119,7 +119,12 @@ Postgres (Supabase). 9개 도메인 테이블 + Supabase auth.users.
   - **`decks` 모든 row** (hidden 포함) — 직접 링크 접근 허용. 피드/검색/sitemap **query level에서 `hidden = false` 필터**. hidden deck 상세는 server action에서 banner + `noindex` 처리 ([ADR 0013](../adr/0013-report-based-moderation-with-auto-hide.md))
   - `likes`
 - SELECT 본인: `daily_rounds`, `challenge_runs`, `user_deck_stats` — `auth.uid() = anon_id`
-- **`comments`는 클라이언트 direct SELECT 금지** — 게이트가 `reader.local_today` + DailyRound 상태 + thread_date 조합 판정이라 RLS로 표현 어려움. 조회는 **server action / route handler** 통과. RLS는 `hidden = true` 차단 정도 최소 보호만 ([ADR 0007](../adr/0007-comment-solve-gate.md))
+- **`comments`는 client direct 접근 전면 금지**:
+  - Supabase JS SDK로 SELECT/INSERT/UPDATE/DELETE 모두 X
+  - 모든 read/write/delete/report는 **server action 또는 route handler만 사용** (강제)
+  - 게이트가 `reader.local_today` + DailyRound 상태 + thread_date 조합 판정이라 RLS로 표현 어려움
+  - RLS는 **방어적 fallback이며 제품 권한 모델의 source 아님** (`hidden = true` 차단 등 최소 보호)
+  - 관련 ADR: [0007](../adr/0007-comment-solve-gate.md)
 
 ## 인덱스 / 성능
 

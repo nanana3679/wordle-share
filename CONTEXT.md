@@ -149,9 +149,9 @@ T > R.local_today → 무조건 비공개 (시차로 다른 사용자 미리 작
 - **미래 thread는 무조건 차단** — Sydney `2026-05-11` 작성 댓글을 KST `2026-05-10` 사용자에게 노출 X
 - 작성도 같은 게이트 — 본인이 풀이한 thread에만 글 쓸 수 있음
 
-### 구현 경계 — server action only
+### 구현 경계 — server action only (강제)
 
-게이트가 `reader.local_today` + DailyRound 상태 + thread_date 조합 판정이라 Supabase RLS만으로 처리 어려움. **comments 클라이언트 direct SELECT 금지**, 조회는 **server action**으로. RLS는 최소 보호 (`hidden = true` 차단).
+게이트가 `reader.local_today` + DailyRound 상태 + thread_date 조합 판정이라 Supabase RLS만으로 처리 어려움. **comments 클라이언트 direct 접근 전면 금지** (SELECT/INSERT/UPDATE/DELETE 모두). 모든 read/write/delete/report는 **server action 또는 route handler만 사용**. RLS는 방어적 fallback이며 제품 권한 모델의 source 아님 (`hidden = true` 차단 등 최소 보호).
 
 ### 결과 공유 ↔ 댓글 결합 X
 

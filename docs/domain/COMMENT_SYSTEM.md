@@ -27,13 +27,15 @@ T > R.local_today → 무조건 비공개
 - **미래 (T > R.local_today): 항상 차단** — 시차로 다른 timezone 사용자가 미리 작성한 thread도 R이 그 날짜 도달 + 완료 전엔 노출 X
 - 시차 cross-pollination 자연 흐름 — KST 작성 5/5 댓글이 PST 5/5(=KST 5/5+12h) 도달 reader에게 자동 노출 (둘 다 같은 thread_date)
 
-## 구현 경계 — server action only
+## 구현 경계 — server action only (강제)
 
 게이트가 `reader.local_today` + DailyRound 상태 + thread_date 조합이라 Supabase RLS만으로 표현 어려움 (client-local date는 요청별 입력값).
 
-- **comments 클라이언트 direct SELECT 금지**
-- 조회는 **server action / route handler**에서 게이트 계산 후 허용된 댓글만 반환
-- RLS는 최소 보호 (`hidden = true` 차단, 본인 댓글 식별 등)
+**강제 룰**:
+- **comments 클라이언트 direct 접근 전면 금지** — Supabase JS SDK로 SELECT/INSERT/UPDATE/DELETE 모두 X
+- 모든 read/write/delete/report는 **server action 또는 route handler만 사용**
+- RLS는 **방어적 fallback이며 제품 권한 모델의 source 아님** — `hidden = true` 차단 등 최소 보호만
+- server action에서 reader local_today 받아 게이트 계산 후 허용된 댓글만 반환
 
 관련 ADR: [0007](../adr/0007-comment-solve-gate.md)
 
