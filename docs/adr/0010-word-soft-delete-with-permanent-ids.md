@@ -71,3 +71,14 @@ DailyWord lock이 `active_word_ids` 스냅샷을 보유 ([ADR 0015](./0015-round
 - 덱 hard delete 시 cascade: ON DELETE CASCADE (단어/풀이/댓글/좋아요 모두 삭제)
 - 활성 단어 조회 query: `WHERE deck_id = ? AND active = true`
 - 편집 중 라운드 진행 영향 없음 — DailyWord.active_word_ids snapshot이 격리
+
+### Word active 변경 이력 미보존
+
+MVP는 word row만으로 "언제 `active=false` 됐다가 다시 `true` 됐나" 추적 불가. snapshot 모델이 게임 정합성은 보장하지만, 게임 외 운영 영역(모더레이션·rollback·forensics)에서는 audit가 약함.
+
+audit history는 V2 후보 — 다음 트리거 중 하나라도 발생 시 도입:
+1. 모더레이션 분쟁 빈발 ("내가 추가 안 했다" 주장)
+2. 작성자 rollback 요청 (잘못된 대량 편집 되돌리기)
+3. 보안 사고 발생 (localStorage 탈취 등 무단 편집 forensics)
+4. 운영자 시드 스크립트 디버깅 필요 (bot batch 추적)
+5. 분석/제품 metrics 요구 (churn rate, 활성 작성자 retention)
