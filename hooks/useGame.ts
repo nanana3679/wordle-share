@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { isGameComplete, type GameState } from "@/lib/wordleGame";
-import { createGameEngine, createGameEngineFromState, type GameEngine } from "@/lib/gameEngine";
+import { createGameEngine, type GameEngine } from "@/lib/gameEngine";
 import type { ScriptAdapter } from "@/lib/scripts/types";
 import { scriptUsesIme } from "@/lib/scripts";
 import { Deck } from "@/types/decks";
@@ -57,8 +57,8 @@ export function useGame(deck: Deck, adapter: ScriptAdapter): UseGameReturn {
 
     const { engine: next, result } = engineRef.current.submitGuess();
 
-    // 줄 미충족 (invalid with empty reason) — 아무것도 안 함
-    if (result.type === 'invalid' && result.reason === '') {
+    // 줄 미충족 — 아무것도 안 함
+    if (result.type === 'incomplete') {
       setIsSubmitting(false);
       return;
     }

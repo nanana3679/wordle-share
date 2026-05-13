@@ -20,6 +20,7 @@ export type { GameState, LetterState, Guess } from './wordleGame';
 export type TileState = LetterState;
 
 export type GuessResult =
+  | { type: 'incomplete' }
   | { type: 'invalid'; reason: string }
   | { type: 'correct' }
   | { type: 'wrong'; tileStates: TileState[] }
@@ -85,11 +86,11 @@ class GameEngineImpl implements GameEngine {
     const targetUnits = adapter.splitUnits(state.targetWord);
     const currentUnits = adapter.splitUnits(state.currentGuess);
 
-    // 줄 미충족 — invalid (이유 없이 동일 상태 반환)
+    // 줄 미충족 — 글자 수가 채워지지 않은 경우
     if (currentUnits.length !== targetUnits.length) {
       return {
         engine: this,
-        result: { type: 'invalid', reason: '' },
+        result: { type: 'incomplete' },
       };
     }
 
@@ -127,7 +128,7 @@ class GameEngineImpl implements GameEngine {
 
     // 게임 결과 판정
     let gameStatus: GameState['gameStatus'] = 'playing';
-    const isCorrect = adapter.normalize(state.currentGuess) === state.targetWord;
+    const isCorrect = adapter.normalize(state.currentGuess) === adapter.normalize(state.targetWord);
     if (isCorrect) {
       gameStatus = 'won';
     } else if (newGuesses.length >= state.maxGuesses) {
@@ -172,6 +173,10 @@ export function createGameEngine(deck: Deck, adapterId: ScriptId): GameEngine {
 
 /**
  * 기존 GameState로부터 GameEngine을 복원합니다 (테스트나 SSR 직렬화 복원 등에서 활용).
+ *
+ * 전제조건:
+ * - `state.targetWord`는 해당 스크립트 어댑터(state.adapterId)로 이미 정규화된 값이어야 합니다.
+ * - `state.validWords`가 존재하는 경우 각 항목도 동일한 어댑터로 정규화된 값이어야 합니다.
  */
 export function createGameEngineFromState(state: GameState): GameEngine {
   const adapter = getScriptAdapter(state.adapterId);
