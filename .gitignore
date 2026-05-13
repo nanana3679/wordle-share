@@ -46,3 +46,4 @@ next-env.d.ts
 
 # AI pipeline draft artifacts (not committed by default — commit reviewed versions manually if you want history)
 /scripts/ai/artifacts/
+.claude/worktrees/
