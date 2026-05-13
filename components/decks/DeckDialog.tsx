@@ -32,7 +32,7 @@ import type { ScriptId } from "@/lib/scripts/types";
 import { toast } from "sonner";
 import { Sparkles, Upload, X, Image as ImageIcon } from "lucide-react";
 import Image from "next/image";
-import { actionWithToast } from "@/lib/action-with-toast";
+import { callAction } from "@/lib/callAction";
 import { CategoryPalette } from "@/components/decks/CategoryPalette";
 import { WordList } from "@/components/decks/WordList";
 import type { WordRowValue } from "@/components/decks/WordRow";
@@ -448,9 +448,8 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
 
       // 익명 덱 생성: 썸네일·공개 토글 없이 바로 생성
       if (isAnonymousCreate) {
-        const response = await actionWithToast(() => createAnonymousDeck(formData));
+        const response = await callAction(() => createAnonymousDeck(formData), { toast: {} });
         if (!response.success) {
-          toast.error(response.message || "익명 덱 생성에 실패했습니다.");
           return;
         }
         setOpen(false);
@@ -464,32 +463,29 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
       if (selectedFile) {
         if (isEditMode && deck) {
           // 수정 모드: 기존 deckId 사용
-          const uploadResponse = await actionWithToast(
+          const uploadResponse = await callAction(
             () => uploadDeckThumbnail(selectedFile, deck.id),
-            { showOnlyError: true }
+            { toast: {} }
           );
           if (!uploadResponse.success || !uploadResponse.data) {
-            toast.error(uploadResponse.message || "이미지 업로드에 실패했습니다.");
             return;
           }
           finalThumbnailUrl = uploadResponse.data;
         } else {
           // 생성 모드: 먼저 덱을 생성한 후 이미지 업로드
-          const createResponse = await actionWithToast(
+          const createResponse = await callAction(
             () => createDeck(formData),
-            { showOnlyError: true }
+            { toast: {} }
           );
           if (!createResponse.success || !createResponse.data) {
-            toast.error(createResponse.message || "덱 생성에 실패했습니다.");
             return;
           }
 
-          const uploadResponse = await actionWithToast(
+          const uploadResponse = await callAction(
             () => uploadDeckThumbnail(selectedFile, createResponse.data?.id as string),
-            { showOnlyError: true }
+            { toast: {} }
           );
           if (!uploadResponse.success || !uploadResponse.data) {
-            toast.error(uploadResponse.message || "이미지 업로드에 실패했습니다.");
             return;
           }
           finalThumbnailUrl = uploadResponse.data;
@@ -504,11 +500,11 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
           updateFormData.set("is_public", formData.get("is_public") as string);
           updateFormData.set("thumbnail_url", finalThumbnailUrl);
 
-          const updateResponse = await actionWithToast(
-            () => updateDeck(createResponse.data?.id as string, updateFormData)
+          const updateResponse = await callAction(
+            () => updateDeck(createResponse.data?.id as string, updateFormData),
+            { toast: {} }
           );
           if (!updateResponse.success) {
-            toast.error(updateResponse.message || "덱 업데이트에 실패했습니다.");
             return;
           }
 
@@ -524,9 +520,8 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
       }
 
       if (isEditMode && deck) {
-        const response = await actionWithToast(() => updateDeck(deck.id, formData));
+        const response = await callAction(() => updateDeck(deck.id, formData), { toast: {} });
         if (!response.success) {
-          toast.error(response.message || "덱 수정에 실패했습니다.");
           return;
         }
 
@@ -534,9 +529,8 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
           router.refresh();
         }, 1000);
       } else if (!isEditMode) {
-        const response = await actionWithToast(() => createDeck(formData));
+        const response = await callAction(() => createDeck(formData), { toast: {} });
         if (!response.success) {
-          toast.error(response.message || "덱 생성에 실패했습니다.");
           return;
         }
 
