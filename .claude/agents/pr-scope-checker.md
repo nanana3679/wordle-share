@@ -13,27 +13,27 @@ description: PR 생성 전 scope 검증. git diff 분석 → domain layer 분류
 
 ---
 
-## 입력
-
-사용자에게 다음을 요청한다:
-
-```
-1. PR type (decision / implementation / mechanical / docs / mixed)
-2. 포함 scope (한 문장 이상)
-3. 제외 scope
-4. Main Review Question (한 문장)
-```
-
-입력 없으면 `git diff $(git merge-base HEAD origin/main)..HEAD --name-only` 결과로 추론한다.
-
----
-
 ## 분석 절차
+
+### 0. 입력 수집 (추론 우선)
+
+다음 순서로 정보를 수집한다. 판정 불가할 때만 사용자에게 질문한다.
+
+1. 현재 대화 맥락에서 PR type / scope / review question 추론
+2. `.github/pull_request_template.md` 또는 사용자가 작성 중인 PR draft 확인
+3. `git diff` 결과에서 변경 내용 추론
+4. 위 세 가지로 판정 불가한 항목만 사용자에게 질문
 
 ### 1. 변경 파일 수집
 
+base branch는 다음 우선순위로 결정한다:
+1. 사용자 입력값 (명시된 경우)
+2. `git symbolic-ref refs/remotes/origin/HEAD` 결과
+3. `origin/main` fallback
+
 ```bash
-git diff $(git merge-base HEAD origin/main)..HEAD --name-only
+BASE=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||' || echo "main")
+git diff $(git merge-base HEAD origin/$BASE)..HEAD --name-only
 ```
 
 ### 2. Domain Layer 매핑
@@ -41,12 +41,13 @@ git diff $(git merge-base HEAD origin/main)..HEAD --name-only
 변경 파일을 아래 layer로 분류:
 
 ```
-docs           docs/, README, *.md (ADR 제외)
+meta           .claude/, .github/, process 문서, agent 정의, skill 파일
+docs           docs/ (adr 제외), README, *.md
 adr            docs/adr/
 planning       docs/issue/, docs/planning/
 product-spec   docs/product/, docs/domain/
 architecture   docs/architecture/
-infra          .github/, CI, config, wrangler*, next.config*, tsconfig*
+infra          CI config, wrangler*, next.config*, tsconfig*, package.json
 game-state     app/**/play/, lib/game*, lib/round*
 identity       lib/identity*, lib/auth*, middleware*
 moderation     lib/moderation*, lib/report*
@@ -57,11 +58,22 @@ mechanical     파일명 변경, import path 수정, generated file
 
 분류 안 되면 파일 경로 보고 가장 가까운 layer 선택.
 
-### 3. Primary / Secondary 판별
+### 3. Primary Layer 판별 (우선순위 순)
 
-- 가장 많이 변경된 layer = primary 후보
-- 테스트, docs, fixture, lockfile = 항상 secondary
-- secondary가 독립적인 리뷰 질문 생성 시 → secondary 아님, 별도 PR 후보
+다음 순서로 primary layer를 결정한다. 파일 수는 최후 수단이다.
+
+1. **PR type 선언** — 선언된 type으로 primary layer 추론
+   - `decision` → adr 또는 planning
+   - `implementation` → 기능 코드 layer
+   - `mechanical` → mechanical
+   - `docs` → docs
+2. **Main Review Question 키워드** — 질문에서 layer 키워드 추출
+3. **포함 scope 선언** — 선언된 포함 항목에서 layer 추론
+4. **Semantic change layer** — test/docs/fixture 제외 후 가장 많이 변경된 layer
+5. **파일 수 기준** — 위 4단계로 판정 불가할 때만
+
+Secondary: test, docs, fixture, lockfile, generated file은 항상 secondary.
+secondary가 독립 리뷰 질문 생성 시 → secondary 아님, 별도 PR 후보.
 
 ### 4. ADR count
 
@@ -79,6 +91,7 @@ A만 revert해도 B 의미 유지?
 ```
 
 "예" 많음 = independent → split 신호.
+"아니오" 많음 = interlocked → 같은 PR 가능.
 
 ---
 
@@ -192,4 +205,55 @@ A. in-scope must-fix → 본 PR 반영
 B. in-scope optional → 본 PR or issue
 C. out-of-scope → issue 생성, 본 PR 미반영
 default: C
+```
+
+---
+
+## Verdict 예시 케이스
+
+### APPROVE 예시
+
+```
+PR type: implementation
+변경: lib/identity.ts, lib/identity.test.ts, docs/architecture/IDENTITY_MODEL.md
+primary layer: identity
+secondary layers: test, docs
+ADR count: 0
+file count: 3
+리뷰 질문: nick+pw bcrypt 검증 로직이 올바른가?
+
+→ verdict: APPROVE
+```
+
+### SUGGEST_SPLIT 예시
+
+```
+PR type: mixed
+변경: docs/adr/0001.md, docs/adr/0002.md, docs/adr/0003.md, docs/adr/0004.md,
+      lib/identity.ts, lib/game-state.ts, app/play/page.tsx
+primary layer: adr (4개), identity, game-state 혼재
+ADR count: 4
+file count: 7
+
+→ verdict: SUGGEST_SPLIT
+reason: ADR 4개 이상. identity/game-state는 독립 decision.
+split suggestion:
+  - PR A: identity 정책 결정 — adr, 파일 2개, ADR 2개
+  - PR B: game-state 정책 결정 — adr, 파일 2개, ADR 2개
+  - PR C: identity 구현 — identity layer, 파일 1개, ADR 0개
+  - PR D: game-state 구현 — game-state layer, 파일 1개, ADR 0개
+```
+
+### REQUIRE_CHANGES 예시
+
+```
+PR type: mixed (justification 없음)
+변경: docs/adr/ 9개, lib/identity.ts, lib/game-state.ts, lib/moderation.ts,
+      app/play/, app/feed/, app/d/
+primary layer: adr, identity, game-state, moderation, discovery 혼재
+ADR count: 9
+file count: 16
+
+→ verdict: REQUIRE_CHANGES
+reason: ADR 8+ (9개). primary layer 5개, justification 없음. product + architecture + implementation 동시 변경.
 ```
