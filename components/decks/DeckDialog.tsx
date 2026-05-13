@@ -426,7 +426,9 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
         effectiveUsesCategories = false;
       }
 
-      const serializedWords = trimmedRows.map((row) => ({
+      // validateWords 가 반환한 normalizedWords 를 payload 에 사용
+      const normalizedRows = wordsValidation.normalizedWords ?? [];
+      const serializedWords = normalizedRows.map((row) => ({
         word: row.word,
         tags: effectiveUsesCategories ? row.tags : [],
       }));

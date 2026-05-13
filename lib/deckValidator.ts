@@ -9,7 +9,6 @@ import type { ScriptAdapter } from "./scripts/types";
 import type { ScriptId } from "./scripts/types";
 import { getScriptAdapter } from "./scripts";
 import {
-  validateWord,
   validateDeckWords as _validateDeckWords,
 } from "./wordConstraints";
 import {
@@ -40,7 +39,6 @@ export function validateWords(
   scriptId: ScriptId
 ): ValidationResult & { normalizedWords?: DeckWord[] } {
   const adapter: ScriptAdapter = getScriptAdapter(scriptId);
-  const errors: string[] = [];
 
   if (!words || words.length === 0) {
     return {
@@ -52,7 +50,7 @@ export function validateWords(
   // validateDeckWords 로 기본 검증 + 정규화
   const baseResult = _validateDeckWords(words, adapter);
   if (baseResult.errors.length > 0) {
-    errors.push(...baseResult.errors);
+    return { ok: false, fieldErrors: { words: baseResult.errors } };
   }
 
   // 게임 길이 제약 검사 (기본 검증 통과한 단어만 대상)
@@ -69,10 +67,8 @@ export function validateWords(
       );
     }
   }
-  errors.push(...lengthErrors);
-
-  if (errors.length > 0) {
-    return { ok: false, fieldErrors: { words: errors } };
+  if (lengthErrors.length > 0) {
+    return { ok: false, fieldErrors: { words: lengthErrors } };
   }
 
   return { ok: true, fieldErrors: {}, normalizedWords: baseResult.ok };

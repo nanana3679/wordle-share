@@ -4,8 +4,8 @@ import { createClient } from "@/lib/supabase-server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
-import { validateDeck } from "@/lib/deckValidator";
-import { SUPPORTED_SCRIPTS } from "@/lib/scripts";
+import { validateWords, validateCategories } from "@/lib/deckValidator";
+import { SUPPORTED_SCRIPTS, isSupportedScript } from "@/lib/scripts";
 import type { DeckWord } from "@/types/decks";
 import { getUserInfo } from "@/app/actions/user";
 import { User } from "@supabase/supabase-js";
@@ -47,6 +47,15 @@ function resolveScript(formData: FormData): ScriptResolution {
 }
 
 function parseDeckPayload(formData: FormData, script: string = "latin"): DeckPayloadResult {
+  if (!isSupportedScript(script)) {
+    return {
+      ok: false,
+      message: `지원하지 않는 쓰기체계입니다: ${script}`,
+      fieldErrors: { script: [`지원하지 않는 쓰기체계입니다: ${script}`] },
+    };
+  }
+  const scriptId = script;
+
   const wordsJson = formData.get("words_json");
   if (typeof wordsJson !== "string" || !wordsJson.trim()) {
     return {
@@ -90,29 +99,28 @@ function parseDeckPayload(formData: FormData, script: string = "latin"): DeckPay
     }
   }
 
-  // validateDeck 으로 단어 + 카테고리 통합 검증
-  // name 은 parseDeckPayload 호출 전에 이미 검증하므로 빈 문자열로 넘겨도 무관.
-  const deckValidation = validateDeck({
-    name: "_", // parseDeckPayload 는 단어/카테고리만 담당; name은 호출자가 검증
-    words: rawWords as DeckWord[],
-    categories: rawCategories,
-    scriptId: script as import("@/lib/scripts/types").ScriptId,
-  });
+  // 단어·카테고리를 각각 검증 (name 검증 우회 없이 직접 호출)
+  const wordsValidation = validateWords(rawWords as DeckWord[], scriptId);
+  const categoriesValidation = validateCategories(rawCategories);
 
-  if (!deckValidation.ok) {
-    const firstFieldKey = Object.keys(deckValidation.fieldErrors)[0] ?? "words";
-    const firstErrors = deckValidation.fieldErrors[firstFieldKey] ?? [];
+  const fieldErrors: Record<string, string[]> = {};
+  if (!wordsValidation.ok) Object.assign(fieldErrors, wordsValidation.fieldErrors);
+  if (!categoriesValidation.ok) Object.assign(fieldErrors, categoriesValidation.fieldErrors);
+
+  if (Object.keys(fieldErrors).length > 0) {
+    const firstFieldKey = Object.keys(fieldErrors)[0] ?? "words";
+    const firstErrors = fieldErrors[firstFieldKey] ?? [];
     return {
       ok: false,
       message: `검증 실패: ${firstErrors.join(", ")}`,
-      fieldErrors: deckValidation.fieldErrors,
+      fieldErrors,
     };
   }
 
   return {
     ok: true,
-    words: deckValidation.normalizedWords ?? [],
-    categories: deckValidation.normalizedCategories ?? [],
+    words: wordsValidation.normalizedWords ?? [],
+    categories: categoriesValidation.normalizedCategories ?? [],
   };
 }
 
