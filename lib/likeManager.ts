@@ -4,6 +4,11 @@ import { Database } from "@/types/database";
 /**
  * 좋아요 토글: 이미 좋아요한 경우 삭제, 아니면 upsert.
  * 소유권 필터(user_id)를 항상 적용하므로 타인의 좋아요를 건드리지 않습니다.
+ *
+ * @note Race condition 주의
+ * select 후 insert/delete 사이에 동시 요청이 들어오면 최종 상태가 의도와 다를 수 있습니다.
+ * - DB unique constraint가 중복 insert를 방어하지만, 동시 delete는 방어하지 못합니다.
+ * - 향후 DB RPC(stored procedure)로 atomic하게 처리하는 것을 고려할 수 있습니다.
  */
 export async function toggleLike(
   deckId: string,

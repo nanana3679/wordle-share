@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useState, startTransition } from "react";
+import { useOptimistic, useState, useCallback, startTransition } from "react";
 import { toggleLike } from "@/app/actions/like";
 import { actionWithToast } from "@/lib/action-with-toast";
 import { Deck } from "@/types/decks";
@@ -18,7 +18,8 @@ export function useOptimisticLike(deck: Deck) {
     (_current: boolean, next: boolean) => next
   );
 
-  const handleToggleLike = async () => {
+  const handleToggleLike = useCallback(async () => {
+    if (isLoading) return; // 이미 요청 중이면 재요청 방지 (낙관적 상태와 서버 상태가 꼬이는 상황 방지)
     const next = !optimisticIsLiked;
     setIsLoading(true);
 
@@ -50,7 +51,7 @@ export function useOptimisticLike(deck: Deck) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isLoading, optimisticIsLiked, deckId]);
 
   const optimisticLikeCounts = otherUsersLikeCount + (optimisticIsLiked ? 1 : 0);
 

@@ -28,15 +28,22 @@ export async function toggleLike(
 export async function createLike(deckId: string): Promise<ActionResponse> {
   return safeAction(async () => {
     const supabase = await createClient();
-    const { isLiked, error } = await _toggleLike(deckId, supabase);
 
-    if (error) {
-      return { success: false, message: error };
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, message: "로그인이 필요합니다." };
     }
 
-    if (!isLiked) {
-      // 이미 좋아요한 상태였으므로 다시 추가하지 않음
-      return { success: true, message: "이미 좋아요한 덱입니다." };
+    // toggleLike 경유 X — 직접 upsert (좋아요 추가 전용)
+    const { error } = await supabase
+      .from("likes")
+      .upsert({ deck_id: deckId, user_id: user.id }, { onConflict: "deck_id,user_id" });
+
+    if (error) {
+      return { success: false, message: `좋아요 추가에 실패했습니다: ${error.message}` };
     }
 
     return { success: true, message: "좋아요를 추가했습니다." };
