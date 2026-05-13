@@ -257,9 +257,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
         setDescription(parsed.description);
       }
 
-      setFormState((prev) =>
-        mergeDeckImport(prev, parsed, script) as DeckFormState
-      );
+      setFormState((prev) => mergeDeckImport(prev, parsed));
 
       const droppedCount = parsed.droppedWords.length;
       toast.success(`${parsed.words.length}개 단어를 추가했습니다.`);

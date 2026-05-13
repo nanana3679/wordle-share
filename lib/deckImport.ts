@@ -1,7 +1,5 @@
 import { nanoid } from "nanoid";
 
-import type { ScriptId } from "@/lib/scripts/types";
-
 // ── 외부 타입 의존을 최소화하기 위한 로컬 타입 정의 ──────────────────────────
 
 /** 덱 편집 폼에서 사용되는 단어 행 값 (WordRowValue 서브셋) */
@@ -39,41 +37,53 @@ export type AiImportResult = {
  *
  * @param existing  현재 폼 상태 스냅샷
  * @param imported  AI 파싱 결과 (parseAiDeckResponse 출력)
- * @param _scriptId  스크립트 식별자 (향후 확장 대비, 현재 미사용)
  * @returns 병합된 새 DeckDraft (불변 — 원본을 수정하지 않음)
  */
 export function mergeDeckImport(
   existing: DeckDraft,
   imported: AiImportResult,
-  _scriptId: ScriptId,
 ): DeckDraft {
   // ── 1. 카테고리: 기존 순서 유지 + 새 항목 append ─────────────────────────
   const existingCats = new Set(existing.categories);
   const newCats = imported.categories.filter((c) => !existingCats.has(c));
   const mergedCategories = [...existing.categories, ...newCats];
 
-  // ── 2. 끝의 빈 행 제거 (모두 제거 후 마지막에 1개만 다시 추가) ──────────
-  const baseWords = [...existing.words];
+  // 단어 정규화 키 함수 (trim + lowercase)
+  const normalizeKey = (w: string) => w.trim().toLowerCase();
+
+  // ── 2. 끝의 빈 행 제거 후, 중간 연속 빈 행도 하나로 축소 ──────────────────
+  const allWords = [...existing.words];
+  // 끝의 빈 행 제거
   while (
-    baseWords.length > 0 &&
-    baseWords[baseWords.length - 1].word.trim().length === 0 &&
-    baseWords[baseWords.length - 1].tags.length === 0
+    allWords.length > 0 &&
+    allWords[allWords.length - 1].word.trim().length === 0 &&
+    allWords[allWords.length - 1].tags.length === 0
   ) {
-    baseWords.pop();
+    allWords.pop();
+  }
+  // 중간 연속 빈 행 → 1개로 축소
+  const baseWords: DeckRowValue[] = [];
+  let prevBlank = false;
+  for (const row of allWords) {
+    const isBlank = row.word.trim().length === 0 && row.tags.length === 0;
+    if (isBlank && prevBlank) continue;
+    baseWords.push(row);
+    prevBlank = isBlank;
   }
 
   // ── 3. 정규화된 word를 키로 중복 검사 맵 구성 ────────────────────────────
   const byWord = new Map<string, { idx: number; row: DeckRowValue }>();
   for (let i = 0; i < baseWords.length; i++) {
     const row = baseWords[i];
-    const key = row.word.trim().toLowerCase();
+    const key = normalizeKey(row.word);
     if (key) byWord.set(key, { idx: i, row });
   }
 
   // ── 4. 임포트 단어 병합 ──────────────────────────────────────────────────
   const merged: DeckRowValue[] = [...baseWords];
   for (const incoming of imported.words) {
-    const existing = byWord.get(incoming.word);
+    const key = normalizeKey(incoming.word);
+    const existing = byWord.get(key);
     if (existing) {
       // 이미 있는 단어: tags 합집합
       const updated: DeckRowValue = {
@@ -81,7 +91,7 @@ export function mergeDeckImport(
         tags: Array.from(new Set([...existing.row.tags, ...incoming.tags])),
       };
       merged[existing.idx] = updated;
-      byWord.set(incoming.word, { idx: existing.idx, row: updated });
+      byWord.set(key, { idx: existing.idx, row: updated });
     } else {
       // 새 단어 추가
       const row: DeckRowValue = {
@@ -91,7 +101,7 @@ export function mergeDeckImport(
       };
       const idx = merged.length;
       merged.push(row);
-      byWord.set(incoming.word, { idx, row });
+      byWord.set(key, { idx, row });
     }
   }
 
