@@ -41,13 +41,13 @@ git diff $(git merge-base HEAD origin/$BASE)..HEAD --name-only
 변경 파일을 아래 layer로 분류:
 
 ```
-meta           .claude/, .github/, process 문서, agent 정의, skill 파일
+meta           .claude/, .github/ (workflows 제외), process 문서, agent 정의, skill 파일
 docs           docs/ (adr 제외), README, *.md
 adr            docs/adr/
 planning       docs/issue/, docs/planning/
 product-spec   docs/product/, docs/domain/
 architecture   docs/architecture/
-infra          CI config, wrangler*, next.config*, tsconfig*, package.json
+infra          .github/workflows/, CI config, wrangler*, next.config*, tsconfig*, package.json
 game-state     app/**/play/, lib/game*, lib/round*
 identity       lib/identity*, lib/auth*, middleware*
 moderation     lib/moderation*, lib/report*

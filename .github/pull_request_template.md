@@ -5,6 +5,9 @@
 - [ ] docs
 - [ ] mixed
 
+## Justification
+<!-- mixed PR일 때만 작성. 왜 분리하지 않는가? -->
+
 ## Main Review Question
 
 이 PR에서 리뷰어가 판단해야 하는 핵심 질문 1개:
