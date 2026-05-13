@@ -4,9 +4,8 @@ import { createClient } from "@/lib/supabase-server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
-import { validateDeckWords } from "@/lib/wordConstraints";
-import { MAX_TAGS_PER_WORD, normalizeCategories } from "@/lib/deckCategories";
-import { getScriptAdapter, SUPPORTED_SCRIPTS } from "@/lib/scripts";
+import { validateDeck } from "@/lib/deckValidator";
+import { SUPPORTED_SCRIPTS } from "@/lib/scripts";
 import type { DeckWord } from "@/types/decks";
 import { getUserInfo } from "@/app/actions/user";
 import { User } from "@supabase/supabase-js";
@@ -48,8 +47,6 @@ function resolveScript(formData: FormData): ScriptResolution {
 }
 
 function parseDeckPayload(formData: FormData, script: string = "latin"): DeckPayloadResult {
-  const adapter = getScriptAdapter(script);
-
   const wordsJson = formData.get("words_json");
   if (typeof wordsJson !== "string" || !wordsJson.trim()) {
     return {
@@ -78,20 +75,12 @@ function parseDeckPayload(formData: FormData, script: string = "latin"): DeckPay
     };
   }
 
-  const wordsValidation = validateDeckWords(rawWords as DeckWord[], adapter);
-  if (wordsValidation.errors.length > 0) {
-    return {
-      ok: false,
-      message: `단어 검증 실패: ${wordsValidation.errors.join(", ")}`,
-      fieldErrors: { words: wordsValidation.errors },
-    };
-  }
-
   const categoriesJson = formData.get("categories_json");
-  let rawCategories: unknown = [];
+  let rawCategories: unknown[] = [];
   if (typeof categoriesJson === "string" && categoriesJson.trim()) {
     try {
-      rawCategories = JSON.parse(categoriesJson);
+      const parsed = JSON.parse(categoriesJson);
+      rawCategories = Array.isArray(parsed) ? parsed : [];
     } catch {
       return {
         ok: false,
@@ -101,33 +90,29 @@ function parseDeckPayload(formData: FormData, script: string = "latin"): DeckPay
     }
   }
 
-  const categoriesValidation = normalizeCategories(rawCategories);
-  if (categoriesValidation.errors.length > 0) {
+  // validateDeck 으로 단어 + 카테고리 통합 검증
+  // name 은 parseDeckPayload 호출 전에 이미 검증하므로 빈 문자열로 넘겨도 무관.
+  const deckValidation = validateDeck({
+    name: "_", // parseDeckPayload 는 단어/카테고리만 담당; name은 호출자가 검증
+    words: rawWords as DeckWord[],
+    categories: rawCategories,
+    scriptId: script as import("@/lib/scripts/types").ScriptId,
+  });
+
+  if (!deckValidation.ok) {
+    const firstFieldKey = Object.keys(deckValidation.fieldErrors)[0] ?? "words";
+    const firstErrors = deckValidation.fieldErrors[firstFieldKey] ?? [];
     return {
       ok: false,
-      message: `카테고리 검증 실패: ${categoriesValidation.errors.join(", ")}`,
-      fieldErrors: { categories: categoriesValidation.errors },
+      message: `검증 실패: ${firstErrors.join(", ")}`,
+      fieldErrors: deckValidation.fieldErrors,
     };
   }
 
-  // 카테고리 팔레트에 없는 태그는 잘라내고, 중복 제거 후 단어당 상한을 적용한다
-  // (UI에서 이미 막지만 서버에서도 보강)
-  const allowed = new Set(categoriesValidation.ok);
-  const filteredWords = wordsValidation.ok.map((w) => {
-    const tags =
-      categoriesValidation.ok.length === 0
-        ? []
-        : Array.from(new Set(w.tags.filter((tag) => allowed.has(tag)))).slice(
-            0,
-            MAX_TAGS_PER_WORD,
-          );
-    return { word: w.word, tags };
-  });
-
   return {
     ok: true,
-    words: filteredWords,
-    categories: categoriesValidation.ok,
+    words: deckValidation.normalizedWords ?? [],
+    categories: deckValidation.normalizedCategories ?? [],
   };
 }
 

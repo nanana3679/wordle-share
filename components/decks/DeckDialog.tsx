@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/select";
 import { getScriptAdapter, isSupportedScript } from "@/lib/scripts";
 import type { ScriptId } from "@/lib/scripts/types";
+import { validateWords } from "@/lib/deckValidator";
 import { toast } from "sonner";
 import { Sparkles, Upload, X, Image as ImageIcon } from "lucide-react";
 import Image from "next/image";
@@ -406,24 +407,16 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
         .map((row) => ({ ...row, word: adapter.normalize(row.word) }))
         .filter((row) => row.word.length > 0);
 
-      if (trimmedRows.length === 0) {
-        toast.error("최소 하나의 단어를 입력해주세요.");
+      // validateWords 로 단어 목록 통합 검증 (길이 제약 포함)
+      const wordsValidation = validateWords(
+        trimmedRows.map((r) => ({ word: r.word, tags: r.tags })),
+        script
+      );
+      if (!wordsValidation.ok) {
+        const firstError =
+          wordsValidation.fieldErrors.words?.[0] ?? "단어 목록이 올바르지 않습니다.";
+        toast.error(firstError);
         return;
-      }
-
-      const invalidRow = trimmedRows.find((row) => !adapter.isAllowedWord(row.word));
-      if (invalidRow) {
-        toast.error(`"${invalidRow.word}"는 ${adapter.charDescription}만 사용할 수 있습니다.`);
-        return;
-      }
-
-      const seen = new Set<string>();
-      for (const row of trimmedRows) {
-        if (seen.has(row.word)) {
-          toast.error(`"${row.word}"는 중복된 단어입니다.`);
-          return;
-        }
-        seen.add(row.word);
       }
 
       // 카테고리 토글 ON인데 등록된 카테고리가 0개면 OFF로 전환하고 진행
