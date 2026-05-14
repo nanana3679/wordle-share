@@ -481,8 +481,10 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
             return;
           }
 
+          const deckId = createResponse.data.id;
+
           const uploadResponse = await callAction(
-            () => uploadDeckThumbnail(selectedFile, createResponse.data?.id as string),
+            () => uploadDeckThumbnail(selectedFile, deckId),
             { toast: {} }
           );
           if (!uploadResponse.success || !uploadResponse.data) {
@@ -501,7 +503,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
           updateFormData.set("thumbnail_url", finalThumbnailUrl);
 
           const updateResponse = await callAction(
-            () => updateDeck(createResponse.data?.id as string, updateFormData),
+            () => updateDeck(deckId, updateFormData),
             { toast: {} }
           );
           if (!updateResponse.success) {

@@ -1,5 +1,4 @@
-import { isRedirectError } from "next/dist/client/components/redirect-error";
-import { isNotFoundError } from "next/dist/client/components/not-found-error";
+import { unstable_rethrow } from "next/navigation";
 import { ActionResponse } from "@/types/action";
 
 /**
@@ -20,8 +19,7 @@ export async function safeAction<T>(
   try {
     return await fn();
   } catch (e) {
-    if (isRedirectError(e) || isNotFoundError(e)) throw e;
-    console.error("[Server Action Error]", e);
+    unstable_rethrow(e); // Next.js redirect/notFound 에러는 여기서 re-throw
     return {
       success: false,
       message: e instanceof Error ? e.message : "오류가 발생했습니다.",
