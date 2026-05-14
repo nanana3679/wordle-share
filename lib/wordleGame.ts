@@ -131,7 +131,7 @@ export function submitGuess(gameState: GameState): GameState {
   };
 }
 
-function evaluateGuess(guessUnits: string[], targetUnits: string[]): Guess {
+export function evaluateGuess(guessUnits: string[], targetUnits: string[]): Guess {
   const result: Letter[] = [];
 
   // 첫 번째 패스: 정확한 위치의 글자 확인
