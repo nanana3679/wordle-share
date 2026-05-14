@@ -4,9 +4,8 @@ import { createClient } from "@/lib/supabase-server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
-import { validateDeckWords } from "@/lib/wordConstraints";
-import { MAX_TAGS_PER_WORD, normalizeCategories } from "@/lib/deckCategories";
-import { getScriptAdapter, SUPPORTED_SCRIPTS } from "@/lib/scripts";
+import { validateWords, validateCategories } from "@/lib/deckValidator";
+import { SUPPORTED_SCRIPTS, isSupportedScript } from "@/lib/scripts";
 import type { DeckWord } from "@/types/decks";
 import { getUserInfo } from "@/app/actions/user";
 import { User } from "@supabase/supabase-js";
@@ -48,7 +47,14 @@ function resolveScript(formData: FormData): ScriptResolution {
 }
 
 function parseDeckPayload(formData: FormData, script: string = "latin"): DeckPayloadResult {
-  const adapter = getScriptAdapter(script);
+  if (!isSupportedScript(script)) {
+    return {
+      ok: false,
+      message: `지원하지 않는 쓰기체계입니다: ${script}`,
+      fieldErrors: { script: [`지원하지 않는 쓰기체계입니다: ${script}`] },
+    };
+  }
+  const scriptId = script;
 
   const wordsJson = formData.get("words_json");
   if (typeof wordsJson !== "string" || !wordsJson.trim()) {
@@ -78,20 +84,19 @@ function parseDeckPayload(formData: FormData, script: string = "latin"): DeckPay
     };
   }
 
-  const wordsValidation = validateDeckWords(rawWords as DeckWord[], adapter);
-  if (wordsValidation.errors.length > 0) {
-    return {
-      ok: false,
-      message: `단어 검증 실패: ${wordsValidation.errors.join(", ")}`,
-      fieldErrors: { words: wordsValidation.errors },
-    };
-  }
-
   const categoriesJson = formData.get("categories_json");
-  let rawCategories: unknown = [];
+  let rawCategories: unknown[] = [];
   if (typeof categoriesJson === "string" && categoriesJson.trim()) {
     try {
-      rawCategories = JSON.parse(categoriesJson);
+      const parsed = JSON.parse(categoriesJson);
+      if (!Array.isArray(parsed)) {
+        return {
+          ok: false,
+          message: "카테고리 목록은 배열이어야 합니다.",
+          fieldErrors: { categories: ["카테고리 목록은 배열이어야 합니다."] },
+        };
+      }
+      rawCategories = parsed;
     } catch {
       return {
         ok: false,
@@ -101,33 +106,28 @@ function parseDeckPayload(formData: FormData, script: string = "latin"): DeckPay
     }
   }
 
-  const categoriesValidation = normalizeCategories(rawCategories);
-  if (categoriesValidation.errors.length > 0) {
+  // 단어·카테고리를 각각 검증 (name 검증 우회 없이 직접 호출)
+  const wordsValidation = validateWords(rawWords as DeckWord[], scriptId);
+  const categoriesValidation = validateCategories(rawCategories);
+
+  const fieldErrors: Record<string, string[]> = {};
+  if (!wordsValidation.ok) Object.assign(fieldErrors, wordsValidation.fieldErrors);
+  if (!categoriesValidation.ok) Object.assign(fieldErrors, categoriesValidation.fieldErrors);
+
+  if (Object.keys(fieldErrors).length > 0) {
+    const firstFieldKey = Object.keys(fieldErrors)[0] ?? "words";
+    const firstErrors = fieldErrors[firstFieldKey] ?? [];
     return {
       ok: false,
-      message: `카테고리 검증 실패: ${categoriesValidation.errors.join(", ")}`,
-      fieldErrors: { categories: categoriesValidation.errors },
+      message: `검증 실패: ${firstErrors.join(", ")}`,
+      fieldErrors,
     };
   }
 
-  // 카테고리 팔레트에 없는 태그는 잘라내고, 중복 제거 후 단어당 상한을 적용한다
-  // (UI에서 이미 막지만 서버에서도 보강)
-  const allowed = new Set(categoriesValidation.ok);
-  const filteredWords = wordsValidation.ok.map((w) => {
-    const tags =
-      categoriesValidation.ok.length === 0
-        ? []
-        : Array.from(new Set(w.tags.filter((tag) => allowed.has(tag)))).slice(
-            0,
-            MAX_TAGS_PER_WORD,
-          );
-    return { word: w.word, tags };
-  });
-
   return {
     ok: true,
-    words: filteredWords,
-    categories: categoriesValidation.ok,
+    words: wordsValidation.normalizedWords ?? [],
+    categories: categoriesValidation.normalizedCategories ?? [],
   };
 }
 
