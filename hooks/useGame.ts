@@ -31,7 +31,7 @@ export function useGame(deck: Deck, adapter: ScriptAdapter): UseGameReturn {
     const engine = createGameEngine(deck, adapter.id);
     engineRef.current = engine;
     setGameState(engine.state);
-  }, [deck, adapter]);
+  }, [deck, adapter.id]);
 
   // 키보드 입력 처리
   const handleKeyPress = useCallback((key: string) => {

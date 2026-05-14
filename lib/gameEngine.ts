@@ -39,7 +39,7 @@ class GameEngineImpl implements GameEngine {
   private readonly _adapter: ReturnType<typeof getScriptAdapter>;
 
   constructor(state: GameState, adapter: ReturnType<typeof getScriptAdapter>) {
-    this.state = state;
+    this.state = structuredClone(state);
     this._adapter = adapter;
   }
 
@@ -73,6 +73,7 @@ class GameEngineImpl implements GameEngine {
     return new GameEngineImpl({
       ...state,
       currentGuess: units.slice(0, -1).join(''),
+      errorMessage: undefined,
     }, adapter);
   }
 
