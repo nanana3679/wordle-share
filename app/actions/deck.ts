@@ -89,7 +89,14 @@ function parseDeckPayload(formData: FormData, script: string = "latin"): DeckPay
   if (typeof categoriesJson === "string" && categoriesJson.trim()) {
     try {
       const parsed = JSON.parse(categoriesJson);
-      rawCategories = Array.isArray(parsed) ? parsed : [];
+      if (!Array.isArray(parsed)) {
+        return {
+          ok: false,
+          message: "카테고리 목록은 배열이어야 합니다.",
+          fieldErrors: { categories: ["카테고리 목록은 배열이어야 합니다."] },
+        };
+      }
+      rawCategories = parsed;
     } catch {
       return {
         ok: false,
