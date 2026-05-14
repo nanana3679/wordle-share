@@ -1,10 +1,11 @@
 "use server";
 
 import { createClient } from "@/lib/supabase-server";
+import { safeAction } from "@/lib/safe-action";
 import { ActionResponse } from "@/types/action";
 
 export async function uploadDeckThumbnail(file: File, deckId: string): Promise<ActionResponse<string>> {
-  try {
+  return safeAction(async () => {
     const supabase = await createClient();
 
     // 현재 사용자 정보 가져오기
@@ -54,15 +55,11 @@ export async function uploadDeckThumbnail(file: File, deckId: string): Promise<A
       data: urlData.publicUrl,
       message: "이미지 업로드에 성공했습니다.",
     };
-  } catch (error) {
-    console.error("[Server Action Error]", error);
-    if (error instanceof Error) return { success: false, message: error.message };
-    return { success: false, message: "알 수 없는 서버 오류가 발생했습니다." };
-  }
+  });
 }
 
 export async function deleteDeckThumbnail(deckId: string): Promise<ActionResponse> {
-  try {
+  return safeAction(async () => {
     const supabase = await createClient();
 
     // 파일 삭제 (확장자가 다를 수 있으므로 패턴 매칭으로 삭제)
@@ -97,9 +94,5 @@ export async function deleteDeckThumbnail(deckId: string): Promise<ActionRespons
       success: true,
       message: "이미지를 삭제했습니다.",
     };
-  } catch (error) {
-    console.error("[Server Action Error]", error);
-    if (error instanceof Error) return { success: false, message: error.message };
-    return { success: false, message: "알 수 없는 서버 오류가 발생했습니다." };
-  }
+  });
 }

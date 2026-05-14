@@ -44,7 +44,13 @@ export function useOptimisticLike(deck: Deck) {
       }
 
       if (!response.success) {
-        throw new Error(response.message);
+        // callAction은 실패 시 throw하지 않고 반환하므로 명시적으로 롤백
+        startTransition(() => {
+          setIsLikedState(isLikedState); // 원래 값으로 복구
+        });
+        toast.error(response.message || "좋아요 처리에 실패했습니다.");
+        setIsLoading(false);
+        return;
       }
 
       // 3. 서버 요청 성공: 실제 상태를 최종 확정
@@ -53,7 +59,10 @@ export function useOptimisticLike(deck: Deck) {
       });
       setIsLoading(false);
     } catch (error) {
-      // 4. 서버 요청 실패: useOptimistic이 자동으로 낙관적 상태를 초기 상태(likeState)로 롤백
+      // 4. 예외 발생 시: 명시적으로 원래 상태로 복구
+      startTransition(() => {
+        setIsLikedState(isLikedState); // 원래 값으로 복구
+      });
       console.error("좋아요 처리 실패:", error);
       toast.error(error instanceof Error ? error.message : "좋아요 처리에 실패했습니다.");
       setIsLoading(false);

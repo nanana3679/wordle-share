@@ -11,6 +11,7 @@ import type { DeckWord } from "@/types/decks";
 import { getUserInfo } from "@/app/actions/user";
 import { User } from "@supabase/supabase-js";
 import { PostgrestSingleResponse } from "@supabase/supabase-js";
+import { safeAction } from "@/lib/safe-action";
 import { ActionResponse } from "@/types/action";
 import { Deck } from "@/types/decks";
 
@@ -131,11 +132,11 @@ function parseDeckPayload(formData: FormData, script: string = "latin"): DeckPay
 }
 
 export async function getDecks(page: number = 1, pageSize: number = 24): Promise<ActionResponse<Deck[]> & { total?: number; page?: number; pageSize?: number; totalPages?: number }> {
-  try {
+  return safeAction(async () => {
     const supabase = await createClient();
 
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     // 전체 개수 가져오기
     const { count, error: countError } = await supabase
       .from("decks")
@@ -151,7 +152,7 @@ export async function getDecks(page: number = 1, pageSize: number = 24): Promise
     const total = count || 0;
     const totalPages = Math.ceil(total / pageSize);
     const offset = (page - 1) * pageSize;
-    
+
     const { data: decks, error }: PostgrestSingleResponse<Deck[]> = await supabase
       .from("decks")
       .select(`
@@ -191,31 +192,14 @@ export async function getDecks(page: number = 1, pageSize: number = 24): Promise
       pageSize,
       totalPages,
     };
-    } catch (error) {
-    // Next.js redirect() / notFound()는 정상 흐름이므로 re-throw
-    if (
-      error &&
-      typeof error === "object" &&
-      "digest" in error &&
-      typeof (error as { digest: unknown }).digest === "string" &&
-      (
-        (error as { digest: string }).digest.startsWith("NEXT_REDIRECT") ||
-        (error as { digest: string }).digest.startsWith("NEXT_NOT_FOUND")
-      )
-    ) {
-      throw error;
-    }
-    console.error("[Server Action Error]", error);
-    if (error instanceof Error) return { success: false, message: error.message };
-    return { success: false, message: "알 수 없는 서버 오류가 발생했습니다." };
-  }
+  });
 }
 
 export async function getDeck(deckId: string): Promise<ActionResponse<Deck>> {
-  try {
+  return safeAction(async () => {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     const { data: deckData, error: deckError } = await supabase
       .from("decks")
       .select(`
@@ -263,7 +247,7 @@ export async function getDeck(deckId: string): Promise<ActionResponse<Deck>> {
         message: "덱을 가져왔습니다.",
       };
     }
-    
+
     // 인증된 사용자의 경우 - isLiked와 isCreator 정보 추가
     const isLiked = deckData?.likes?.some(like => like.user_id === user.id);
 
@@ -279,34 +263,17 @@ export async function getDeck(deckId: string): Promise<ActionResponse<Deck>> {
       data: newDeck,
       message: "덱을 가져왔습니다.",
     };
-    } catch (error) {
-    // Next.js redirect() / notFound()는 정상 흐름이므로 re-throw
-    if (
-      error &&
-      typeof error === "object" &&
-      "digest" in error &&
-      typeof (error as { digest: unknown }).digest === "string" &&
-      (
-        (error as { digest: string }).digest.startsWith("NEXT_REDIRECT") ||
-        (error as { digest: string }).digest.startsWith("NEXT_NOT_FOUND")
-      )
-    ) {
-      throw error;
-    }
-    console.error("[Server Action Error]", error);
-    if (error instanceof Error) return { success: false, message: error.message };
-    return { success: false, message: "알 수 없는 서버 오류가 발생했습니다." };
-  }
+  });
 }
 
 
 export async function createDeck(formData: FormData): Promise<ActionResponse<Deck>> {
-  try {
+  return safeAction(async () => {
     const supabase = await createClient();
-    
+
     // 현재 사용자 정보 가져오기
     const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
+
     if (userError || !user) {
       return {
         success: false,
@@ -373,28 +340,11 @@ export async function createDeck(formData: FormData): Promise<ActionResponse<Dec
       data: data as Deck,
       message: "덱을 생성했습니다.",
     };
-    } catch (error) {
-    // Next.js redirect() / notFound()는 정상 흐름이므로 re-throw
-    if (
-      error &&
-      typeof error === "object" &&
-      "digest" in error &&
-      typeof (error as { digest: unknown }).digest === "string" &&
-      (
-        (error as { digest: string }).digest.startsWith("NEXT_REDIRECT") ||
-        (error as { digest: string }).digest.startsWith("NEXT_NOT_FOUND")
-      )
-    ) {
-      throw error;
-    }
-    console.error("[Server Action Error]", error);
-    if (error instanceof Error) return { success: false, message: error.message };
-    return { success: false, message: "알 수 없는 서버 오류가 발생했습니다." };
-  }
+  });
 }
 
 export async function createAnonymousDeck(formData: FormData): Promise<ActionResponse<Deck>> {
-  try {
+  return safeAction(async () => {
     const supabase = await createClient();
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -481,33 +431,16 @@ export async function createAnonymousDeck(formData: FormData): Promise<ActionRes
       data: data as Deck,
       message: "익명 덱을 생성했습니다.",
     };
-    } catch (error) {
-    // Next.js redirect() / notFound()는 정상 흐름이므로 re-throw
-    if (
-      error &&
-      typeof error === "object" &&
-      "digest" in error &&
-      typeof (error as { digest: unknown }).digest === "string" &&
-      (
-        (error as { digest: string }).digest.startsWith("NEXT_REDIRECT") ||
-        (error as { digest: string }).digest.startsWith("NEXT_NOT_FOUND")
-      )
-    ) {
-      throw error;
-    }
-    console.error("[Server Action Error]", error);
-    if (error instanceof Error) return { success: false, message: error.message };
-    return { success: false, message: "알 수 없는 서버 오류가 발생했습니다." };
-  }
+  });
 }
 
 export async function updateDeck(id: string, formData: FormData): Promise<ActionResponse<Deck>> {
-  try {
+  return safeAction(async () => {
     const supabase = await createClient();
-    
+
     // 현재 사용자 정보 가져오기
     const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
+
     if (userError || !user) {
       return {
         success: false,
@@ -603,19 +536,19 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
       thumbnail_url: thumbnailUrl || null,
       updated_at: new Date().toISOString(),
     };
-    
+
     console.log("업데이트할 데이터:", updateData);
-    
+
     // 먼저 업데이트 실행 (select 없이)
     const { error: updateError, count } = await supabase
       .from("decks")
       .update(updateData)
       .eq("id", id);
 
-    console.log("업데이트 결과:", { 
-      updateError, 
+    console.log("업데이트 결과:", {
+      updateError,
       count,
-      affectedRows: count 
+      affectedRows: count
     });
 
     if (updateError) {
@@ -643,14 +576,14 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
       .eq("id", id)
       .single();
 
-    console.log("업데이트 후 데이터 조회 결과:", { 
-      data: data ? { 
-        id: data.id, 
-        name: data.name, 
+    console.log("업데이트 후 데이터 조회 결과:", {
+      data: data ? {
+        id: data.id,
+        name: data.name,
         updated_at: data.updated_at,
-        words_count: data.words?.length 
-      } : null, 
-      error: fetchError 
+        words_count: data.words?.length
+      } : null,
+      error: fetchError
     });
 
     if (fetchError) {
@@ -680,39 +613,22 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
     revalidatePath("/demo/decks");
     revalidatePath(`/demo/decks/${id}`);
     revalidatePath("/demo/decks", "page");
-    
+
     return {
       success: true,
       data: data as Deck,
       message: "덱을 수정했습니다.",
     };
-    } catch (error) {
-    // Next.js redirect() / notFound()는 정상 흐름이므로 re-throw
-    if (
-      error &&
-      typeof error === "object" &&
-      "digest" in error &&
-      typeof (error as { digest: unknown }).digest === "string" &&
-      (
-        (error as { digest: string }).digest.startsWith("NEXT_REDIRECT") ||
-        (error as { digest: string }).digest.startsWith("NEXT_NOT_FOUND")
-      )
-    ) {
-      throw error;
-    }
-    console.error("[Server Action Error]", error);
-    if (error instanceof Error) return { success: false, message: error.message };
-    return { success: false, message: "알 수 없는 서버 오류가 발생했습니다." };
-  }
+  });
 }
 
 export async function deleteDeck(id: string): Promise<ActionResponse> {
-  try {
+  return safeAction(async () => {
     const supabase = await createClient();
-    
+
     // 현재 사용자 정보 가져오기
     const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
+
     if (userError || !user) {
       return {
         success: false,
@@ -737,22 +653,5 @@ export async function deleteDeck(id: string): Promise<ActionResponse> {
     redirect("/demo/decks");
     // unreachable: redirect() always throws
     return { success: true, message: "" };
-  } catch (error) {
-    // Next.js redirect() / notFound()는 정상 흐름이므로 re-throw
-    if (
-      error &&
-      typeof error === "object" &&
-      "digest" in error &&
-      typeof (error as { digest: unknown }).digest === "string" &&
-      (
-        (error as { digest: string }).digest.startsWith("NEXT_REDIRECT") ||
-        (error as { digest: string }).digest.startsWith("NEXT_NOT_FOUND")
-      )
-    ) {
-      throw error;
-    }
-    console.error("[Server Action Error]", error);
-    if (error instanceof Error) return { success: false, message: error.message };
-    return { success: false, message: "알 수 없는 서버 오류가 발생했습니다." };
-  }
+  });
 }
