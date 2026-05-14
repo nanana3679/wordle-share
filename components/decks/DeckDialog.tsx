@@ -484,8 +484,10 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
             return;
           }
 
+          const deckId = createResponse.data.id;
+
           const uploadResponse = await actionWithToast(
-            () => uploadDeckThumbnail(selectedFile, createResponse.data?.id as string),
+            () => uploadDeckThumbnail(selectedFile, deckId),
             { showOnlyError: true }
           );
           if (!uploadResponse.success || !uploadResponse.data) {
@@ -505,7 +507,7 @@ export function DeckDialog({ deck, children }: DeckDialogProps) {
           updateFormData.set("thumbnail_url", finalThumbnailUrl);
 
           const updateResponse = await actionWithToast(
-            () => updateDeck(createResponse.data?.id as string, updateFormData)
+            () => updateDeck(deckId, updateFormData)
           );
           if (!updateResponse.success) {
             toast.error(updateResponse.message || "덱 업데이트에 실패했습니다.");
