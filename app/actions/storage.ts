@@ -1,16 +1,16 @@
 "use server";
 
 import { createClient } from "@/lib/supabase-server";
-import { ActionResponse } from "@/types/action";
 import { safeAction } from "@/lib/safe-action";
+import { ActionResponse } from "@/types/action";
 
 export async function uploadDeckThumbnail(file: File, deckId: string): Promise<ActionResponse<string>> {
   return safeAction(async () => {
     const supabase = await createClient();
-    
+
     // 현재 사용자 정보 가져오기
     const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
+
     if (userError || !user) {
       return {
         success: false,
@@ -61,7 +61,7 @@ export async function uploadDeckThumbnail(file: File, deckId: string): Promise<A
 export async function deleteDeckThumbnail(deckId: string): Promise<ActionResponse> {
   return safeAction(async () => {
     const supabase = await createClient();
-    
+
     // 파일 삭제 (확장자가 다를 수 있으므로 패턴 매칭으로 삭제)
     const { data: files, error: listError } = await supabase.storage
       .from('deck-thumbnails')

@@ -2,8 +2,8 @@
 
 import { createClient } from "@/lib/supabase-server";
 import { redirect } from "next/navigation";
-import { ActionResponse } from "@/types/action";
 import { safeAction } from "@/lib/safe-action";
+import { ActionResponse } from "@/types/action";
 import { User } from "@supabase/supabase-js";
 
 export async function signInWithGoogle(): Promise<ActionResponse<string>> {
@@ -39,15 +39,17 @@ export async function signOut(): Promise<ActionResponse> {
   return safeAction(async () => {
     const supabase = await createClient();
     const { error } = await supabase.auth.signOut();
-    
+
     if (error) {
       return {
         success: false,
         message: `로그아웃에 실패했습니다: ${error.message}`,
       };
     }
-    
+
     redirect("/demo/decks");
+    // unreachable: redirect() always throws
+    return { success: true, message: "" };
   });
 }
 

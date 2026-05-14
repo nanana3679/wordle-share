@@ -12,7 +12,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { actionWithToast } from "@/lib/action-with-toast";
+import { callAction } from "@/lib/callAction";
 
 interface DeleteDeckDialogProps {
   deck: Deck;
@@ -27,8 +27,8 @@ export function DeleteDeckDialog({ deck, children }: DeleteDeckDialogProps) {
     setIsLoading(true);
     
     try {
-      // actionWithToast가 자동으로 toast를 표시하고 에러를 처리합니다
-      await actionWithToast(() => deleteDeck(deck.id));
+      // callAction이 자동으로 toast를 표시하고 에러를 처리합니다
+      await callAction(() => deleteDeck(deck.id), { toast: {} });
       // deleteDeck은 성공하면 redirect를 호출하므로, 여기까지 오지 않습니다
       setOpen(false);
     } finally {
