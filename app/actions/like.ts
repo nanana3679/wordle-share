@@ -5,6 +5,8 @@ import { ActionResponse } from "@/types/action";
 import { safeAction } from "@/lib/safe-action";
 import { toggleLike as _toggleLike } from "@/lib/likeManager";
 
+const LIKE_ACTION_FAILURE_MESSAGE = "요청 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.";
+
 export async function toggleLike(
   deckId: string
 ): Promise<ActionResponse<{ isLiked: boolean }>> {
@@ -13,7 +15,8 @@ export async function toggleLike(
     const { isLiked, error } = await _toggleLike(deckId, supabase);
 
     if (error) {
-      return { success: false, message: error };
+      console.error("[like] 오류", { deckId, error });
+      return { success: false, message: LIKE_ACTION_FAILURE_MESSAGE };
     }
 
     return {
@@ -43,7 +46,8 @@ export async function createLike(deckId: string): Promise<ActionResponse> {
       .upsert({ deck_id: deckId, user_id: user.id }, { onConflict: "deck_id,user_id" });
 
     if (error) {
-      return { success: false, message: `좋아요 추가에 실패했습니다: ${error.message}` };
+      console.error("[like] 오류", { deckId, error });
+      return { success: false, message: LIKE_ACTION_FAILURE_MESSAGE };
     }
 
     return { success: true, message: "좋아요를 추가했습니다." };
@@ -71,7 +75,8 @@ export async function deleteLike(deckId: string): Promise<ActionResponse> {
       .eq("user_id", user.id);
 
     if (error) {
-      return { success: false, message: `좋아요 삭제에 실패했습니다: ${error.message}` };
+      console.error("[like] 오류", { deckId, error });
+      return { success: false, message: LIKE_ACTION_FAILURE_MESSAGE };
     }
 
     return { success: true, message: "좋아요를 취소했습니다." };
