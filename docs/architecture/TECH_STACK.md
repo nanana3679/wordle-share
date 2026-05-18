@@ -8,18 +8,20 @@
 - **스타일링**: Tailwind CSS
 - **상태관리**: React hooks (useState, useEffect)
 - **데이터 페칭 & 캐싱**: React Query (TanStack Query)
-  - 덱 데이터 캐싱 (변경 빈도 낮음)
+  - 덱/피드 데이터 캐싱
   - 검색 결과 캐싱
-  - Optimistic updates (좋아요 기능)
-  - Supabase 실시간 구독 연동
+  - Optimistic updates (좋아요 / 추측 제출)
+- **i18n**: next-intl (ko/en/ja)
 
 ## 백엔드
 
-- **데이터베이스**: Supabase
-- **인증**: Supabase Auth
-  - 소셜 로그인 (Google, GitHub)
-  - JWT 토큰 기반 세션 관리
-- **API**: Supabase API
+- **데이터베이스**: Supabase Postgres
+- **인증**: **Supabase Anonymous Auth만 사용** — 첫 방문 시 자동 익명 세션
+  - 자원 단위 인증은 nick+pw bcrypt (`auth.users`와 별개 layer)
+  - **OAuth 관련 route/provider/UI는 MVP에서 모두 제거**. Supabase Anonymous Auth라 기술적으로 향후 OAuth 업그레이드는 가능하지만 제품 기능으로 제공하지 않음 ([IDENTITY_MODEL](./IDENTITY_MODEL.md), [ADR 0001](../adr/0001-anon-auth-and-nick-pw-identity.md))
+- **API**: Next.js Server Actions + Route Handlers
+  - 쓰기는 server actions에서 service_role + 자체 인증 검증
+  - RLS는 단순 SELECT 룰만
 
 ## 배포
 
