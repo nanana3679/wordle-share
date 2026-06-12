@@ -1,4 +1,4 @@
-import type { ScriptId } from "@/lib/scripts/types";
+import type { ScriptId } from "./scripts/types";
 
 // ADR 0014: Word 허용 문자 집합 + canonical form
 // - 저장 텍스트는 normalizeWord를 거친 canonical form (NFC + lowercase)
