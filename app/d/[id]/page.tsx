@@ -20,10 +20,12 @@ export default async function DeckPage({ params }: DeckPageProps) {
     <main className="mx-auto max-w-xl space-y-6 px-4 py-8">
       <DeckMetaCard deck={deck} activeWordCount={activeWordCount} />
       <div className="flex gap-2">
+        <Button asChild>
+          <Link href={`/d/${deck.id}/play?mode=daily`}>오늘의 데일리 플레이</Link>
+        </Button>
         <Button asChild variant="outline">
           <Link href={`/d/${deck.id}/edit`}>편집</Link>
         </Button>
-        {/* 플레이(데일리 모드)는 T2b에서 추가된다 */}
       </div>
     </main>
   );

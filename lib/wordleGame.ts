@@ -131,7 +131,8 @@ export function submitGuess(gameState: GameState): GameState {
   };
 }
 
-function evaluateGuess(guessUnits: string[], targetUnits: string[]): Guess {
+// 서버측 데일리 판정(app/actions/daily.ts)에서도 사용하므로 export한다
+export function evaluateGuess(guessUnits: string[], targetUnits: string[]): Guess {
   const result: Letter[] = [];
 
   // 첫 번째 패스: 정확한 위치의 글자 확인

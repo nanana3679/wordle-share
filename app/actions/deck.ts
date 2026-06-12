@@ -16,6 +16,7 @@ import {
 } from "@/lib/identity";
 import { parseWordLines, planWordUpdate, type DeckWordRow } from "@/lib/deckWords";
 import { isSupportedScript } from "@/lib/scripts";
+import { getOrCreateAnonUserId } from "@/lib/anon-session";
 import type { Tables } from "@/types/database";
 
 // creator_pw_hash 노출 방지용 화이트리스트
@@ -28,19 +29,6 @@ export type DeckWord = Tables<"words">;
 export interface DeckWithWords {
   deck: PublicDeck;
   words: DeckWord[];
-}
-
-// 익명 세션이 없으면 lazy 발급한다.
-// ADR 0001은 미들웨어 자동 발급을 제시하지만, 모든 방문(봇 포함)마다
-// 익명 유저가 쌓이는 것을 피해 "첫 쓰기 시점" 발급으로 운영한다.
-async function getOrCreateAnonUserId(): Promise<string | null> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (user) return user.id;
-
-  const { data, error } = await supabase.auth.signInAnonymously();
-  if (error || !data.user) return null;
-  return data.user.id;
 }
 
 type CredentialCheck =
