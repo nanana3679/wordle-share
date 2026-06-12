@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase-server";
 import { isSupportedScript } from "@/lib/scripts";
@@ -8,6 +9,11 @@ interface PlayPageProps {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ mode?: string }>;
 }
+
+// 게임 페이지는 인덱싱 차단 (ADR 0012, #51 AC)
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 // /d/{deck_id}/play?mode=daily|challenge — 단어 리스트는 HTML/props에 절대 포함하지 않는다 (ADR 0008)
 export default async function PlayPage({ params, searchParams }: PlayPageProps) {

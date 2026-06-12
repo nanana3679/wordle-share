@@ -8,6 +8,7 @@ import { QueryProvider } from "@/components/providers/QueryProvider";
 import { Suspense } from "react";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
+import { getSiteUrl } from "@/lib/site";
 
 const pretendard = localFont({
   src: [
@@ -32,8 +33,10 @@ const pretendard = localFont({
 });
 
 export const metadata: Metadata = {
+  // OG 이미지 등 상대 URL을 절대 URL로 변환하는 기준 (ADR 0012)
+  metadataBase: new URL(getSiteUrl()),
   title: "wordledecks",
-  description: "Wordle deck sharing platform",
+  description: "관심사 기반 단어 덱으로 즐기는 데일리 워들 — 만들고, 공유하고, 도전하세요.",
 };
 
 interface RootLayoutProps {
