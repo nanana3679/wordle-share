@@ -13,16 +13,47 @@ interface DeckPageProps {
   params: Promise<{ id: string }>;
 }
 
+const SCRIPT_LABELS: Record<string, string> = {
+  latin: "로마자",
+  hangul: "한글",
+  kana: "가나",
+};
+
+// SSR 메타 + OG/Twitter Card — 단어 내용은 절대 포함하지 않는다 (ADR 0012/0008)
 // 가려진 덱은 검색 엔진 인덱싱 차단 (#55 — noindex)
 export async function generateMetadata({ params }: DeckPageProps): Promise<Metadata> {
   const { id } = await params;
   const result = await getDeckById(id);
   if (!result.success || !result.data) return { title: "wordledecks" };
 
-  const { deck } = result.data;
+  const { deck, words } = result.data;
+  if (deck.hidden) {
+    return {
+      title: `${deck.name} | wordledecks`,
+      robots: { index: false, follow: false },
+    };
+  }
+
+  const activeWordCount = words.filter((w) => w.active).length;
+  const title = `${deck.name} | wordledecks`;
+  const description = `${SCRIPT_LABELS[deck.script] ?? deck.script} 단어 ${activeWordCount}개 — ${deck.creator_nick}님이 만든 워들 덱. 오늘의 단어에 도전해보세요.`;
+
   return {
-    title: `${deck.name} | wordledecks`,
-    ...(deck.hidden ? { robots: { index: false, follow: false } } : {}),
+    title,
+    description,
+    alternates: { canonical: `/d/${deck.id}` },
+    openGraph: {
+      title,
+      description,
+      url: `/d/${deck.id}`,
+      images: [{ url: `/og/${deck.id}.png`, width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [`/og/${deck.id}.png`],
+    },
   };
 }
 
@@ -44,8 +75,26 @@ export default async function DeckPage({ params }: DeckPageProps) {
     );
   }
 
+  // Schema.org JSON-LD (ADR 0012 — Game/CreativeWork)
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Game",
+    name: deck.name,
+    url: `/d/${deck.id}`,
+    author: { "@type": "Person", name: deck.creator_nick },
+    interactionStatistic: {
+      "@type": "InteractionCounter",
+      interactionType: "https://schema.org/LikeAction",
+      userInteractionCount: deck.like_count,
+    },
+  };
+
   return (
     <main className="mx-auto max-w-xl space-y-6 px-4 py-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <DeckMetaCard deck={deck} activeWordCount={activeWordCount} />
       <div className="flex gap-2">
         <Button asChild>
