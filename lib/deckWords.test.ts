@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseWordLines, planWordUpdate, type DeckWordRow } from './deckWords';
+import { parseWordLines, planWordUpdate, planWordSync, type DeckWordRow } from './deckWords';
 
 function row(id: string, text: string, active: boolean): DeckWordRow {
   return { id, text, active };
@@ -104,5 +104,45 @@ describe('planWordUpdate — min 1 active invariant (ADR 0010)', () => {
       ok: true,
       plan: { toInsert: [], toReactivateIds: [], toDeactivateIds: [] },
     });
+  });
+});
+
+describe('planWordSync — PUT 멱등 동기화 (ADR 0011, #77)', () => {
+  it('desired에만 있는 단어는 insert, 사라진 단어는 deactivate', () => {
+    const existing = [row('w1', '피카츄', true), row('w2', '이상해씨', true)];
+    const result = planWordSync(existing, ['피카츄', '파이리']);
+    expect(result).toEqual({
+      ok: true,
+      plan: { toInsert: ['파이리'], toReactivateIds: [], toDeactivateIds: ['w2'] },
+    });
+  });
+
+  it('inactive였던 단어가 desired에 있으면 reactivate (영구 ID)', () => {
+    const existing = [row('w1', '피카츄', false), row('w2', '이상해씨', true)];
+    const result = planWordSync(existing, ['피카츄', '이상해씨']);
+    expect(result).toEqual({
+      ok: true,
+      plan: { toInsert: [], toReactivateIds: ['w1'], toDeactivateIds: [] },
+    });
+  });
+
+  it('멱등성: 같은 요청을 두 번 적용하면 두 번째는 전부 no-op (AC)', () => {
+    const existing = [row('w1', '피카츄', true), row('w2', '이상해씨', true)];
+    const desired = ['피카츄', '파이리'];
+    const first = planWordSync(existing, desired);
+    expect(first.ok).toBe(true);
+    // 1차 적용 후 상태 시뮬레이션
+    const after = [row('w1', '피카츄', true), row('w2', '이상해씨', false), row('w3', '파이리', true)];
+    const second = planWordSync(after, desired);
+    expect(second).toEqual({
+      ok: true,
+      plan: { toInsert: [], toReactivateIds: [], toDeactivateIds: [] },
+    });
+  });
+
+  it('빈 desired(마지막 active 제거)는 reject — min-1-active (AC)', () => {
+    const existing = [row('w1', '피카츄', true)];
+    const result = planWordSync(existing, []);
+    expect(result.ok).toBe(false);
   });
 });
