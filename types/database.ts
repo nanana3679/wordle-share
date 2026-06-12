@@ -14,6 +14,32 @@ export type Database = {
   }
   public: {
     Tables: {
+      likes: {
+        Row: {
+          created_at: string
+          deck_id: string
+          ip_hash: string
+        }
+        Insert: {
+          created_at?: string
+          deck_id: string
+          ip_hash: string
+        }
+        Update: {
+          created_at?: string
+          deck_id?: string
+          ip_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "likes_deck_id_fkey"
+            columns: ["deck_id"]
+            isOneToOne: false
+            referencedRelation: "decks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           anon_id: string

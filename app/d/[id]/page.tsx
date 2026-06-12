@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getDeckById } from "@/app/actions/deck";
 import { DeckMetaCard } from "@/components/DeckMetaCard";
 import { CommentThread } from "@/components/CommentThread";
+import { LikeButton } from "@/components/LikeButton";
 import { Button } from "@/components/ui/button";
 
 interface DeckPageProps {
@@ -27,6 +28,7 @@ export default async function DeckPage({ params }: DeckPageProps) {
         <Button asChild variant="outline">
           <Link href={`/d/${deck.id}/edit`}>편집</Link>
         </Button>
+        <LikeButton deckId={deck.id} initialCount={deck.like_count} />
       </div>
 
       <CommentThread deckId={deck.id} />
