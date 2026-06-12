@@ -3,18 +3,53 @@
 import { createClient } from "@/lib/supabase-server";
 import { ActionResponse } from "@/types/action";
 import { safeAction } from "@/lib/safe-action";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database";
+
+// 익명 세션도 authenticated로 취급되므로, 인증 여부만으로는 부족하고
+// 해당 덱의 소유자인지 반드시 확인해야 한다.
+async function verifyDeckOwnership(
+  supabase: SupabaseClient<Database>,
+  deckId: string,
+  userId: string
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { data: deck, error } = await supabase
+    .from("decks")
+    .select("creator_id")
+    .eq("id", deckId)
+    .single();
+
+  if (error || !deck) {
+    return { ok: false, message: "덱을 찾을 수 없습니다." };
+  }
+
+  // 익명 덱(creator_id가 null)은 소유자를 확인할 수 없으므로 거부 (updateDeck과 동일 정책)
+  if (deck.creator_id !== userId) {
+    return { ok: false, message: "이 덱의 썸네일을 변경할 권한이 없습니다." };
+  }
+
+  return { ok: true };
+}
 
 export async function uploadDeckThumbnail(file: File, deckId: string): Promise<ActionResponse<string>> {
   return safeAction(async () => {
     const supabase = await createClient();
-    
+
     // 현재 사용자 정보 가져오기
     const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
+
     if (userError || !user) {
       return {
         success: false,
         message: "로그인이 필요합니다.",
+      };
+    }
+
+    const ownership = await verifyDeckOwnership(supabase, deckId, user.id);
+    if (!ownership.ok) {
+      return {
+        success: false,
+        message: ownership.message,
       };
     }
 
@@ -61,7 +96,25 @@ export async function uploadDeckThumbnail(file: File, deckId: string): Promise<A
 export async function deleteDeckThumbnail(deckId: string): Promise<ActionResponse> {
   return safeAction(async () => {
     const supabase = await createClient();
-    
+
+    // 현재 사용자 정보 가져오기
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return {
+        success: false,
+        message: "로그인이 필요합니다.",
+      };
+    }
+
+    const ownership = await verifyDeckOwnership(supabase, deckId, user.id);
+    if (!ownership.ok) {
+      return {
+        success: false,
+        message: ownership.message,
+      };
+    }
+
     // 파일 삭제 (확장자가 다를 수 있으므로 패턴 매칭으로 삭제)
     const { data: files, error: listError } = await supabase.storage
       .from('deck-thumbnails')
