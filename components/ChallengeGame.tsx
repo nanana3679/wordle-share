@@ -5,19 +5,19 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { GameBoard } from "@/components/GameBoard";
 import { SmartKeyboard } from "@/components/SmartKeyboard";
-import { ResultScreen } from "@/components/ResultScreen";
+import { GateLockedView } from "@/components/GateLockedView";
+import { PerfectClearScreen } from "@/components/PerfectClearScreen";
 import {
-  startDailyRound,
-  submitDailyGuess,
-  endDailyRound,
-  type DailyActionResponse,
-  type DailyRoundView,
-} from "@/app/actions/daily";
+  startChallengeRun,
+  submitChallengeGuess,
+  failChallengeRun,
+  type ChallengeActionResponse,
+  type ChallengeRunView,
+} from "@/app/actions/challenge";
 import { deriveKeyStates } from "@/lib/game-keyboard";
 import { getScriptAdapter } from "@/lib/scripts";
 import type { ScriptId } from "@/lib/scripts/types";
 
-// 데일리는 client-local date 기준 (ADR 0015 — date는 보안 경계가 아님)
 function localDate(): string {
   const now = new Date();
   const y = now.getFullYear();
@@ -26,15 +26,16 @@ function localDate(): string {
   return `${y}-${m}-${d}`;
 }
 
-interface DailyGameProps {
+interface ChallengeGameProps {
   deckId: string;
   deckName: string;
   script: ScriptId;
 }
 
-export function DailyGame({ deckId, deckName, script }: DailyGameProps) {
+export function ChallengeGame({ deckId, deckName, script }: ChallengeGameProps) {
   const adapter = useMemo(() => getScriptAdapter(script), [script]);
-  const [view, setView] = useState<DailyRoundView | null>(null);
+  const [view, setView] = useState<ChallengeRunView | null>(null);
+  const [gateLocked, setGateLocked] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [currentUnits, setCurrentUnits] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -42,9 +43,10 @@ export function DailyGame({ deckId, deckName, script }: DailyGameProps) {
 
   useEffect(() => {
     let cancelled = false;
-    startDailyRound(deckId, date).then((result) => {
+    startChallengeRun(deckId, date).then((result) => {
       if (cancelled) return;
       if (result.success && result.data) setView(result.data);
+      else if (result.gateLocked) setGateLocked(true);
       else setLoadError(result.message);
     });
     return () => {
@@ -52,14 +54,13 @@ export function DailyGame({ deckId, deckName, script }: DailyGameProps) {
     };
   }, [deckId, date]);
 
-  // conflict(다른 탭 진행) 응답은 최신 뷰로 강제 갱신한다 (ADR 0009)
-  const applyResult = useCallback((result: DailyActionResponse) => {
+  const applyResult = useCallback((result: ChallengeActionResponse) => {
     if (result.data) setView(result.data);
     if (!result.success) toast.error(result.message);
-    else if (result.data?.status === "completed") toast.success(result.message);
+    else toast.success(result.message);
   }, []);
 
-  const finished = view !== null && view.status !== "in_progress";
+  const ended = view !== null && view.endedReason !== null;
   const keyStates = useMemo(
     () => (view ? deriveKeyStates(view.attempts, adapter) : {}),
     [view, adapter],
@@ -67,12 +68,12 @@ export function DailyGame({ deckId, deckName, script }: DailyGameProps) {
 
   const handleKey = useCallback(
     (char: string) => {
-      if (!view || finished) return;
+      if (!view || ended) return;
       setCurrentUnits((prev) =>
         prev.length >= view.targetLength ? prev : [...prev, adapter.normalizeChar(char)],
       );
     },
-    [view, finished, adapter],
+    [view, ended, adapter],
   );
 
   const handleBackspace = useCallback(() => {
@@ -80,14 +81,14 @@ export function DailyGame({ deckId, deckName, script }: DailyGameProps) {
   }, []);
 
   const handleEnter = useCallback(async () => {
-    if (!view || finished || submitting) return;
+    if (!view || ended || submitting) return;
     if (currentUnits.length !== view.targetLength) {
       toast.error(`${view.targetLength}글자를 입력해주세요.`);
       return;
     }
     setSubmitting(true);
     try {
-      const result = await submitDailyGuess({
+      const result = await submitChallengeGuess({
         deckId,
         date,
         guess: currentUnits.join(""),
@@ -98,38 +99,69 @@ export function DailyGame({ deckId, deckName, script }: DailyGameProps) {
     } finally {
       setSubmitting(false);
     }
-  }, [view, finished, submitting, currentUnits, deckId, date, applyResult]);
+  }, [view, ended, submitting, currentUnits, deckId, date, applyResult]);
 
   const handleGiveUp = useCallback(async () => {
-    if (!view || finished || submitting) return;
+    if (!view || ended || submitting) return;
     setSubmitting(true);
     try {
-      const result = await endDailyRound({ deckId, date, expectedVersion: view.version });
+      const result = await failChallengeRun({ deckId, date, expectedVersion: view.version });
       applyResult(result);
     } finally {
       setSubmitting(false);
     }
-  }, [view, finished, submitting, deckId, date, applyResult]);
+  }, [view, ended, submitting, deckId, date, applyResult]);
 
-  if (loadError) {
-    return <p className="text-center text-sm text-destructive">{loadError}</p>;
-  }
-  if (!view) {
-    return <p className="text-center text-sm text-muted-foreground">불러오는 중...</p>;
+  const handleCopyFailed = useCallback(async () => {
+    if (!view) return;
+    try {
+      await navigator.clipboard.writeText(
+        `${deckName} 챌린지 ${view.date} ${view.score}/${view.totalRounds} 🔥`,
+      );
+      toast.success("결과를 복사했습니다.");
+    } catch {
+      toast.error("클립보드 복사에 실패했습니다.");
+    }
+  }, [view, deckName]);
+
+  if (gateLocked) return <GateLockedView deckId={deckId} />;
+  if (loadError) return <p className="text-center text-sm text-destructive">{loadError}</p>;
+  if (!view) return <p className="text-center text-sm text-muted-foreground">불러오는 중...</p>;
+
+  if (view.endedReason === "completed") {
+    return <PerfectClearScreen deckName={deckName} date={view.date} totalRounds={view.totalRounds} />;
   }
 
   return (
     <div className="space-y-6">
+      <p className="text-center text-sm text-muted-foreground">
+        라운드 {Math.min(view.currentRound + 1, view.totalRounds)} / {view.totalRounds} · 점수{" "}
+        {view.score}
+      </p>
+
       <GameBoard
         attempts={view.attempts}
         currentUnits={currentUnits}
         targetLength={view.targetLength}
         maxAttempts={view.maxAttempts}
-        finished={finished}
+        finished={ended}
       />
 
-      {finished ? (
-        <ResultScreen deckName={deckName} view={view} deckId={deckId} />
+      {view.endedReason === "failed" ? (
+        <div className="space-y-3 rounded-lg border p-4 text-center">
+          <p className="text-lg font-bold">
+            {view.score}/{view.totalRounds} 🔥
+          </p>
+          {view.answer && (
+            <p className="text-sm text-muted-foreground">
+              막힌 단어: <span className="font-semibold text-foreground">{view.answer}</span>
+            </p>
+          )}
+          <Button type="button" onClick={handleCopyFailed}>
+            결과 복사
+          </Button>
+          <p className="text-xs text-muted-foreground">내일 다시 도전할 수 있습니다.</p>
+        </div>
       ) : (
         <>
           <SmartKeyboard
