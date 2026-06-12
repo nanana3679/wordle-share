@@ -14,6 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      comments: {
+        Row: {
+          anon_id: string
+          created_at: string
+          deck_id: string
+          deleted: boolean
+          hidden: boolean
+          id: string
+          nick: string
+          pw_hash: string
+          report_count: number
+          text: string
+          thread_date: string
+        }
+        Insert: {
+          anon_id: string
+          created_at?: string
+          deck_id: string
+          deleted?: boolean
+          hidden?: boolean
+          id?: string
+          nick: string
+          pw_hash: string
+          report_count?: number
+          text: string
+          thread_date: string
+        }
+        Update: {
+          anon_id?: string
+          created_at?: string
+          deck_id?: string
+          deleted?: boolean
+          hidden?: boolean
+          id?: string
+          nick?: string
+          pw_hash?: string
+          report_count?: number
+          text?: string
+          thread_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_deck_id_fkey"
+            columns: ["deck_id"]
+            isOneToOne: false
+            referencedRelation: "decks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       challenge_runs: {
         Row: {
           anon_id: string

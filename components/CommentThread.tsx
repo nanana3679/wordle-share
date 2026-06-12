@@ -1,0 +1,95 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { CommentForm } from "@/components/CommentForm";
+import { CommentDeleteButton } from "@/components/CommentDeleteButton";
+import { getComments, reportComment, type CommentThreadsView } from "@/app/actions/comment";
+import { actionWithToast } from "@/lib/action-with-toast";
+
+function localDate(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+interface CommentThreadProps {
+  deckId: string;
+}
+
+// (deck, date) 단위 thread를 날짜 헤더로 그룹해 최신순 표시 (#47).
+// 가시성 게이트는 server action(getComments)이 계산한다 — 클라이언트는 결과만 렌더.
+export function CommentThread({ deckId }: CommentThreadProps) {
+  const [view, setView] = useState<CommentThreadsView | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [today] = useState(localDate);
+
+  const reload = useCallback(async () => {
+    const result = await getComments(deckId, today);
+    if (result.success && result.data) {
+      setView(result.data);
+      setLoadError(null);
+    } else {
+      setLoadError(result.message);
+    }
+  }, [deckId, today]);
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+
+  const handleReport = async (commentId: string) => {
+    await actionWithToast(() => reportComment(commentId));
+  };
+
+  if (loadError) return <p className="text-sm text-destructive">{loadError}</p>;
+  if (!view) return <p className="text-sm text-muted-foreground">댓글 불러오는 중...</p>;
+
+  return (
+    <section className="space-y-6">
+      <h2 className="text-lg font-bold">댓글</h2>
+
+      {view.todayLocked ? (
+        <div className="rounded-lg border p-4 text-center text-sm text-muted-foreground">
+          🔒 오늘의 데일리를 완료하면 오늘 댓글을 보고 쓸 수 있습니다.
+        </div>
+      ) : (
+        <CommentForm deckId={deckId} writerToday={today} onCreated={reload} />
+      )}
+
+      {view.threads.length === 0 && !view.todayLocked && (
+        <p className="text-sm text-muted-foreground">아직 댓글이 없습니다. 첫 댓글을 남겨보세요!</p>
+      )}
+
+      {view.threads.map((thread) => (
+        <div key={thread.date} className="space-y-2">
+          <h3 className="text-sm font-semibold text-muted-foreground">{thread.date}</h3>
+          <ul className="space-y-3">
+            {thread.comments.map((comment) => (
+              <li key={comment.id} className="rounded-lg border p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium">{comment.displayNick}</span>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs text-muted-foreground"
+                      onClick={() => handleReport(comment.id)}
+                    >
+                      신고
+                    </Button>
+                    <CommentDeleteButton commentId={comment.id} onDeleted={reload} />
+                  </div>
+                </div>
+                <p className="mt-1 whitespace-pre-wrap text-sm">{comment.text}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </section>
+  );
+}

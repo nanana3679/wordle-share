@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDeckById } from "@/app/actions/deck";
 import { DeckMetaCard } from "@/components/DeckMetaCard";
+import { CommentThread } from "@/components/CommentThread";
 import { Button } from "@/components/ui/button";
 
 interface DeckPageProps {
@@ -27,6 +28,8 @@ export default async function DeckPage({ params }: DeckPageProps) {
           <Link href={`/d/${deck.id}/edit`}>편집</Link>
         </Button>
       </div>
+
+      <CommentThread deckId={deck.id} />
     </main>
   );
 }
