@@ -14,6 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      challenge_runs: {
+        Row: {
+          anon_id: string
+          attempts: Json
+          created_at: string
+          current_round: number
+          date: string
+          deck_id: string
+          ended_reason: string | null
+          score: number
+          shuffle_order: string[]
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          anon_id: string
+          attempts?: Json
+          created_at?: string
+          current_round?: number
+          date: string
+          deck_id: string
+          ended_reason?: string | null
+          score?: number
+          shuffle_order: string[]
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          anon_id?: string
+          attempts?: Json
+          created_at?: string
+          current_round?: number
+          date?: string
+          deck_id?: string
+          ended_reason?: string | null
+          score?: number
+          shuffle_order?: string[]
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_runs_deck_id_fkey"
+            columns: ["deck_id"]
+            isOneToOne: false
+            referencedRelation: "decks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_rounds: {
         Row: {
           anon_id: string
