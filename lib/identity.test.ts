@@ -5,6 +5,7 @@ import {
   validateNick,
   validatePasswordLength,
   formatDisplayNick,
+  isBotNick,
   NICK_MAX_LENGTH,
 } from './identity';
 
@@ -71,5 +72,18 @@ describe('formatDisplayNick', () => {
 
   it('uuid 대시를 무시하고 hex만 사용하며 소문자로 통일한다', () => {
     expect(formatDisplayNick('kim', 'AB-CDEF1234')).toBe('kim#abcd');
+  });
+});
+
+describe('isBotNick — 운영자 시드 전용 prefix (ADR 0011, #77)', () => {
+  it('bot_ prefix를 감지한다 (대소문자 무관)', () => {
+    expect(isBotNick('bot_pokemon_kr')).toBe(true);
+    expect(isBotNick('Bot_onepiece')).toBe(true);
+  });
+
+  it('일반 닉네임은 통과한다', () => {
+    expect(isBotNick('철수')).toBe(false);
+    expect(isBotNick('robot')).toBe(false);
+    expect(isBotNick('my_bot_')).toBe(false);
   });
 });

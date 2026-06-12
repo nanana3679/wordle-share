@@ -36,3 +36,10 @@ export function validatePasswordLength(pw: string): boolean {
 export function formatDisplayNick(nick: string, anonId: string): string {
   return `${nick}#${anonId.replaceAll("-", "").slice(0, 4).toLowerCase()}`;
 }
+
+// 운영자 시드 봇 전용 prefix (ADR 0011) — 일반 사용자는 사용 불가
+export const BOT_NICK_PREFIX = "bot_";
+
+export function isBotNick(nick: string): boolean {
+  return nick.toLowerCase().startsWith(BOT_NICK_PREFIX);
+}

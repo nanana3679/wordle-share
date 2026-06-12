@@ -112,3 +112,29 @@ export function planWordUpdate(
     plan: { toInsert, toReactivateIds: [...reactivate], toDeactivateIds },
   };
 }
+
+// PUT 멱등 동기화 (ADR 0011): desired 단어 집합과 기존 row를 diff한다.
+// - desired에만 있는 text → insert
+// - 기존 inactive인데 desired에 있는 text → reactivate (영구 ID 유지, ADR 0010)
+// - 기존 active인데 desired에 없는 text → deactivate (soft-delete)
+// 같은 요청을 두 번 적용하면 두 번째는 전부 no-op이 된다 (멱등성).
+export function planWordSync(
+  existing: DeckWordRow[],
+  desiredTexts: string[],
+): PlanResult {
+  const desired = new Set(desiredTexts);
+  if (desired.size < MIN_ACTIVE_WORDS) {
+    return { ok: false, message: "최소 1개의 활성 단어가 필요합니다." };
+  }
+
+  const byText = new Map(existing.map((w) => [w.text, w]));
+  const toInsert = [...desired].filter((text) => !byText.has(text));
+  const toReactivateIds = existing
+    .filter((w) => !w.active && desired.has(w.text))
+    .map((w) => w.id);
+  const toDeactivateIds = existing
+    .filter((w) => w.active && !desired.has(w.text))
+    .map((w) => w.id);
+
+  return { ok: true, plan: { toInsert, toReactivateIds, toDeactivateIds } };
+}

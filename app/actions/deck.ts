@@ -10,6 +10,7 @@ import {
   verifyPassword,
   validateNick,
   validatePasswordLength,
+  isBotNick,
   PASSWORD_MIN_LENGTH,
   PASSWORD_MAX_LENGTH,
   NICK_MAX_LENGTH,
@@ -73,6 +74,9 @@ export async function createDeck(formData: FormData): Promise<ActionResponse<{ i
     if (!isSupportedScript(script)) fieldErrors.script = ["지원하지 않는 쓰기체계입니다."];
     if (!validateNick(nick)) {
       fieldErrors.nick = [`닉네임은 1~${NICK_MAX_LENGTH}자, '#' 없이 입력해야 합니다.`];
+    } else if (isBotNick(nick)) {
+      // bot_ prefix는 운영자 시드 전용 — 일반 경로 차단 (#77, API는 토큰으로 허용)
+      fieldErrors.nick = ["bot_ prefix 닉네임은 사용할 수 없습니다."];
     }
     if (!validatePasswordLength(password)) {
       fieldErrors.password = [`비밀번호는 ${PASSWORD_MIN_LENGTH}~${PASSWORD_MAX_LENGTH}자여야 합니다.`];
