@@ -16,71 +16,71 @@ export type Database = {
     Tables: {
       decks: {
         Row: {
-          author_handle: string | null
-          author_password_hash: string | null
-          categories: string[]
           created_at: string
-          creator_id: string | null
-          description: string | null
+          creator_id: string
+          creator_nick: string
+          creator_pw_hash: string
+          hidden: boolean
           id: string
-          is_public: boolean | null
-          name: string | null
+          like_count: number
+          name: string
+          report_count: number
           script: string
-          thumbnail_url: string | null
-          updated_at: string | null
-          words: { word: string; tags: string[] }[]
+          updated_at: string
         }
         Insert: {
-          author_handle?: string | null
-          author_password_hash?: string | null
-          categories?: string[]
           created_at?: string
-          creator_id?: string | null
-          description?: string | null
+          creator_id: string
+          creator_nick: string
+          creator_pw_hash: string
+          hidden?: boolean
           id?: string
-          is_public?: boolean | null
-          name?: string | null
+          like_count?: number
+          name: string
+          report_count?: number
           script?: string
-          thumbnail_url?: string | null
-          updated_at?: string | null
-          words?: { word: string; tags: string[] }[]
+          updated_at?: string
         }
         Update: {
-          author_handle?: string | null
-          author_password_hash?: string | null
-          categories?: string[]
           created_at?: string
-          creator_id?: string | null
-          description?: string | null
+          creator_id?: string
+          creator_nick?: string
+          creator_pw_hash?: string
+          hidden?: boolean
           id?: string
-          is_public?: boolean | null
-          name?: string | null
+          like_count?: number
+          name?: string
+          report_count?: number
           script?: string
-          thumbnail_url?: string | null
-          updated_at?: string | null
-          words?: { word: string; tags: string[] }[]
+          updated_at?: string
         }
         Relationships: []
       }
-      likes: {
+      words: {
         Row: {
+          active: boolean
           created_at: string
           deck_id: string
-          user_id: string
+          id: string
+          text: string
         }
         Insert: {
+          active?: boolean
           created_at?: string
           deck_id: string
-          user_id: string
+          id?: string
+          text: string
         }
         Update: {
+          active?: boolean
           created_at?: string
           deck_id?: string
-          user_id?: string
+          id?: string
+          text?: string
         }
         Relationships: [
           {
-            foreignKeyName: "likes_deck_id_fkey"
+            foreignKeyName: "words_deck_id_fkey"
             columns: ["deck_id"]
             isOneToOne: false
             referencedRelation: "decks"
