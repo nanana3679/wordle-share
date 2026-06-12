@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      reports: {
+        Row: {
+          created_at: string
+          id: string
+          reason: string | null
+          reporter_anon_id: string
+          resolved: boolean
+          target_id: string
+          target_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reason?: string | null
+          reporter_anon_id: string
+          resolved?: boolean
+          target_id: string
+          target_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reason?: string | null
+          reporter_anon_id?: string
+          resolved?: boolean
+          target_id?: string
+          target_type?: string
+        }
+        Relationships: []
+      }
       likes: {
         Row: {
           created_at: string

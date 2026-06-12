@@ -23,6 +23,8 @@ export interface CommentView {
   text: string;
   createdAt: string;
   isMine: boolean;
+  /** 신고 누적으로 가려진 댓글 — text는 서버에서 마스킹됨 (ADR 0013) */
+  hidden: boolean;
 }
 
 export interface CommentThreadsView {
@@ -71,10 +73,9 @@ export async function getComments(
     const maxDate = todayGate.visible ? readerToday : readerToday; // lte 기준
     let query = admin
       .from("comments")
-      .select("id, thread_date, anon_id, nick, text, created_at")
+      .select("id, thread_date, anon_id, nick, text, created_at, hidden")
       .eq("deck_id", deckId)
       .eq("deleted", false)
-      .eq("hidden", false)
       .order("thread_date", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(200);
@@ -91,9 +92,11 @@ export async function getComments(
         id: row.id,
         threadDate: row.thread_date,
         displayNick: formatDisplayNick(row.nick, row.anon_id),
-        text: row.text,
+        // 가려진 댓글 본문은 클라이언트로 보내지 않는다 — server action 레벨 마스킹 (#50 AC)
+        text: row.hidden ? "이 댓글은 신고로 가려졌습니다." : row.text,
         createdAt: row.created_at,
         isMine: row.anon_id === anonId,
+        hidden: row.hidden,
       };
       const last = threads[threads.length - 1];
       if (last && last.date === row.thread_date) last.comments.push(view);
@@ -201,29 +204,4 @@ export async function deleteComment(input: {
   });
 }
 
-// 신고 — report_count 증가만 수행. 자동 가림 임계치 처리는 T7(#50) 모더레이션 트랙.
-export async function reportComment(commentId: string): Promise<ActionResponse> {
-  return safeAction(async () => {
-    const anonId = await getOrCreateAnonUserId();
-    if (!anonId) return { success: false, message: "세션 발급에 실패했습니다." };
-
-    const admin = createAdminClient();
-    const { data: comment } = await admin
-      .from("comments")
-      .select("id, report_count, deleted")
-      .eq("id", commentId)
-      .single();
-    if (!comment || comment.deleted) {
-      return { success: false, message: "댓글을 찾을 수 없습니다." };
-    }
-
-    const { error } = await admin
-      .from("comments")
-      .update({ report_count: comment.report_count + 1 })
-      .eq("id", commentId);
-    if (error) {
-      return { success: false, message: `신고에 실패했습니다: ${error.message}` };
-    }
-    return { success: true, message: "신고가 접수되었습니다." };
-  });
-}
+// 신고는 reportTarget(app/actions/report.ts)으로 통합되었다 — 중복 차단·자동 가림 포함 (#50)
