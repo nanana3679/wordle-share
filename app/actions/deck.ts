@@ -455,8 +455,6 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
       };
     }
 
-    console.log("덱 ID 검증:", { id, idType: typeof id, idLength: id.length });
-
     const name = formData.get("name") as string;
     const description = formData.get("description") as string;
     const isPublic = formData.get("is_public") === "on";
@@ -502,11 +500,8 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
       };
     }
 
-    console.log("기존 덱 조회 성공:", { id: existingDeck.id });
-
-    // 권한 확인 (사용자 식별자는 로그하지 않음)
+    // 권한 확인
     const isAuthorized = existingDeck.creator_id === user.id;
-    console.log("권한 확인:", { id: existingDeck.id, is_authorized: isAuthorized });
 
     if (!isAuthorized) {
       return {
@@ -514,17 +509,6 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
         message: "이 덱을 수정할 권한이 없습니다.",
       };
     }
-
-    // 덱 업데이트
-    console.log("덱 업데이트 시작:", {
-      id,
-      name,
-      user_id: user.id,
-      words: parsed.words.slice(0, 3).map((w) => w.word), // 처음 3개 단어만 로그
-      categories: parsed.categories,
-      is_public: isPublic,
-      thumbnail_url: thumbnailUrl,
-    });
 
     // 업데이트할 데이터 준비
     const updateData = {
@@ -536,20 +520,12 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
       thumbnail_url: thumbnailUrl || null,
       updated_at: new Date().toISOString(),
     };
-    
-    console.log("업데이트할 데이터:", updateData);
-    
+
     // 먼저 업데이트 실행 (select 없이)
     const { error: updateError, count } = await supabase
       .from("decks")
       .update(updateData)
       .eq("id", id);
-
-    console.log("업데이트 결과:", { 
-      updateError, 
-      count,
-      affectedRows: count 
-    });
 
     if (updateError) {
       console.error("업데이트 에러:", updateError);
@@ -567,24 +543,12 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
       };
     }
 
-    console.log("업데이트 성공:", { affectedRows: count });
-
     // 업데이트 후 데이터 다시 가져오기
     const { data, error: fetchError } = await supabase
       .from("decks")
       .select("*")
       .eq("id", id)
       .single();
-
-    console.log("업데이트 후 데이터 조회 결과:", { 
-      data: data ? { 
-        id: data.id, 
-        name: data.name, 
-        updated_at: data.updated_at,
-        words_count: data.words?.length 
-      } : null, 
-      error: fetchError 
-    });
 
     if (fetchError) {
       console.error("데이터 조회 에러:", fetchError);
@@ -595,19 +559,12 @@ export async function updateDeck(id: string, formData: FormData): Promise<Action
     }
 
     if (!data) {
-      console.error("업데이트 후 데이터 없음:", { id, user_id: user.id });
+      console.error("업데이트 후 데이터 없음:", { id });
       return {
         success: false,
         message: "덱 수정 후 데이터를 가져올 수 없습니다.",
       };
     }
-
-    console.log("최종 업데이트된 덱:", {
-      id: data.id,
-      name: data.name,
-      updated_at: data.updated_at,
-      words_count: data.words?.length
-    });
 
     // 캐시 무효화 - 더 포괄적으로
     revalidatePath("/demo/decks");
