@@ -14,6 +14,79 @@ export type Database = {
   }
   public: {
     Tables: {
+      daily_rounds: {
+        Row: {
+          anon_id: string
+          attempts: Json
+          created_at: string
+          date: string
+          deck_id: string
+          status: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          anon_id: string
+          attempts?: Json
+          created_at?: string
+          date: string
+          deck_id: string
+          status?: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          anon_id?: string
+          attempts?: Json
+          created_at?: string
+          date?: string
+          deck_id?: string
+          status?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_rounds_deck_id_fkey"
+            columns: ["deck_id"]
+            isOneToOne: false
+            referencedRelation: "decks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_words: {
+        Row: {
+          active_word_ids: string[]
+          date: string
+          deck_id: string
+          locked_at: string
+          word_id: string
+        }
+        Insert: {
+          active_word_ids: string[]
+          date: string
+          deck_id: string
+          locked_at?: string
+          word_id: string
+        }
+        Update: {
+          active_word_ids?: string[]
+          date?: string
+          deck_id?: string
+          locked_at?: string
+          word_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_words_deck_id_fkey"
+            columns: ["deck_id"]
+            isOneToOne: false
+            referencedRelation: "decks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       decks: {
         Row: {
           created_at: string
