@@ -16,9 +16,9 @@ export async function createLike(deckId: string): Promise<ActionResponse> {
       };
     }
 
-    const { data, error } = await supabase.from("likes").insert({ deck_id: deckId, user_id: user.id });
-    console.log("createLike", data, error);
-    
+    const { error } = await supabase.from("likes").insert({ deck_id: deckId, user_id: user.id });
+
+
     if (error) {
       return {
         success: false,
@@ -44,9 +44,13 @@ export async function deleteLike(deckId: string): Promise<ActionResponse> {
         message: "로그인이 필요합니다.",
       };
     }
-    const { data, error } = await supabase.from("likes").delete().eq("deck_id", deckId);
-    console.log("deleteLike", data, error);
-    
+    const { error } = await supabase
+      .from("likes")
+      .delete()
+      .eq("deck_id", deckId)
+      .eq("user_id", user.id);
+
+
     if (error) {
       return {
         success: false,
