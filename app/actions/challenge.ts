@@ -101,11 +101,15 @@ async function loadRunContext(
 
   const { data: deck } = await admin
     .from("decks")
-    .select("id, script")
+    .select("id, script, hidden")
     .eq("id", deckId)
     .single();
   if (!deck || !isSupportedScript(deck.script)) {
     return { ok: false, message: "덱을 찾을 수 없습니다." };
+  }
+  // 신고로 가려진 덱은 플레이 차단 — 작성자 예외 없음 (#55 기본값)
+  if (deck.hidden) {
+    return { ok: false, message: "비공개 덱은 플레이할 수 없습니다." };
   }
   const adapter = getScriptAdapter(deck.script);
 

@@ -17,12 +17,21 @@ export default async function PlayPage({ params, searchParams }: PlayPageProps) 
   const supabase = await createClient();
   const { data: deck } = await supabase
     .from("decks")
-    .select("id, name, script")
+    .select("id, name, script, hidden")
     .eq("id", id)
     .single();
   if (!deck || !isSupportedScript(deck.script)) notFound();
 
   if (mode !== "daily" && mode !== "challenge") notFound();
+
+  // 가려진 덱은 플레이 차단 — server action도 동일하게 거부한다 (#55)
+  if (deck.hidden) {
+    return (
+      <main className="mx-auto max-w-xl px-4 py-8 text-center text-sm text-muted-foreground">
+        비공개 덱은 플레이할 수 없습니다.
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto max-w-xl space-y-6 px-4 py-8">
