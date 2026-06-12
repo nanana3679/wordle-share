@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { CommentForm } from "@/components/CommentForm";
 import { CommentDeleteButton } from "@/components/CommentDeleteButton";
-import { getComments, reportComment, type CommentThreadsView } from "@/app/actions/comment";
-import { actionWithToast } from "@/lib/action-with-toast";
+import { ReportButton } from "@/components/ReportButton";
+import { getComments, type CommentThreadsView } from "@/app/actions/comment";
+import { cn } from "@/lib/utils";
 
 function localDate(): string {
   const now = new Date();
@@ -40,10 +40,6 @@ export function CommentThread({ deckId }: CommentThreadProps) {
     void reload();
   }, [reload]);
 
-  const handleReport = async (commentId: string) => {
-    await actionWithToast(() => reportComment(commentId));
-  };
-
   if (loadError) return <p className="text-sm text-destructive">{loadError}</p>;
   if (!view) return <p className="text-sm text-muted-foreground">댓글 불러오는 중...</p>;
 
@@ -72,19 +68,20 @@ export function CommentThread({ deckId }: CommentThreadProps) {
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-sm font-medium">{comment.displayNick}</span>
                   <div className="flex items-center gap-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-xs text-muted-foreground"
-                      onClick={() => handleReport(comment.id)}
-                    >
-                      신고
-                    </Button>
+                    {!comment.hidden && (
+                      <ReportButton targetType="comment" targetId={comment.id} />
+                    )}
                     <CommentDeleteButton commentId={comment.id} onDeleted={reload} />
                   </div>
                 </div>
-                <p className="mt-1 whitespace-pre-wrap text-sm">{comment.text}</p>
+                <p
+                  className={cn(
+                    "mt-1 whitespace-pre-wrap text-sm",
+                    comment.hidden && "italic text-muted-foreground",
+                  )}
+                >
+                  {comment.text}
+                </p>
               </li>
             ))}
           </ul>
