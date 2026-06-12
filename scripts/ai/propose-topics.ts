@@ -86,7 +86,13 @@ async function main() {
     .map((block) => block.text)
     .join("\n");
 
-  const artifact = TopicsArtifactSchema.parse(extractJson(text));
+  let artifact;
+  try {
+    artifact = TopicsArtifactSchema.parse(extractJson(text));
+  } catch (error) {
+    console.error("[propose-topics] 응답 파싱 실패. 원본(앞 500자):", text.slice(0, 500));
+    throw error;
+  }
   writeArtifact(`scripts/ai/artifacts/topics/topics-${runId}.json`, artifact);
   console.log(
     `[propose-topics] 후보 ${artifact.candidates.length}개 — 검수 후 status를 approved로 바꾸고 ` +

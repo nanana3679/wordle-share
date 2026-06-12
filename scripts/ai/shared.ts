@@ -8,8 +8,8 @@ export function newRunId(): string {
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
   return (
-    `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}` +
-    `-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
+    `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}` +
+    `-${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}`
   );
 }
 
@@ -22,8 +22,10 @@ export function writeArtifact(path: string, data: unknown): void {
 // 응답 텍스트에서 첫 JSON 블록을 추출한다 (```json 펜스 또는 bare JSON)
 export function extractJson(text: string): unknown {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  const candidate = fenced ? fenced[1] : text.slice(text.indexOf("{"));
-  return JSON.parse(candidate.trim());
+  if (fenced) return JSON.parse(fenced[1].trim());
+  const startIdx = text.indexOf("{");
+  if (startIdx === -1) throw new Error("응답에서 JSON을 찾을 수 없습니다.");
+  return JSON.parse(text.slice(startIdx).trim());
 }
 
 export function requireEnv(name: string): string {

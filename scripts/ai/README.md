@@ -117,3 +117,4 @@ pnpm ai:generate-decks scripts/ai/artifacts/topics/topics-<runId>.json
 ```
 
 시즌 업데이트는 같은 `BOT_NICK`/`BOT_PW`로 `PUT /api/decks/{id}` 호출 — 멱등 단어 동기화 (ADR 0011, #77).
+전용 스크립트는 아직 없으므로 curl 등으로 수동 호출한다 (body: `{ nick, password, words }`).

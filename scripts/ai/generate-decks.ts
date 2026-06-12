@@ -103,6 +103,12 @@ async function main() {
   }
   const dryRun = process.argv.includes("--dry-run");
   requireEnv("ANTHROPIC_API_KEY");
+  if (!dryRun) {
+    // 업로드 자격증명은 LLM 호출 전에 검증 — 토큰 소비 후 실패 방지
+    requireEnv("BOT_SEED_TOKEN");
+    requireEnv("BOT_NICK");
+    requireEnv("BOT_PW");
+  }
 
   const topics = TopicsArtifactSchema.parse(JSON.parse(readFileSync(artifactPath, "utf8")));
   const approved = topics.candidates.filter((c) => c.status === "approved");
