@@ -70,6 +70,23 @@ export async function toggleLike(
 
     const admin = createAdminClient();
 
+    // 신고로 가려진 덱은 좋아요 토글 차단 — 기존 좋아요 카운트는 유지 (#55)
+    const { data: deck } = await admin
+      .from("decks")
+      .select("hidden")
+      .eq("id", deckId)
+      .single();
+    if (!deck) return { success: false, message: "덱을 찾을 수 없습니다." };
+    if (deck.hidden) {
+      const status = await currentStatus(deckId, ipHash);
+      return {
+        success: false,
+        conflict: true,
+        message: "비공개 덱에는 좋아요를 누를 수 없습니다.",
+        ...(status ? { data: status } : {}),
+      };
+    }
+
     if (like) {
       const { error } = await admin
         .from("likes")

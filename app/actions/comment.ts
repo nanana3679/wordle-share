@@ -147,8 +147,16 @@ export async function createComment(input: {
     }
 
     const admin = createAdminClient();
-    const { data: deck } = await admin.from("decks").select("id").eq("id", deckId).single();
+    const { data: deck } = await admin
+      .from("decks")
+      .select("id, hidden")
+      .eq("id", deckId)
+      .single();
     if (!deck) return { success: false, message: "덱을 찾을 수 없습니다." };
+    // 가시성 게이트와 별도 — 신고로 가려진 덱에는 새 댓글 작성 차단 (#55)
+    if (deck.hidden) {
+      return { success: false, message: "비공개 덱에는 댓글을 쓸 수 없습니다." };
+    }
 
     const pwHash = await hashPassword(password);
     const { error } = await admin.from("comments").insert({
