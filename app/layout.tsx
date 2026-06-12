@@ -4,7 +4,6 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import Loading from "@/components/common/Loading";
-import { QueryProvider } from "@/components/providers/QueryProvider";
 import { Suspense } from "react";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
@@ -56,14 +55,12 @@ export default async function RootLayout({
         style={{ fontFamily: "var(--font-pretendard)" }}
       >
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <QueryProvider>
-            <ErrorBoundary>
-              <Suspense fallback={<Loading />}>
-                {children}
-              </Suspense>
-            </ErrorBoundary>
-            <Toaster />
-          </QueryProvider>
+          <ErrorBoundary>
+            <Suspense fallback={<Loading />}>
+              {children}
+            </Suspense>
+          </ErrorBoundary>
+          <Toaster />
         </NextIntlClientProvider>
       </body>
     </html>
