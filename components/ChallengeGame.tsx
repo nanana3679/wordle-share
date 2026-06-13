@@ -17,6 +17,7 @@ import {
 import { deriveKeyStates } from "@/lib/game-keyboard";
 import { getScriptAdapter } from "@/lib/scripts";
 import type { ScriptId } from "@/lib/scripts/types";
+import { KanaRulesHelp } from "@/components/KanaRulesHelp";
 
 function localDate(): string {
   const now = new Date();
@@ -134,6 +135,7 @@ export function ChallengeGame({ deckId, deckName, script }: ChallengeGameProps) 
 
   return (
     <div className="space-y-6">
+      {script === "kana" && <KanaRulesHelp />}
       <p className="text-center text-sm text-muted-foreground">
         라운드 {Math.min(view.currentRound + 1, view.totalRounds)} / {view.totalRounds} · 점수{" "}
         {view.score}
