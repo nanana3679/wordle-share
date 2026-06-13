@@ -23,7 +23,7 @@ PR #58에서 추가한 `pr-scope-checker` sub-agent의 세 가지 Verdict 케이
 
 ### 실행 결과
 
-```
+```text
 verdict: APPROVE
 primary layer: identity
 secondary layers: test, docs
@@ -57,7 +57,7 @@ decision interlock: interlocked (bcrypt cost factor 문서화는 identity 구현
 
 ### 실행 결과
 
-```
+```text
 verdict: SUGGEST_SPLIT
 primary layer: adr (4개), identity, moderation 혼재
 secondary layers: 없음
@@ -99,7 +99,7 @@ reason: ADR 4개 이상 (경계값 충족). identity와 moderation은 독립 dec
 
 ### 실행 결과
 
-```
+```text
 verdict: REQUIRE_CHANGES
 primary layer: adr, identity, moderation, game-state, discovery, infra 혼재 (6개)
 secondary layers: docs, architecture
@@ -116,7 +116,7 @@ reason: ADR 9개 (임계치 8+ 초과). primary layer 6개, justification 없음
 
 분할안 (5~6개 PR):
 
-```
+```text
 PR A: identity 정책 결정 및 구현 — identity layer, 파일 5개, ADR 2개
 PR B: moderation/report 정책 결정 및 구현 — moderation layer, 파일 4개, ADR 2개
 PR C: game-state 정책 결정 및 구현 — game-state layer, 파일 5개, ADR 2개
