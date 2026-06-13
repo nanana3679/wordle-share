@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 
 interface EmptyResultProps {
@@ -6,13 +9,15 @@ interface EmptyResultProps {
 }
 
 export function EmptyResult({ query }: EmptyResultProps) {
+  const t = useTranslations("deck.list");
+
   return (
     <div className="space-y-4 rounded-lg border p-8 text-center">
       <p className="text-sm text-muted-foreground">
-        {query ? `[${query}] 덱이 아직 없습니다. 직접 만들어보세요!` : "아직 덱이 없습니다. 첫 덱을 만들어보세요!"}
+        {query ? t("emptyWithQuery", { query }) : t("emptyNoQuery")}
       </p>
       <Button asChild>
-        <Link href="/d/new">새 덱 만들기</Link>
+        <Link href="/d/new">{t("createCta")}</Link>
       </Button>
     </div>
   );

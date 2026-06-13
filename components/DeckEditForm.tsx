@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +20,7 @@ interface DeckEditFormProps {
 
 export function DeckEditForm({ deckId, words }: DeckEditFormProps) {
   const router = useRouter();
+  const t = useTranslations("deck.form");
   const [nick, setNick] = useState("");
   const [password, setPassword] = useState("");
   const [unlocked, setUnlocked] = useState(false);
@@ -92,14 +94,14 @@ export function DeckEditForm({ deckId, words }: DeckEditFormProps) {
     return (
       <form onSubmit={handleVerify} className="max-w-sm space-y-4">
         <p className="text-sm text-muted-foreground">
-          덱을 만들 때 사용한 닉네임과 비밀번호를 입력하세요.
+          {t("hint.editCredentials")}
         </p>
         <div className="space-y-2">
-          <Label htmlFor="edit-nick">닉네임</Label>
+          <Label htmlFor="edit-nick">{t("label.nick")}</Label>
           <Input id="edit-nick" value={nick} onChange={(e) => setNick(e.target.value)} required />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="edit-password">비밀번호</Label>
+          <Label htmlFor="edit-password">{t("label.password")}</Label>
           <Input
             id="edit-password"
             type="password"
@@ -109,7 +111,7 @@ export function DeckEditForm({ deckId, words }: DeckEditFormProps) {
           />
         </div>
         <Button type="submit" disabled={verifying}>
-          {verifying ? "확인 중..." : "확인"}
+          {verifying ? t("button.verifying") : t("button.verify")}
         </Button>
       </form>
     );
@@ -118,7 +120,7 @@ export function DeckEditForm({ deckId, words }: DeckEditFormProps) {
   return (
     <div className="space-y-6">
       <section className="space-y-2">
-        <h2 className="text-sm font-medium">단어 ({words.length}개)</h2>
+        <h2 className="text-sm font-medium">{t("hint.validWordCount", { count: words.length })}</h2>
         <ul className="space-y-1">
           {words.map((word) => {
             const active = willBeActive(word);
@@ -127,7 +129,7 @@ export function DeckEditForm({ deckId, words }: DeckEditFormProps) {
                 <span className={cn("flex-1 text-sm", !active && "text-muted-foreground line-through")}>
                   {word.text}
                 </span>
-                {toggledIds.has(word.id) && <Badge variant="outline">변경됨</Badge>}
+                {toggledIds.has(word.id) && <Badge variant="outline">{t("hint.wordChanged")}</Badge>}
                 <Button
                   type="button"
                   variant="ghost"
@@ -141,19 +143,19 @@ export function DeckEditForm({ deckId, words }: DeckEditFormProps) {
                     })
                   }
                 >
-                  {active ? "비활성화" : "재활성화"}
+                  {active ? t("button.deactivate") : t("button.reactivate")}
                 </Button>
               </li>
             );
           })}
         </ul>
         {activeAfterToggle < 1 && (
-          <p className="text-sm text-destructive">활성 단어가 최소 1개 필요합니다.</p>
+          <p className="text-sm text-destructive">{t("error.minActiveWords")}</p>
         )}
       </section>
 
       <section className="space-y-2">
-        <Label htmlFor="edit-add-words">단어 추가 (줄당 1개)</Label>
+        <Label htmlFor="edit-add-words">{t("label.addWords")}</Label>
         <Textarea
           id="edit-add-words"
           value={addWordsText}
@@ -163,7 +165,7 @@ export function DeckEditForm({ deckId, words }: DeckEditFormProps) {
       </section>
 
       <Button onClick={handleSave} disabled={saving || activeAfterToggle < 1}>
-        {saving ? "저장 중..." : "저장"}
+        {saving ? t("button.saving") : t("button.save")}
       </Button>
     </div>
   );
