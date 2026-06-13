@@ -12,6 +12,9 @@
       "description": "A problem occurred while loading the page.",
       "detailsTitle": "Error details",
       "showMessage": "Show error message"
+    },
+    "localeSwitcher": {
+      "label": "Select language"
     }
   },
   "layout": {

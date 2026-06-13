@@ -5,6 +5,7 @@ import { FeedTabs } from "@/components/FeedTabs";
 import { FeedList } from "@/components/FeedList";
 import { SearchBar } from "@/components/SearchBar";
 import { Button } from "@/components/ui/button";
+import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 
 interface HomePageProps {
   searchParams: Promise<{ sort?: string }>;
@@ -32,6 +33,7 @@ export default async function Home({ searchParams }: HomePageProps) {
         <Button asChild size="sm">
           <Link href="/d/new">{t("newDeck")}</Link>
         </Button>
+        <LocaleSwitcher />
       </div>
 
       <FeedTabs active={sort} />
