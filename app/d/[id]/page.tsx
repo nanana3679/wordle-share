@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
+import { serializeJsonLd } from "@/lib/security-headers";
 import { getDeckById } from "@/app/actions/deck";
 import { DeckMetaCard } from "@/components/DeckMetaCard";
 import { CommentThread } from "@/components/CommentThread";
@@ -89,12 +91,14 @@ export default async function DeckPage({ params }: DeckPageProps) {
     },
   };
 
+  // CSP nonce (middleware 주입). JSON-LD inline script가 strict-dynamic 정책을 통과하려면 필요.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <main className="mx-auto max-w-xl space-y-6 px-4 py-8">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      {/* JSON-LD: serializeJsonLd로 `<` 이스케이프 → </script> 브레이크아웃 차단 (sanitized) */}
+      {/* eslint-disable-next-line react/no-danger -- sanitized via serializeJsonLd */}
+      <script type="application/ld+json" nonce={nonce} dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
       <DeckMetaCard deck={deck} activeWordCount={activeWordCount} />
       <div className="flex gap-2">
         <Button asChild>

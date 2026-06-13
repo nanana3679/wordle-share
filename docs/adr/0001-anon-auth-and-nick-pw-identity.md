@@ -25,7 +25,7 @@ Accepted
 - **단일 (nick, pw) 사용 convention**: 사용자가 동일 (nick, pw)를 여러 자원에 반복 사용하는 UX 패턴. 중앙 identity table 없음 — 각 자원(deck/comment row)에 bcrypt `pw_hash` 별도 저장
 - localStorage에 raw (nick, pw) + my_decks 캐시 → 폼 자동 채움 (마찰 최소화 우선)
 - 보안 영향 범위 (localStorage 탈취 시): 노출된 `my_decks`의 덱은 공격자가 즉시 수정/삭제 가능. 동일 자격증명 재사용한 다른 자원은 공격자가 링크를 알거나 공개 발견 가능한 경우 조작 가능. MVP는 XSS 방어 + enumeration 차단을 전제로 UX 마찰 감소 우선
-- **보안 베이스라인 (CSP / XSS gates / 의존성 감사)은 별도 트랙** — 이슈 [#56](https://github.com/nanana3679/wordle-share/issues/56) [T11]에서 처리. raw pw 저장 채택 → XSS가 인증 방어선이므로 그쪽 가드 필수
+- **보안 베이스라인 (CSP / XSS gates / 의존성 감사)은 별도 트랙** — 이슈 [#56](https://github.com/nanana3679/wordle-share/issues/56) [T11]에서 처리. raw pw 저장 채택 → XSS가 인증 방어선이므로 그쪽 가드 필수. 정책·구현은 [SECURITY.md](../platform/SECURITY.md) 참고
 - 인증: 사용자 raw pw 제출 → 서버가 자원의 `pw_hash`와 bcrypt verify
 - 덱·댓글 모두 같은 자격증명으로 작성/수정/삭제
 - enumeration 방어: nick+pw로 "이 사람의 덱 모두 보여줘" 검색 기능 없음

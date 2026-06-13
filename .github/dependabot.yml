@@ -1,0 +1,29 @@
+# 의존성 보안 패치 자동 추적 (T11 / #56).
+# 운영 룰은 docs/platform/SECURITY.md "의존성 감사" 참고.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    # 보안 무관 마이너/패치 잡음을 줄이고 보안 패치는 항상 알림.
+    groups:
+      dev-dependencies:
+        dependency-type: development
+    labels:
+      - dependencies
+    commit-message:
+      prefix: chore
+      include: scope
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    labels:
+      - dependencies
+    commit-message:
+      prefix: chore

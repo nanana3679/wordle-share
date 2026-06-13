@@ -2,10 +2,10 @@ import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 import { Database } from '@/types/database';
 
-export function createClient(request: NextRequest) {
+export function createClient(request: NextRequest, requestHeaders: Headers = request.headers) {
   const response = NextResponse.next({
     request: {
-      headers: request.headers,
+      headers: requestHeaders,
     },
   });
 
