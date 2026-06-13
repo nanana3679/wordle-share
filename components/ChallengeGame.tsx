@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { GameBoard } from "@/components/GameBoard";
@@ -34,6 +35,8 @@ interface ChallengeGameProps {
 }
 
 export function ChallengeGame({ deckId, deckName, script }: ChallengeGameProps) {
+  const t = useTranslations("game.challenge");
+  const tGame = useTranslations("game");
   const adapter = useMemo(() => getScriptAdapter(script), [script]);
   const [view, setView] = useState<ChallengeRunView | null>(null);
   const [gateLocked, setGateLocked] = useState(false);
@@ -84,7 +87,7 @@ export function ChallengeGame({ deckId, deckName, script }: ChallengeGameProps) 
   const handleEnter = useCallback(async () => {
     if (!view || ended || submitting) return;
     if (currentUnits.length !== view.targetLength) {
-      toast.error(`${view.targetLength}글자를 입력해주세요.`);
+      toast.error(tGame("board.inputTooShort", { count: view.targetLength }));
       return;
     }
     setSubmitting(true);
@@ -100,7 +103,7 @@ export function ChallengeGame({ deckId, deckName, script }: ChallengeGameProps) 
     } finally {
       setSubmitting(false);
     }
-  }, [view, ended, submitting, currentUnits, deckId, date, applyResult]);
+  }, [view, ended, submitting, currentUnits, deckId, date, applyResult, tGame]);
 
   const handleGiveUp = useCallback(async () => {
     if (!view || ended || submitting) return;
@@ -117,17 +120,17 @@ export function ChallengeGame({ deckId, deckName, script }: ChallengeGameProps) 
     if (!view) return;
     try {
       await navigator.clipboard.writeText(
-        `${deckName} 챌린지 ${view.date} ${view.score}/${view.totalRounds} 🔥`,
+        t("shareText", { deckName, date: view.date, score: view.score, total: view.totalRounds }),
       );
-      toast.success("결과를 복사했습니다.");
+      toast.success(t("copySuccess"));
     } catch {
-      toast.error("클립보드 복사에 실패했습니다.");
+      toast.error(t("copyFailure"));
     }
-  }, [view, deckName]);
+  }, [view, deckName, t]);
 
   if (gateLocked) return <GateLockedView deckId={deckId} />;
   if (loadError) return <p className="text-center text-sm text-destructive">{loadError}</p>;
-  if (!view) return <p className="text-center text-sm text-muted-foreground">불러오는 중...</p>;
+  if (!view) return <p className="text-center text-sm text-muted-foreground">{tGame("loading")}</p>;
 
   if (view.endedReason === "completed") {
     return <PerfectClearScreen deckName={deckName} date={view.date} totalRounds={view.totalRounds} />;
@@ -137,8 +140,11 @@ export function ChallengeGame({ deckId, deckName, script }: ChallengeGameProps) 
     <div className="space-y-6">
       {script === "kana" && <KanaRulesHelp />}
       <p className="text-center text-sm text-muted-foreground">
-        라운드 {Math.min(view.currentRound + 1, view.totalRounds)} / {view.totalRounds} · 점수{" "}
-        {view.score}
+        {t("roundCounter", {
+          current: Math.min(view.currentRound + 1, view.totalRounds),
+          total: view.totalRounds,
+          score: view.score,
+        })}
       </p>
 
       <GameBoard
@@ -152,17 +158,17 @@ export function ChallengeGame({ deckId, deckName, script }: ChallengeGameProps) 
       {view.endedReason === "failed" ? (
         <div className="space-y-3 rounded-lg border p-4 text-center">
           <p className="text-lg font-bold">
-            {view.score}/{view.totalRounds} 🔥
+            {t("failedTitle", { score: view.score, total: view.totalRounds })}
           </p>
           {view.answer && (
             <p className="text-sm text-muted-foreground">
-              막힌 단어: <span className="font-semibold text-foreground">{view.answer}</span>
+              {t("blockedWordLabel")} <span className="font-semibold text-foreground">{view.answer}</span>
             </p>
           )}
           <Button type="button" onClick={handleCopyFailed}>
-            결과 복사
+            {t("copyButton")}
           </Button>
-          <p className="text-xs text-muted-foreground">내일 다시 도전할 수 있습니다.</p>
+          <p className="text-xs text-muted-foreground">{t("nextRetry")}</p>
         </div>
       ) : (
         <>
@@ -177,7 +183,7 @@ export function ChallengeGame({ deckId, deckName, script }: ChallengeGameProps) 
           />
           <div className="text-center">
             <Button type="button" variant="ghost" size="sm" onClick={handleGiveUp} disabled={submitting}>
-              포기하기
+              {t("giveUp")}
             </Button>
           </div>
         </>
