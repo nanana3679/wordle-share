@@ -13,7 +13,7 @@ jobs:
   ci:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # pnpm-workspace.yaml이 packages 없이 ignoredBuiltDependencies만 쓰는
       # pnpm 10 형식이라 pnpm 9에서는 "packages field missing" 에러가 난다
