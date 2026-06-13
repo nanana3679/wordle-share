@@ -1,5 +1,6 @@
 "use server";
 
+import { getTranslations } from "next-intl/server";
 import { createAdminClient } from "@/lib/supabase-admin";
 import { safeAction } from "@/lib/safe-action";
 import { ActionResponse } from "@/types/action";
@@ -11,6 +12,9 @@ import {
   validateNick,
   validatePasswordLength,
   formatDisplayNick,
+  NICK_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_MAX_LENGTH,
 } from "@/lib/identity";
 
 // 댓글의 모든 read/write/delete/report는 server action only (ADR 0007, #47).
@@ -58,11 +62,12 @@ export async function getComments(
   readerToday: string,
 ): Promise<ActionResponse<CommentThreadsView>> {
   return safeAction(async () => {
+    const tAuth = await getTranslations("auth");
     if (!DATE_PATTERN.test(readerToday)) {
-      return { success: false, message: "날짜 형식이 올바르지 않습니다." };
+      return { success: false, message: tAuth("error.invalidDate") };
     }
     const anonId = await getOrCreateAnonUserId();
-    if (!anonId) return { success: false, message: "세션 발급에 실패했습니다." };
+    if (!anonId) return { success: false, message: tAuth("error.sessionFailedShort") };
 
     const todayStatus = await dailyStatusFor(deckId, readerToday, anonId);
     const todayGate = checkThreadVisibility(readerToday, readerToday, todayStatus);
@@ -120,24 +125,29 @@ export async function createComment(input: {
   writerToday: string;
 }): Promise<ActionResponse> {
   return safeAction(async () => {
+    const tAuth = await getTranslations("auth");
     const { deckId, text, nick, password, writerToday } = input;
 
     if (!DATE_PATTERN.test(writerToday)) {
-      return { success: false, message: "날짜 형식이 올바르지 않습니다." };
+      return { success: false, message: tAuth("error.invalidDate") };
     }
     const trimmed = text.trim();
     const fieldErrors: { [key: string]: string[] } = {};
     if (!trimmed || trimmed.length > COMMENT_MAX_LENGTH) {
-      fieldErrors.text = [`댓글은 1~${COMMENT_MAX_LENGTH}자여야 합니다.`];
+      fieldErrors.text = [tAuth("validation.commentLength", { max: COMMENT_MAX_LENGTH })];
     }
-    if (!validateNick(nick.trim())) fieldErrors.nick = ["닉네임은 1~20자, '#' 없이 입력해야 합니다."];
-    if (!validatePasswordLength(password)) fieldErrors.password = ["비밀번호는 4~64자여야 합니다."];
+    if (!validateNick(nick.trim())) {
+      fieldErrors.nick = [tAuth("validation.nickFormat", { max: NICK_MAX_LENGTH })];
+    }
+    if (!validatePasswordLength(password)) {
+      fieldErrors.password = [tAuth("validation.passwordLength", { min: PASSWORD_MIN_LENGTH, max: PASSWORD_MAX_LENGTH })];
+    }
     if (Object.keys(fieldErrors).length > 0) {
-      return { success: false, message: "입력값을 확인해주세요.", fieldErrors };
+      return { success: false, message: tAuth("error.invalidInput"), fieldErrors };
     }
 
     const anonId = await getOrCreateAnonUserId();
-    if (!anonId) return { success: false, message: "세션 발급에 실패했습니다." };
+    if (!anonId) return { success: false, message: tAuth("error.sessionFailedShort") };
 
     // 작성도 가시성 게이트를 통과해야 한다 (잠긴 thread에 작성 불가)
     const todayStatus = await dailyStatusFor(deckId, writerToday, anonId);
@@ -171,7 +181,7 @@ export async function createComment(input: {
       return { success: false, message: `댓글 작성에 실패했습니다: ${error.message}` };
     }
 
-    return { success: true, message: "댓글을 남겼습니다." };
+    return { success: true, message: tAuth("success.commentPosted") };
   });
 }
 
@@ -182,6 +192,7 @@ export async function deleteComment(input: {
   password: string;
 }): Promise<ActionResponse> {
   return safeAction(async () => {
+    const tAuth = await getTranslations("auth");
     const { commentId, nick, password } = input;
     const admin = createAdminClient();
 
@@ -198,7 +209,7 @@ export async function deleteComment(input: {
     const nickMatches = comment.nick === nick.trim();
     const pwMatches = await verifyPassword(password, comment.pw_hash);
     if (!nickMatches || !pwMatches) {
-      return { success: false, message: "닉네임 또는 비밀번호가 올바르지 않습니다." };
+      return { success: false, message: tAuth("error.invalidCredentials") };
     }
 
     const { error } = await admin
@@ -208,7 +219,7 @@ export async function deleteComment(input: {
     if (error) {
       return { success: false, message: `댓글 삭제에 실패했습니다: ${error.message}` };
     }
-    return { success: true, message: "댓글을 삭제했습니다." };
+    return { success: true, message: tAuth("success.commentDeleted") };
   });
 }
 

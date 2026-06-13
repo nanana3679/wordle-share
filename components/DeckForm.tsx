@@ -29,6 +29,7 @@ import {
 export function DeckForm() {
   const router = useRouter();
   const t = useTranslations("deck.form");
+  const tValidation = useTranslations("validation.error");
   const [name, setName] = useState("");
   const [script, setScript] = useState<ScriptId>("latin");
   const [nick, setNick] = useState("");
@@ -139,7 +140,11 @@ export function DeckForm() {
           required
         />
         {!wordsValidation.ok && (
-          <p className="text-sm text-destructive">{wordsValidation.message}</p>
+          <p className="text-sm text-destructive">
+            {wordsValidation.invalidLines.length > 0
+              ? tValidation("invalidChars", { lines: wordsValidation.invalidLines.join(", ") })
+              : tValidation("minOneWord")}
+          </p>
         )}
         {wordsValidation.ok && (
           <p className="text-sm text-muted-foreground">{t("hint.validWordCount", { count: validWords.length })}</p>

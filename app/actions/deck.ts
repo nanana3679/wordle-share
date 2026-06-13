@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase-server";
 import { createAdminClient } from "@/lib/supabase-admin";
 import { safeAction } from "@/lib/safe-action";
@@ -36,10 +37,13 @@ type CredentialCheck =
   | { ok: true }
   | { ok: false; message: string };
 
+// verifyCredentials는 request context 밖에서 호출될 수도 있어
+// 번역된 메시지를 호출자로부터 주입받는다.
 async function verifyCredentials(
   deckId: string,
   nick: string,
   password: string,
+  messages: { deckNotFound: string; invalidCredentials: string },
 ): Promise<CredentialCheck> {
   const admin = createAdminClient();
   const { data: deck, error } = await admin
@@ -49,20 +53,24 @@ async function verifyCredentials(
     .single();
 
   if (error || !deck) {
-    return { ok: false, message: "덱을 찾을 수 없습니다." };
+    return { ok: false, message: messages.deckNotFound };
   }
 
   // enumeration 방어: 닉/비밀번호 중 무엇이 틀렸는지 구분해 알려주지 않는다 (ADR 0001)
   const nickMatches = deck.creator_nick === nick;
   const pwMatches = await verifyPassword(password, deck.creator_pw_hash);
   if (!nickMatches || !pwMatches) {
-    return { ok: false, message: "닉네임 또는 비밀번호가 올바르지 않습니다." };
+    return { ok: false, message: messages.invalidCredentials };
   }
   return { ok: true };
 }
 
 export async function createDeck(formData: FormData): Promise<ActionResponse<{ id: string }>> {
   return safeAction(async () => {
+    const tAuth = await getTranslations("auth");
+    const tDeckForm = await getTranslations("deck.form");
+    const tDeckAction = await getTranslations("deck.action");
+
     const name = String(formData.get("name") ?? "").trim();
     const script = String(formData.get("script") ?? "latin");
     const nick = String(formData.get("nick") ?? "").trim();
@@ -70,16 +78,16 @@ export async function createDeck(formData: FormData): Promise<ActionResponse<{ i
     const wordsText = String(formData.get("words_text") ?? "");
 
     const fieldErrors: { [key: string]: string[] } = {};
-    if (!name || name.length > 100) fieldErrors.name = ["덱 이름은 1~100자여야 합니다."];
-    if (!isSupportedScript(script)) fieldErrors.script = ["지원하지 않는 쓰기체계입니다."];
+    if (!name || name.length > 100) fieldErrors.name = [tDeckForm("error.nameLength")];
+    if (!isSupportedScript(script)) fieldErrors.script = [tDeckForm("error.unsupportedScript")];
     if (!validateNick(nick)) {
-      fieldErrors.nick = [`닉네임은 1~${NICK_MAX_LENGTH}자, '#' 없이 입력해야 합니다.`];
+      fieldErrors.nick = [tAuth("validation.nickFormat", { max: NICK_MAX_LENGTH })];
     } else if (isBotNick(nick)) {
       // bot_ prefix는 운영자 시드 전용 — 일반 경로 차단 (#77, API는 토큰으로 허용)
-      fieldErrors.nick = ["bot_ prefix 닉네임은 사용할 수 없습니다."];
+      fieldErrors.nick = [tAuth("validation.botNickForbidden")];
     }
     if (!validatePasswordLength(password)) {
-      fieldErrors.password = [`비밀번호는 ${PASSWORD_MIN_LENGTH}~${PASSWORD_MAX_LENGTH}자여야 합니다.`];
+      fieldErrors.password = [tAuth("validation.passwordLength", { min: PASSWORD_MIN_LENGTH, max: PASSWORD_MAX_LENGTH })];
     }
 
     const wordsValidation = isSupportedScript(script)
@@ -90,12 +98,12 @@ export async function createDeck(formData: FormData): Promise<ActionResponse<{ i
     }
 
     if (Object.keys(fieldErrors).length > 0) {
-      return { success: false, message: "입력값을 확인해주세요.", fieldErrors };
+      return { success: false, message: tAuth("error.invalidInput"), fieldErrors };
     }
 
     const creatorId = await getOrCreateAnonUserId();
     if (!creatorId) {
-      return { success: false, message: "세션 발급에 실패했습니다. 잠시 후 다시 시도해주세요." };
+      return { success: false, message: tAuth("error.sessionFailed") };
     }
 
     const pwHash = await hashPassword(password);
@@ -129,7 +137,7 @@ export async function createDeck(formData: FormData): Promise<ActionResponse<{ i
     }
 
     revalidatePath(`/d/${deck.id}`);
-    return { success: true, data: { id: deck.id }, message: "덱을 만들었습니다." };
+    return { success: true, data: { id: deck.id }, message: tDeckAction("created") };
   });
 }
 
@@ -171,9 +179,13 @@ export async function verifyDeckCredentials(
   password: string,
 ): Promise<ActionResponse> {
   return safeAction(async () => {
-    const check = await verifyCredentials(deckId, nick, password);
+    const tAuth = await getTranslations("auth");
+    const check = await verifyCredentials(deckId, nick, password, {
+      deckNotFound: "덱을 찾을 수 없습니다.",
+      invalidCredentials: tAuth("error.invalidCredentials"),
+    });
     if (!check.ok) return { success: false, message: check.message };
-    return { success: true, message: "확인되었습니다." };
+    return { success: true, message: tAuth("success.verified") };
   });
 }
 
@@ -185,9 +197,14 @@ export async function updateDeckWords(input: {
   deactivateIds: string[];
 }): Promise<ActionResponse> {
   return safeAction(async () => {
+    const tAuth = await getTranslations("auth");
+    const tDeckAction = await getTranslations("deck.action");
     const { deckId, nick, password, addWordsText, deactivateIds } = input;
 
-    const check = await verifyCredentials(deckId, nick, password);
+    const check = await verifyCredentials(deckId, nick, password, {
+      deckNotFound: "덱을 찾을 수 없습니다.",
+      invalidCredentials: tAuth("error.invalidCredentials"),
+    });
     if (!check.ok) return { success: false, message: check.message };
 
     const admin = createAdminClient();
@@ -245,6 +262,6 @@ export async function updateDeckWords(input: {
       .eq("id", deckId);
 
     revalidatePath(`/d/${deckId}`);
-    return { success: true, message: "덱을 수정했습니다." };
+    return { success: true, message: tDeckAction("updated") };
   });
 }
