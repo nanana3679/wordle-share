@@ -1,17 +1,20 @@
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { FeedSort } from "@/app/actions/feed";
 
-const TABS: { sort: FeedSort; label: string; href: string }[] = [
-  { sort: "hot", label: "🔥 Hot", href: "/" },
-  { sort: "likes", label: "좋아요순", href: "/?sort=likes" },
-  { sort: "new", label: "최신순", href: "/?sort=new" },
+const TAB_SORTS: { sort: FeedSort; href: string }[] = [
+  { sort: "hot", href: "/" },
+  { sort: "likes", href: "/?sort=likes" },
+  { sort: "new", href: "/?sort=new" },
 ];
 
-export function FeedTabs({ active }: { active: FeedSort }) {
+export async function FeedTabs({ active }: { active: FeedSort }) {
+  const t = await getTranslations("layout.feedTabs");
+
   return (
     <nav className="flex gap-1 border-b">
-      {TABS.map((tab) => (
+      {TAB_SORTS.map((tab) => (
         <Link
           key={tab.sort}
           href={tab.href}
@@ -22,7 +25,7 @@ export function FeedTabs({ active }: { active: FeedSort }) {
               : "text-muted-foreground hover:text-foreground",
           )}
         >
-          {tab.label}
+          {t(tab.sort)}
         </Link>
       ))}
     </nav>

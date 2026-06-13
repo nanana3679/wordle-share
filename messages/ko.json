@@ -1,1 +1,31 @@
-{}
+{
+  "common": {
+    "loading": "로딩 중...",
+    "loadingDescription": "사용자 정보를 불러오고 있습니다.",
+    "unknownError": "알 수 없는 오류가 발생했습니다.",
+    "networkError": "네트워크 오류로 좋아요를 반영하지 못했습니다.",
+    "button": {
+      "retry": "다시 시도"
+    },
+    "error": {
+      "title": "오류가 발생했습니다",
+      "description": "페이지를 불러오는 중 문제가 발생했습니다.",
+      "detailsTitle": "오류 상세 정보",
+      "showMessage": "오류 메시지 보기"
+    }
+  },
+  "layout": {
+    "appbar": {
+      "newDeck": "새 덱"
+    },
+    "feedTabs": {
+      "hot": "🔥 Hot",
+      "likes": "좋아요순",
+      "new": "최신순"
+    },
+    "searchBar": {
+      "placeholder": "덱 이름 검색",
+      "ariaLabel": "덱 이름 검색"
+    }
+  }
+}

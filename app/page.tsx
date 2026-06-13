@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { getFeed, type FeedSort } from "@/app/actions/feed";
 import { FeedTabs } from "@/components/FeedTabs";
 import { FeedList } from "@/components/FeedList";
@@ -16,6 +17,7 @@ function resolveSort(raw: string | undefined): FeedSort {
 export default async function Home({ searchParams }: HomePageProps) {
   const { sort: rawSort } = await searchParams;
   const sort = resolveSort(rawSort);
+  const t = await getTranslations("layout.appbar");
 
   const result = await getFeed({ sort });
   const page = result.success && result.data ? result.data : { decks: [], nextOffset: null };
@@ -28,7 +30,7 @@ export default async function Home({ searchParams }: HomePageProps) {
           <SearchBar />
         </div>
         <Button asChild size="sm">
-          <Link href="/d/new">새 덱</Link>
+          <Link href="/d/new">{t("newDeck")}</Link>
         </Button>
       </div>
 

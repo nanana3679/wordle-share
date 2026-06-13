@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Heart } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ interface LikeButtonProps {
 }
 
 export function LikeButton({ deckId, initialCount }: LikeButtonProps) {
+  const t = useTranslations('common');
   const [state, setState] = useState<LikeState>(() => initialLikeState(false, initialCount));
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -58,7 +60,7 @@ export function LikeButton({ deckId, initialCount }: LikeButtonProps) {
       }));
     } else {
       setState((prev) => applyRollback(prev));
-      toast.error(result?.message ?? "네트워크 오류로 좋아요를 반영하지 못했습니다.");
+      toast.error(result?.message ?? t('networkError'));
     }
   };
 
