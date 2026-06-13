@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase-server";
 import { isSupportedScript } from "@/lib/scripts";
 import { DailyGame } from "@/components/DailyGame";
@@ -30,11 +31,13 @@ export default async function PlayPage({ params, searchParams }: PlayPageProps) 
 
   if (mode !== "daily" && mode !== "challenge") notFound();
 
+  const t = await getTranslations("game.play");
+
   // 가려진 덱은 플레이 차단 — server action도 동일하게 거부한다 (#55)
   if (deck.hidden) {
     return (
       <main className="mx-auto max-w-xl px-4 py-8 text-center text-sm text-muted-foreground">
-        비공개 덱은 플레이할 수 없습니다.
+        {t("hiddenDeck")}
       </main>
     );
   }
@@ -43,7 +46,7 @@ export default async function PlayPage({ params, searchParams }: PlayPageProps) 
     <main className="mx-auto max-w-xl space-y-6 px-4 py-8">
       <h1 className="text-center text-2xl font-bold">
         {deck.name}
-        {mode === "challenge" && <span className="ml-2 text-base font-normal">🔥 챌린지</span>}
+        {mode === "challenge" && <span className="ml-2 text-base font-normal">{t("challengeModeLabel")}</span>}
       </h1>
       {mode === "challenge" ? (
         <ChallengeGame deckId={deck.id} deckName={deck.name} script={deck.script} />

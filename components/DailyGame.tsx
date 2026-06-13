@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { GameBoard } from "@/components/GameBoard";
@@ -34,6 +35,7 @@ interface DailyGameProps {
 }
 
 export function DailyGame({ deckId, deckName, script }: DailyGameProps) {
+  const t = useTranslations("game");
   const adapter = useMemo(() => getScriptAdapter(script), [script]);
   const [view, setView] = useState<DailyRoundView | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -83,7 +85,7 @@ export function DailyGame({ deckId, deckName, script }: DailyGameProps) {
   const handleEnter = useCallback(async () => {
     if (!view || finished || submitting) return;
     if (currentUnits.length !== view.targetLength) {
-      toast.error(`${view.targetLength}글자를 입력해주세요.`);
+      toast.error(t("board.inputTooShort", { count: view.targetLength }));
       return;
     }
     setSubmitting(true);
@@ -99,7 +101,7 @@ export function DailyGame({ deckId, deckName, script }: DailyGameProps) {
     } finally {
       setSubmitting(false);
     }
-  }, [view, finished, submitting, currentUnits, deckId, date, applyResult]);
+  }, [view, finished, submitting, currentUnits, deckId, date, applyResult, t]);
 
   const handleGiveUp = useCallback(async () => {
     if (!view || finished || submitting) return;
@@ -116,7 +118,7 @@ export function DailyGame({ deckId, deckName, script }: DailyGameProps) {
     return <p className="text-center text-sm text-destructive">{loadError}</p>;
   }
   if (!view) {
-    return <p className="text-center text-sm text-muted-foreground">불러오는 중...</p>;
+    return <p className="text-center text-sm text-muted-foreground">{t("loading")}</p>;
   }
 
   return (
@@ -145,7 +147,7 @@ export function DailyGame({ deckId, deckName, script }: DailyGameProps) {
           />
           <div className="text-center">
             <Button type="button" variant="ghost" size="sm" onClick={handleGiveUp} disabled={submitting}>
-              포기하기
+              {t("challenge.giveUp")}
             </Button>
           </div>
         </>
