@@ -1,4 +1,5 @@
 import type { ScriptId } from "./scripts/types";
+import { assertKnownScript } from "./scripts/index";
 import { normalizeWord, validateAllowedChars } from "./word-validation";
 
 // 덱 단어 도메인 규칙 (ADR 0010):
@@ -30,11 +31,16 @@ export const MIN_ACTIVE_WORDS = 1;
 
 // 줄 단위 입력을 canonical form으로 정규화·검증·dedupe한다.
 // requireMin이 true면 유효 단어 0개를 에러로 처리한다 (덱 생성 경로).
+// 덱 로드/검증 경계에서 호출되므로 미등록 script id는 hard-fail한다 (assertKnownScript).
 export function parseWordLines(
   raw: string,
   scriptId: ScriptId,
   { requireMin = true }: { requireMin?: boolean } = {},
 ): WordsValidation {
+  // 덱 load/validate 경계 guard: 미등록 script id는 여기서 throw한다.
+  // getScriptAdapter와 달리 silent fallback하지 않는다.
+  assertKnownScript(scriptId);
+
   const invalidLines: string[] = [];
   const seen = new Set<string>();
   const words: string[] = [];
