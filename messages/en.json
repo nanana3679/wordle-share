@@ -127,7 +127,7 @@
       "copyFailure": "Failed to copy to clipboard.",
       "challengeCta": "🔥 Try Challenge",
       "nextWordUnlock": "A new word unlocks tomorrow.",
-      "shareText": "{deckName} Daily {date} {score}"
+      "shareText": "{deckName} Daily {date}"
     },
     "gate": {
       "title": "Complete today's daily to unlock the challenge.",
