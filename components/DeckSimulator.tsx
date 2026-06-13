@@ -3,14 +3,8 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  initializeGame,
-  submitGuess,
-  selectRandomWord,
-  isGameComplete,
-  type GameState,
-  type LetterState,
-} from "@/lib/wordleGame";
+import { GameEngine, type LetterState } from "@/lib/gameEngine";
+import { selectRandomWord } from "@/lib/wordleGame";
 import { getScriptAdapter } from "@/lib/scripts";
 import type { ScriptId } from "@/lib/scripts/types";
 import { normalizeWord } from "@/lib/word-validation";
@@ -33,16 +27,17 @@ interface DeckSimulatorProps {
 
 export function DeckSimulator({ words, script }: DeckSimulatorProps) {
   const adapter = useMemo(() => getScriptAdapter(script), [script]);
-  const [game, setGame] = useState<GameState>(() =>
-    initializeGame(selectRandomWord(words), 6, undefined, adapter),
+  const [engine, setEngine] = useState<GameEngine>(() =>
+    GameEngine.initialize(selectRandomWord(words), script),
   );
   const [guess, setGuess] = useState("");
   const [lengthError, setLengthError] = useState<string | null>(null);
 
+  const game = engine.state;
   const targetLength = adapter.splitUnits(game.targetWord).length;
 
   const restart = () => {
-    setGame(initializeGame(selectRandomWord(words), 6, undefined, adapter));
+    setEngine(GameEngine.initialize(selectRandomWord(words), script));
     setGuess("");
     setLengthError(null);
   };
@@ -56,7 +51,7 @@ export function DeckSimulator({ words, script }: DeckSimulatorProps) {
       return;
     }
     setLengthError(null);
-    setGame((prev) => submitGuess({ ...prev, currentGuess: normalized }));
+    setEngine((prev) => prev.setGuess(normalized).submitGuess().engine);
     setGuess("");
   };
 
@@ -104,7 +99,7 @@ export function DeckSimulator({ words, script }: DeckSimulatorProps) {
 
       {lengthError && <p className="text-sm text-destructive">{lengthError}</p>}
 
-      {isGameComplete(game) && (
+      {engine.isComplete && (
         <Button type="button" variant="outline" size="sm" onClick={restart}>
           다른 단어로 다시
         </Button>

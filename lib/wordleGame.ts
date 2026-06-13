@@ -1,6 +1,16 @@
-// Wordle 게임 로직
+// Wordle 게임 공유 타입 + 판정 프리미티브.
+//
+// 상태 머신(글자 입력/제출/승패)은 lib/gameEngine.ts 의 GameEngine 으로 이전되었다.
+// 이 모듈은 다음만 보유한다:
+//  - 공유 타입(LetterState/Letter/Guess/GameState) — 컴포넌트/서버 액션이 광범위하게 import
+//  - evaluateGuess — 서버측 데일리/챌린지 판정(app/actions)에서 직접 사용하는 프리미티브
+//  - selectRandomWord
+//  - GameEngine 으로 위임하는 하위호환 래퍼(@deprecated)
+//
+// GameEngine 은 evaluateGuess/타입을 이 모듈에서 import 하므로, 아래 래퍼는
+// 순환 참조를 피하기 위해 함수 호출 시점에 동적으로 GameEngine 을 가져온다.
 
-import { getScriptAdapter } from './scripts';
+import { GameEngine } from './gameEngine';
 import type { ScriptAdapter, ScriptId } from './scripts/types';
 
 export type LetterState = 'correct' | 'present' | 'absent' | 'empty';
@@ -26,109 +36,32 @@ export interface GameState {
   adapterId: ScriptId;
 }
 
+/**
+ * @deprecated GameEngine.initialize(targetWord, adapter.id, { maxGuesses, validWords }) 를 사용하라.
+ * 호출마다 어댑터를 받지만 GameEngine 은 id 로 한 번만 해석한다.
+ */
 export function initializeGame(
   targetWord: string,
   maxGuesses: number = 6,
   validWords: string[] | undefined,
   adapter: ScriptAdapter
 ): GameState {
-  return {
-    targetWord: adapter.normalize(targetWord),
-    guesses: [],
-    currentGuess: '',
-    gameStatus: 'playing',
-    maxGuesses,
-    keyboardState: {},
-    validWords: validWords?.map((w) => adapter.normalize(w)),
-    errorMessage: undefined,
-    adapterId: adapter.id,
-  };
+  return GameEngine.initialize(targetWord, adapter.id, { maxGuesses, validWords }).state;
 }
 
+/** @deprecated GameEngine.fromState(state).addLetter(letter).state 를 사용하라. */
 export function addLetterToGuess(gameState: GameState, letter: string): GameState {
-  if (gameState.gameStatus !== 'playing') return gameState;
-
-  const adapter = getScriptAdapter(gameState.adapterId);
-  const targetUnits = adapter.splitUnits(gameState.targetWord);
-  const currentUnits = adapter.splitUnits(gameState.currentGuess);
-  if (currentUnits.length >= targetUnits.length) return gameState;
-
-  if (!adapter.isAllowedChar(letter)) return gameState;
-
-  return {
-    ...gameState,
-    currentGuess: gameState.currentGuess + adapter.normalizeChar(letter),
-    errorMessage: undefined // 입력 시 에러 메시지 초기화
-  };
+  return GameEngine.fromState(gameState).addLetter(letter).state;
 }
 
+/** @deprecated GameEngine.fromState(state).removeLetter().state 를 사용하라. */
 export function removeLetterFromGuess(gameState: GameState): GameState {
-  if (gameState.gameStatus !== 'playing') return gameState;
-
-  const adapter = getScriptAdapter(gameState.adapterId);
-  const units = adapter.splitUnits(gameState.currentGuess);
-  if (units.length === 0) return gameState;
-
-  return {
-    ...gameState,
-    currentGuess: units.slice(0, -1).join('')
-  };
+  return GameEngine.fromState(gameState).removeLetter().state;
 }
 
+/** @deprecated GameEngine.fromState(state).submitGuess().engine.state 를 사용하라. */
 export function submitGuess(gameState: GameState): GameState {
-  if (gameState.gameStatus !== 'playing') return gameState;
-
-  const adapter = getScriptAdapter(gameState.adapterId);
-  const targetUnits = adapter.splitUnits(gameState.targetWord);
-  const currentUnits = adapter.splitUnits(gameState.currentGuess);
-  if (currentUnits.length !== targetUnits.length) return gameState;
-
-  // 유효한 단어 목록이 있는 경우 검증
-  if (gameState.validWords && gameState.validWords.length > 0) {
-    const currentNormalized = adapter.normalize(gameState.currentGuess);
-    if (!gameState.validWords.includes(currentNormalized)) {
-      return {
-        ...gameState,
-        errorMessage: '단어 목록에 없는 단어입니다.'
-      };
-    }
-  }
-
-  const newGuess = evaluateGuess(currentUnits, targetUnits);
-  const newGuesses = [...gameState.guesses, newGuess];
-
-  // 키보드 상태 업데이트
-  const newKeyboardState = { ...gameState.keyboardState };
-  newGuess.letters.forEach(letter => {
-    if (letter.char && letter.state !== 'empty') {
-      // 어댑터의 keyId로 키보드 상태 키 결정
-      const keyId = adapter.keyId(letter.char);
-      // 더 높은 우선순위 상태로 업데이트 (correct > present > absent)
-      const currentState = newKeyboardState[keyId];
-      if (!currentState ||
-          (currentState === 'absent' && letter.state !== 'absent') ||
-          (currentState === 'present' && letter.state === 'correct')) {
-        newKeyboardState[keyId] = letter.state;
-      }
-    }
-  });
-
-  // 게임 상태 확인
-  let gameStatus: 'playing' | 'won' | 'lost' = 'playing';
-  if (adapter.normalize(gameState.currentGuess) === gameState.targetWord) {
-    gameStatus = 'won';
-  } else if (newGuesses.length >= gameState.maxGuesses) {
-    gameStatus = 'lost';
-  }
-
-  return {
-    ...gameState,
-    guesses: newGuesses,
-    currentGuess: '', // 다음 줄로 넘어가기 위해 초기화
-    gameStatus,
-    keyboardState: newKeyboardState,
-    errorMessage: undefined
-  };
+  return GameEngine.fromState(gameState).submitGuess().engine.state;
 }
 
 // 서버측 데일리 판정(app/actions/daily.ts)에서도 사용하므로 export한다
