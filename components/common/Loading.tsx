@@ -1,6 +1,9 @@
+import { getTranslations } from 'next-intl/server';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-export default function Loading() {
+export default async function Loading() {
+  const t = await getTranslations('common');
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
@@ -26,9 +29,9 @@ export default function Loading() {
               />
             </svg>
           </div>
-          <CardTitle className="text-2xl">로딩 중...</CardTitle>
+          <CardTitle className="text-2xl">{t('loading')}</CardTitle>
           <CardDescription>
-            사용자 정보를 불러오고 있습니다.
+            {t('loadingDescription')}
           </CardDescription>
         </CardHeader>
       </Card>

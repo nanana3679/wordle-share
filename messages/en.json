@@ -1,1 +1,31 @@
-{}
+{
+  "common": {
+    "loading": "Loading...",
+    "loadingDescription": "Loading user information.",
+    "unknownError": "An unknown error occurred.",
+    "networkError": "Failed to update like due to network error.",
+    "button": {
+      "retry": "Try again"
+    },
+    "error": {
+      "title": "An error occurred",
+      "description": "A problem occurred while loading the page.",
+      "detailsTitle": "Error details",
+      "showMessage": "Show error message"
+    }
+  },
+  "layout": {
+    "appbar": {
+      "newDeck": "New Deck"
+    },
+    "feedTabs": {
+      "hot": "🔥 Hot",
+      "likes": "Most Liked",
+      "new": "Latest"
+    },
+    "searchBar": {
+      "placeholder": "Search decks",
+      "ariaLabel": "Search decks"
+    }
+  }
+}
