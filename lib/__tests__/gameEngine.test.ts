@@ -105,10 +105,10 @@ describe('GameEngine.removeLetter', () => {
     expect(engine.removeLetter()).toBe(engine);
   });
 
-  it('한글은 자모 단위로 제거한다 (복합 모음은 한 단위)', () => {
-    // '사과' = ㅅㅏㄱㅘ → 마지막 자모 ㅘ만 제거되어 ㅅㅏㄱ
+  it('한글은 자모 단위로 제거한다 (이중모음은 입력 자모 2개로 분해)', () => {
+    // '사과' = ㅅㅏㄱㅗㅏ → 마지막 입력 자모 ㅏ만 제거되어 ㅅㅏㄱㅗ
     const engine = typeWord(createEngine('사과', { adapter: 'hangul' }), '사과').removeLetter();
-    expect(hangul.splitUnits(engine.state.currentGuess)).toEqual(['ㅅ', 'ㅏ', 'ㄱ']);
+    expect(hangul.splitUnits(engine.state.currentGuess)).toEqual(['ㅅ', 'ㅏ', 'ㄱ', 'ㅗ']);
   });
 });
 
@@ -137,10 +137,11 @@ describe('GameEngine.submitGuess — 판정 (correct/present/absent)', () => {
     expect(lastRowStates(engine)).toEqual(['absent', 'present', 'correct', 'present', 'present']);
   });
 
-  it('한글은 자모 단위로 판정한다', () => {
-    // 타깃 사과(ㅅㅏㄱㅘ) vs 추측 과자(ㄱㅘㅈㅏ)
+  it('한글은 자모 단위로 판정한다 (이중모음 분해 포함)', () => {
+    // 타깃 사과(ㅅㅏㄱㅗㅏ) vs 추측 과자(ㄱㅗㅏㅈㅏ)
+    // idx4 ㅏ→correct, ㄱ·ㅗ·ㅏ→present, ㅈ→absent
     const engine = typeWord(createEngine('사과', { adapter: 'hangul' }), '과자').submitGuess().engine;
-    expect(lastRowStates(engine)).toEqual(['present', 'present', 'absent', 'present']);
+    expect(lastRowStates(engine)).toEqual(['present', 'present', 'present', 'absent', 'correct']);
   });
 
   it('길이가 다르면 제출되지 않고 result 는 null 이다', () => {

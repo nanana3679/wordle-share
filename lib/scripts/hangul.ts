@@ -11,7 +11,9 @@ import type { ScriptAdapter } from './types';
 // - splitUnits는 음절을 자모로 분해, 자모 직접 입력은 통과, 그 외 문자는 무시
 //   (입력은 isAllowedWord/isAllowedChar로 사전 검증되어야 함)
 // - 종성 겹받침은 단자모 2개로 추가 분해 (ㄳ→ㄱㅅ 등 11종)
-// - 중성의 이중모음(ㅘ, ㅝ, ㅢ 등)은 분해하지 않고 단일 자모로 보존 — 꼬들 표준
+// - 중성의 이중모음(ㅘ, ㅝ, ㅢ 등)도 두벌식 입력 자모 2개로 추가 분해 (ㅘ→ㅗㅏ 등 7종)
+//   ※ 두벌식 자판에는 이중모음 키가 없어 ㅗ→ㅏ 순으로 입력하므로, 입력 자모열과
+//      정답 분해 결과를 일치시키기 위해 분해한다
 const SBase = 0xac00;
 const LCount = 19;
 const VCount = 21;
@@ -37,7 +39,7 @@ const JONGSEONG: (string | null)[] = [
   'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ',
 ];
 
-// 꼬들 기준: 겹받침을 두 단자모로 분해 (이중모음은 분해하지 않음)
+// 겹받침을 두 단자모로 분해 (11종)
 const COMPOUND_JONGSEONG: Record<string, [string, string]> = {
   'ㄳ': ['ㄱ', 'ㅅ'],
   'ㄵ': ['ㄴ', 'ㅈ'],
@@ -52,6 +54,17 @@ const COMPOUND_JONGSEONG: Record<string, [string, string]> = {
   'ㅄ': ['ㅂ', 'ㅅ'],
 };
 
+// 이중모음을 두벌식 입력 자모 2개로 분해 (7종)
+const COMPOUND_JUNGSEONG: Record<string, [string, string]> = {
+  'ㅘ': ['ㅗ', 'ㅏ'],
+  'ㅙ': ['ㅗ', 'ㅐ'],
+  'ㅚ': ['ㅗ', 'ㅣ'],
+  'ㅝ': ['ㅜ', 'ㅓ'],
+  'ㅞ': ['ㅜ', 'ㅔ'],
+  'ㅟ': ['ㅜ', 'ㅣ'],
+  'ㅢ': ['ㅡ', 'ㅣ'],
+};
+
 function decomposeSyllable(syllable: string): string[] {
   const code = syllable.codePointAt(0);
   if (code === undefined || code < SBase || code > SEnd) {
@@ -62,7 +75,11 @@ function decomposeSyllable(syllable: string): string[] {
   const vIndex = Math.floor((sIndex % NCount) / TCount);
   const tIndex = sIndex % TCount;
 
-  const result: string[] = [CHOSEONG[lIndex], JUNGSEONG[vIndex]];
+  const v = JUNGSEONG[vIndex]!;
+  const compoundV = COMPOUND_JUNGSEONG[v];
+  const result: string[] = compoundV
+    ? [CHOSEONG[lIndex]!, compoundV[0], compoundV[1]]
+    : [CHOSEONG[lIndex]!, v];
   if (tIndex > 0) {
     const t = JONGSEONG[tIndex]!;
     const compound = COMPOUND_JONGSEONG[t];

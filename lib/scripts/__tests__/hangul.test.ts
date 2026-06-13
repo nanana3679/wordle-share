@@ -28,11 +28,19 @@ describe('hangul.splitUnits', () => {
     expect(hangul.splitUnits('잃')).toEqual(['ㅇ', 'ㅣ', 'ㄹ', 'ㅎ']);
   });
 
-  it('이중모음은 분해하지 않음', () => {
-    expect(hangul.splitUnits('과')).toEqual(['ㄱ', 'ㅘ']);
-    expect(hangul.splitUnits('워')).toEqual(['ㅇ', 'ㅝ']);
-    expect(hangul.splitUnits('의')).toEqual(['ㅇ', 'ㅢ']);
-    expect(hangul.splitUnits('왜')).toEqual(['ㅇ', 'ㅙ']);
+  it('이중모음은 두벌식 입력 자모 2개로 분해', () => {
+    expect(hangul.splitUnits('과')).toEqual(['ㄱ', 'ㅗ', 'ㅏ']);
+    expect(hangul.splitUnits('워')).toEqual(['ㅇ', 'ㅜ', 'ㅓ']);
+    expect(hangul.splitUnits('의')).toEqual(['ㅇ', 'ㅡ', 'ㅣ']);
+    expect(hangul.splitUnits('왜')).toEqual(['ㅇ', 'ㅗ', 'ㅐ']);
+    expect(hangul.splitUnits('외')).toEqual(['ㅇ', 'ㅗ', 'ㅣ']);
+    expect(hangul.splitUnits('웨')).toEqual(['ㅇ', 'ㅜ', 'ㅔ']);
+    expect(hangul.splitUnits('위')).toEqual(['ㅇ', 'ㅜ', 'ㅣ']);
+  });
+
+  it('이중모음 + 받침 조합도 분해', () => {
+    expect(hangul.splitUnits('관')).toEqual(['ㄱ', 'ㅗ', 'ㅏ', 'ㄴ']);
+    expect(hangul.splitUnits('뭣')).toEqual(['ㅁ', 'ㅜ', 'ㅓ', 'ㅅ']);
   });
 
   it('여러 음절', () => {
