@@ -1,0 +1,42 @@
+# 0013. 신고 누적 자동 가림
+
+## Status
+
+Accepted
+
+## Context
+
+공개 메인 피드 도입은 모더레이션 부담을 키운다 — 신규 진입자가 첫 화면에서 부적절 콘텐츠를 보면 신뢰가 즉시 깨진다. 모더레이션 후보:
+
+- 사전 검수 — 운영자 1인 부담 과도, UGC 마찰 큼
+- 사후 신고 + 운영자 수동 검토만 — 처리 지연 동안 노출 지속
+- **사후 신고 + 자동 가림 임계 + 운영자 검토** — 빠른 대응 + 운영자 부담 분산
+- AI 모더레이션 (Perspective/Claude) — V2 후보, 비용·정확도 검증 필요
+
+## Decision
+
+### MVP
+- 모든 덱/댓글에 신고 버튼
+- **신고 N회 누적 시 자동 임시 가림**
+  - 덱: 5회 → 메인 피드/검색에서 제외, 직접 링크는 접근 가능 (작성자가 수정/대응 가능)
+  - 댓글: 3회 → 즉시 숨김
+- 운영자 알림 (이메일/디스코드 웹훅) → 검토 후 복구 또는 영구 삭제
+- 임계치는 보수적으로 시작. 운영하며 조정
+
+### 스코프 외 (V2)
+- AI 모더레이션 (Perspective/Claude)
+- 금칙어 사전
+- 사전 검수
+- 비공개 덱
+- 평판 가중치 (신고자 신뢰도)
+
+## Consequences
+
+- 자동 가림 임계 도달 시 즉시 노출 차단 — 메인 피드 신뢰 보호
+- **RLS는 deck row 자체 SELECT 허용**. 피드/검색/sitemap query level에서 `hidden = false` 필터. hidden deck 상세는 직접 링크로 접근 가능하되 server action이 banner + `noindex` 처리. 작성자 본인은 수정 페이지 접근 가능 → 모더레이션 대응
+- 작성자가 가림 알림 받음 → 수정/대응 가능 (직접 링크는 살아있음)
+- false-positive 발생 시 운영자가 복구 — 보수적 임계로 복구 부담은 감수
+- 신고 spam 위협 — 한 사용자가 같은 덱에 여러 번 신고 시 1회로 카운트 (`(target, reporter_anon_id)` 유니크)
+- 임계치 수치는 운영하며 튜닝 — 환경변수로 분리해 코드 변경 없이 조정 가능
+- 자동 가림된 덱은 sitemap에서도 제외 ([0012](./0012-ssr-public-deck-pages.md))
+- `report_count` / `hidden` 갱신은 server action에서 처리 (DB 트리거 X — `reports.target_id`가 polymorphic이라 cross-table update를 server-side에서 명시적으로)
