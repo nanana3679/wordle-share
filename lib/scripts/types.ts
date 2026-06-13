@@ -11,6 +11,10 @@ export interface KeyboardLayout {
   rows: string[][];
   enterLabel: string;
   backspaceLabel: string;
+  /** Stable identifier for the Enter key, independent of display label (i18n-safe). */
+  enterKeyId: string;
+  /** Stable identifier for the Backspace key, independent of display label (i18n-safe). */
+  backspaceKeyId: string;
 }
 
 export interface ScriptAdapter {

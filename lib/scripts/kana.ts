@@ -80,6 +80,8 @@ export const kana: ScriptAdapter = {
     rows: KEYBOARD_ROWS,
     enterLabel: 'ENTER',
     backspaceLabel: 'BACKSPACE',
+    enterKeyId: 'ENTER',
+    backspaceKeyId: 'BACKSPACE',
   },
   keyId: (ch) => toHiragana(ch),
   charDescription: '가나(히라가나/가타카나)',
