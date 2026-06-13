@@ -127,7 +127,7 @@
       "copyFailure": "クリップボードへのコピーに失敗しました。",
       "challengeCta": "🔥 チャレンジに挑戦",
       "nextWordUnlock": "明日、新しい単語が解放されます。",
-      "shareText": "{deckName} デイリー {date} {score}"
+      "shareText": "{deckName} デイリー {date}"
     },
     "gate": {
       "title": "チャレンジを始めるには、今日のデイリーを先にクリアしてください。",
