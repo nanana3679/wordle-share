@@ -38,6 +38,33 @@ export function SmartKeyboard({
   const adapter = useMemo(() => getScriptAdapter(script), [script]);
 
   const renderKey = (char: string) => {
+    const { enterKeyId, backspaceKeyId, enterLabel } = adapter.keyboard;
+    if (char === enterKeyId) {
+      return (
+        <button
+          key={char}
+          type="button"
+          disabled={disabled}
+          onClick={onEnter}
+          className={cn("rounded bg-muted px-4 py-3 text-sm font-semibold", disabled && "opacity-50")}
+        >
+          {enterLabel}
+        </button>
+      );
+    }
+    if (char === backspaceKeyId) {
+      return (
+        <button
+          key={char}
+          type="button"
+          disabled={disabled}
+          onClick={onBackspace}
+          className={cn("rounded bg-muted px-4 py-3 text-sm font-semibold", disabled && "opacity-50")}
+        >
+          ⌫
+        </button>
+      );
+    }
     const state = keyStates[adapter.keyId(char)];
     return (
       <button

@@ -109,6 +109,8 @@ export const hangul: ScriptAdapter = {
     rows: KEYBOARD_ROWS,
     enterLabel: 'ENTER',
     backspaceLabel: 'BACKSPACE',
+    enterKeyId: 'ENTER',
+    backspaceKeyId: 'BACKSPACE',
   },
   keyId: (ch) => ch,
   charDescription: '한글',

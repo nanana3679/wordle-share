@@ -18,6 +18,8 @@ export const latin: ScriptAdapter = {
     rows: KEYBOARD_ROWS,
     enterLabel: 'ENTER',
     backspaceLabel: 'BACKSPACE',
+    enterKeyId: 'ENTER',
+    backspaceKeyId: 'BACKSPACE',
   },
   keyId: (ch) => ch.toUpperCase(),
   charDescription: '영문자(a-z, A-Z)',
