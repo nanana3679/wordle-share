@@ -30,167 +30,167 @@
   },
   "deck": {
     "new": {
-      "title": "새 덱 만들기",
-      "pageTitle": "새 덱 만들기 | wordledecks"
+      "title": "新しいデッキを作成",
+      "pageTitle": "新しいデッキを作成 | wordledecks"
     },
     "edit": {
-      "titleSuffix": "편집"
+      "titleSuffix": "編集"
     },
     "detail": {
-      "playDaily": "오늘의 데일리 플레이",
-      "editButton": "편집",
+      "playDaily": "今日のデイリーをプレイ",
+      "editButton": "編集",
       "scriptLabel": {
-        "latin": "로마자",
-        "hangul": "한글",
-        "kana": "가나"
+        "latin": "ローマ字",
+        "hangul": "ハングル",
+        "kana": "かな"
       }
     },
     "meta": {
-      "wordCount": "단어 {count}개",
-      "creator": "제작자 {nick}",
-      "createdAt": "만든 날 {date}",
+      "wordCount": "{count}単語",
+      "creator": "作成者 {nick}",
+      "createdAt": "作成日 {date}",
       "scriptLabel": {
-        "latin": "로마자",
-        "hangul": "한글",
-        "kana": "가나"
+        "latin": "ローマ字",
+        "hangul": "ハングル",
+        "kana": "かな"
       }
     },
     "form": {
       "label": {
-        "name": "덱 이름",
-        "script": "쓰기체계",
-        "nick": "닉네임",
-        "password": "비밀번호 (덱 전용 PIN)",
-        "words": "단어 목록 (줄당 1개)",
-        "addWords": "단어 추가 (줄당 1개)"
+        "name": "デッキ名",
+        "script": "文字体系",
+        "nick": "ニックネーム",
+        "password": "パスワード（デッキ専用PIN）",
+        "words": "単語リスト（1行1単語）",
+        "addWords": "単語を追加（1行1単語）"
       },
       "scriptOption": {
-        "latin": "로마자 (a-z)",
-        "hangul": "한글",
-        "kana": "가나 (히라가나)"
+        "latin": "ローマ字 (a-z)",
+        "hangul": "ハングル",
+        "kana": "かな（ひらがな）"
       },
       "button": {
-        "create": "덱 만들기",
-        "creating": "만드는 중...",
-        "simulate": "시뮬레이션",
-        "save": "저장",
-        "saving": "저장 중...",
-        "verify": "확인",
-        "verifying": "확인 중...",
-        "deactivate": "비활성화",
-        "reactivate": "재활성화"
+        "create": "デッキを作成",
+        "creating": "作成中...",
+        "simulate": "シミュレーション",
+        "save": "保存",
+        "saving": "保存中...",
+        "verify": "確認",
+        "verifying": "確認中...",
+        "deactivate": "無効化",
+        "reactivate": "再有効化"
       },
       "hint": {
-        "validWordCount": "유효 단어 {count}개",
-        "wordChanged": "변경됨",
-        "editCredentials": "덱을 만들 때 사용한 닉네임과 비밀번호를 입력하세요."
+        "validWordCount": "有効な単語 {count}個",
+        "wordChanged": "変更済み",
+        "editCredentials": "デッキ作成時に使用したニックネームとパスワードを入力してください。"
       },
       "error": {
-        "minActiveWords": "활성 단어가 최소 1개 필요합니다.",
-        "nameLength": "덱 이름은 1~100자여야 합니다.",
-        "unsupportedScript": "지원하지 않는 쓰기체계입니다."
+        "minActiveWords": "有効な単語が最低1つ必要です。",
+        "nameLength": "デッキ名は1〜100文字で入力してください。",
+        "unsupportedScript": "サポートされていない文字体系です。"
       }
     },
     "action": {
-      "created": "덱을 만들었습니다.",
-      "updated": "덱을 수정했습니다."
+      "created": "デッキを作成しました。",
+      "updated": "デッキを更新しました。"
     },
     "list": {
-      "loading": "불러오는 중...",
-      "emptyWithQuery": "[{query}] 덱이 아직 없습니다. 직접 만들어보세요!",
-      "emptyNoQuery": "아직 덱이 없습니다. 첫 덱을 만들어보세요!",
-      "createCta": "새 덱 만들기"
+      "loading": "読み込み中...",
+      "emptyWithQuery": "「{query}」のデッキはまだありません。作ってみましょう！",
+      "emptyNoQuery": "まだデッキがありません。最初のデッキを作ってみましょう！",
+      "createCta": "新しいデッキを作成"
     },
     "hidden": {
-      "title": "🚧 이 덱은 신고로 비공개됐습니다.",
-      "description": "플레이·좋아요·댓글이 차단된 상태입니다. 덱을 만든 분이라면 내용을 수정해 검토에 대응할 수 있습니다.",
-      "editLink": "작성자 수정 페이지"
+      "title": "🚧 このデッキは報告により非公開になっています。",
+      "description": "プレイ・いいね・コメントがブロックされています。デッキの作成者であれば、内容を修正して審査に対応できます。",
+      "editLink": "作成者の編集ページ"
     }
   },
   "game": {
-    "loading": "불러오는 중...",
+    "loading": "読み込み中...",
     "play": {
-      "hiddenDeck": "비공개 덱은 플레이할 수 없습니다.",
-      "challengeModeLabel": "🔥 챌린지"
+      "hiddenDeck": "非公開のデッキはプレイできません。",
+      "challengeModeLabel": "🔥 チャレンジ"
     },
     "board": {
-      "inputTooShort": "{count}글자를 입력해주세요."
+      "inputTooShort": "{count}文字を入力してください。"
     },
     "result": {
-      "success": "🎉 정답!",
-      "failure": "아쉽네요",
-      "answerLabel": "정답:",
-      "attemptsCount": "{current}/{max} 시도",
+      "success": "🎉 正解！",
+      "failure": "残念...",
+      "answerLabel": "正解：",
+      "attemptsCount": "{current}/{max} 回",
       "attemptsExhausted": "X/{max}",
-      "copyButton": "결과 복사",
-      "copySuccess": "결과를 복사했습니다.",
-      "copyFailure": "클립보드 복사에 실패했습니다.",
-      "challengeCta": "🔥 챌린지 도전",
-      "nextWordUnlock": "내일 새로운 단어가 잠금 해제됩니다.",
-      "shareText": "{deckName} 데일리 {date} {score}"
+      "copyButton": "結果をコピー",
+      "copySuccess": "結果をコピーしました。",
+      "copyFailure": "クリップボードへのコピーに失敗しました。",
+      "challengeCta": "🔥 チャレンジに挑戦",
+      "nextWordUnlock": "明日、新しい単語が解放されます。",
+      "shareText": "{deckName} デイリー {date} {score}"
     },
     "gate": {
-      "title": "오늘의 데일리를 먼저 풀어야 챌린지가 열립니다.",
-      "description": "데일리를 완료하면(정답이 아니어도) 챌린지가 잠금 해제됩니다.",
-      "goToDaily": "오늘의 데일리 풀러 가기"
+      "title": "チャレンジを始めるには、今日のデイリーを先にクリアしてください。",
+      "description": "デイリーを完了すると（正解でなくても）チャレンジが解放されます。",
+      "goToDaily": "今日のデイリーへ"
     },
     "challenge": {
-      "roundCounter": "라운드 {current} / {total} · 점수 {score}",
+      "roundCounter": "ラウンド {current} / {total} · スコア {score}",
       "failedTitle": "{score}/{total} 🔥",
-      "blockedWordLabel": "막힌 단어:",
-      "copyButton": "결과 복사",
-      "copySuccess": "결과를 복사했습니다.",
-      "copyFailure": "클립보드 복사에 실패했습니다.",
-      "nextRetry": "내일 다시 도전할 수 있습니다.",
-      "giveUp": "포기하기",
-      "shareText": "{deckName} 챌린지 {date} {score}/{total} 🔥"
+      "blockedWordLabel": "つまずいた単語：",
+      "copyButton": "結果をコピー",
+      "copySuccess": "結果をコピーしました。",
+      "copyFailure": "クリップボードへのコピーに失敗しました。",
+      "nextRetry": "明日また挑戦できます。",
+      "giveUp": "あきらめる",
+      "shareText": "{deckName} チャレンジ {date} {score}/{total} 🔥"
     },
     "perfectClear": {
       "title": "PERFECT CLEAR",
-      "description": "덱의 모든 단어({count}개)를 풀어냈습니다!",
-      "copyButton": "결과 복사",
-      "copySuccess": "결과를 복사했습니다.",
-      "copyFailure": "클립보드 복사에 실패했습니다.",
-      "shareText": "🎉 PERFECT CLEAR — {deckName} 챌린지 {date} {total}/{total}"
+      "description": "デッキの全単語（{count}個）をクリアしました！",
+      "copyButton": "結果をコピー",
+      "copySuccess": "結果をコピーしました。",
+      "copyFailure": "クリップボードへのコピーに失敗しました。",
+      "shareText": "🎉 PERFECT CLEAR — {deckName} チャレンジ {date} {total}/{total}"
     }
   },
   "auth": {
     "error": {
-      "invalidCredentials": "닉네임 또는 비밀번호가 올바르지 않습니다.",
-      "invalidDate": "날짜 형식이 올바르지 않습니다.",
-      "sessionFailed": "세션 발급에 실패했습니다. 잠시 후 다시 시도해주세요.",
-      "sessionFailedShort": "세션 발급에 실패했습니다.",
-      "invalidInput": "입력값을 확인해주세요."
+      "invalidCredentials": "ニックネームまたはパスワードが正しくありません。",
+      "invalidDate": "日付の形式が正しくありません。",
+      "sessionFailed": "セッションの発行に失敗しました。しばらくしてから再試行してください。",
+      "sessionFailedShort": "セッションの発行に失敗しました。",
+      "invalidInput": "入力内容を確認してください。"
     },
     "validation": {
-      "nickFormat": "닉네임은 1~{max}자, '#' 없이 입력해야 합니다.",
-      "botNickForbidden": "bot_ prefix 닉네임은 사용할 수 없습니다.",
-      "passwordLength": "비밀번호는 {min}~{max}자여야 합니다.",
-      "commentLength": "댓글은 1~{max}자여야 합니다."
+      "nickFormat": "ニックネームは1〜{max}文字で、「#」は使用できません。",
+      "botNickForbidden": "bot_ で始まるニックネームは使用できません。",
+      "passwordLength": "パスワードは{min}〜{max}文字で入力してください。",
+      "commentLength": "コメントは1〜{max}文字で入力してください。"
     },
     "success": {
-      "verified": "확인되었습니다.",
-      "commentDeleted": "댓글을 삭제했습니다.",
-      "commentPosted": "댓글을 남겼습니다."
+      "verified": "確認しました。",
+      "commentDeleted": "コメントを削除しました。",
+      "commentPosted": "コメントを投稿しました。"
     }
   },
   "validation": {
     "error": {
-      "invalidChars": "허용되지 않는 문자가 포함된 단어가 있습니다: {lines}",
-      "minOneWord": "최소 1개 단어 필요",
-      "lastActiveWord": "마지막 활성 단어는 비활성화할 수 없습니다. 활성 단어가 최소 1개 필요합니다.",
-      "minOneActiveWord": "최소 1개의 활성 단어가 필요합니다."
+      "invalidChars": "使用できない文字が含まれている単語があります：{lines}",
+      "minOneWord": "単語が最低1つ必要です",
+      "lastActiveWord": "最後の有効な単語は無効化できません。有効な単語が最低1つ必要です。",
+      "minOneActiveWord": "有効な単語が最低1つ必要です。"
     }
   },
   "script": {
     "latin": {
-      "charDescription": "영문자(a-z, A-Z)"
+      "charDescription": "アルファベット（a-z, A-Z）"
     },
     "hangul": {
-      "charDescription": "한글"
+      "charDescription": "ハングル"
     },
     "kana": {
-      "charDescription": "가나(히라가나/가타카나)"
+      "charDescription": "かな（ひらがな／カタカナ）"
     }
   }
 }
