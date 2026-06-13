@@ -25,6 +25,11 @@
 
 - **플랫폼**: Vercel
 
+## 보안
+
+- **보안 베이스라인**: CSP(nonce + strict-dynamic) · XSS 가드 · 의존성 감사 → [SECURITY.md](./platform/SECURITY.md)
+- raw pw localStorage 저장(ADR 0001) 채택으로 XSS가 인증 방어선
+
 ## 테스트
 
 - **단위/컴포넌트 테스트**: Vitest + React Testing Library

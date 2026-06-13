@@ -47,6 +47,7 @@
 - [데이터베이스 스키마](./docs/DATABASE_SCHEMA.md)
 - [페이지 구조](./docs/PAGE_STRUCTURE.md)
 - [코딩 규칙](./docs/CODING_STANDARDS.md)
+- [보안 베이스라인](./docs/platform/SECURITY.md)
 
 ## 🛠 기술 스택
 
