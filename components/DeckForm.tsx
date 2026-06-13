@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,14 +26,9 @@ import {
   appendMyDeck,
 } from "@/lib/credentialCache";
 
-const SCRIPT_LABELS: Record<string, string> = {
-  latin: "로마자 (a-z)",
-  hangul: "한글",
-  kana: "가나 (히라가나)",
-};
-
 export function DeckForm() {
   const router = useRouter();
+  const t = useTranslations("deck.form");
   const [name, setName] = useState("");
   const [script, setScript] = useState<ScriptId>("latin");
   const [nick, setNick] = useState("");
@@ -81,7 +77,7 @@ export function DeckForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="deck-name">덱 이름</Label>
+        <Label htmlFor="deck-name">{t("label.name")}</Label>
         <Input
           id="deck-name"
           value={name}
@@ -92,7 +88,7 @@ export function DeckForm() {
       </div>
 
       <div className="space-y-2">
-        <Label>쓰기체계</Label>
+        <Label>{t("label.script")}</Label>
         <Select value={script} onValueChange={(v) => setScript(v as ScriptId)}>
           <SelectTrigger>
             <SelectValue />
@@ -100,7 +96,7 @@ export function DeckForm() {
           <SelectContent>
             {SUPPORTED_SCRIPTS.map((id) => (
               <SelectItem key={id} value={id}>
-                {SCRIPT_LABELS[id] ?? id}
+                {t(`scriptOption.${id}`)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -109,7 +105,7 @@ export function DeckForm() {
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="deck-nick">닉네임</Label>
+          <Label htmlFor="deck-nick">{t("label.nick")}</Label>
           <Input
             id="deck-nick"
             value={nick}
@@ -119,7 +115,7 @@ export function DeckForm() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="deck-password">비밀번호 (덱 전용 PIN)</Label>
+          <Label htmlFor="deck-password">{t("label.password")}</Label>
           <Input
             id="deck-password"
             type="password"
@@ -133,7 +129,7 @@ export function DeckForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="deck-words">단어 목록 (줄당 1개)</Label>
+        <Label htmlFor="deck-words">{t("label.words")}</Label>
         <Textarea
           id="deck-words"
           value={wordsText}
@@ -146,13 +142,13 @@ export function DeckForm() {
           <p className="text-sm text-destructive">{wordsValidation.message}</p>
         )}
         {wordsValidation.ok && (
-          <p className="text-sm text-muted-foreground">유효 단어 {validWords.length}개</p>
+          <p className="text-sm text-muted-foreground">{t("hint.validWordCount", { count: validWords.length })}</p>
         )}
       </div>
 
       <div className="flex gap-2">
         <Button type="submit" disabled={isSubmitting || validWords.length === 0}>
-          {isSubmitting ? "만드는 중..." : "덱 만들기"}
+          {isSubmitting ? t("button.creating") : t("button.create")}
         </Button>
         <Button
           type="button"
@@ -160,7 +156,7 @@ export function DeckForm() {
           disabled={validWords.length === 0}
           onClick={() => setShowSimulator((v) => !v)}
         >
-          시뮬레이션
+          {t("button.simulate")}
         </Button>
       </div>
 

@@ -27,5 +27,78 @@
       "placeholder": "Search decks",
       "ariaLabel": "Search decks"
     }
+  },
+  "deck": {
+    "new": {
+      "title": "새 덱 만들기",
+      "pageTitle": "새 덱 만들기 | wordledecks"
+    },
+    "edit": {
+      "titleSuffix": "편집"
+    },
+    "detail": {
+      "playDaily": "오늘의 데일리 플레이",
+      "editButton": "편집",
+      "scriptLabel": {
+        "latin": "로마자",
+        "hangul": "한글",
+        "kana": "가나"
+      }
+    },
+    "meta": {
+      "wordCount": "단어 {count}개",
+      "creator": "제작자 {nick}",
+      "createdAt": "만든 날 {date}",
+      "scriptLabel": {
+        "latin": "로마자",
+        "hangul": "한글",
+        "kana": "가나"
+      }
+    },
+    "form": {
+      "label": {
+        "name": "덱 이름",
+        "script": "쓰기체계",
+        "nick": "닉네임",
+        "password": "비밀번호 (덱 전용 PIN)",
+        "words": "단어 목록 (줄당 1개)",
+        "addWords": "단어 추가 (줄당 1개)"
+      },
+      "scriptOption": {
+        "latin": "로마자 (a-z)",
+        "hangul": "한글",
+        "kana": "가나 (히라가나)"
+      },
+      "button": {
+        "create": "덱 만들기",
+        "creating": "만드는 중...",
+        "simulate": "시뮬레이션",
+        "save": "저장",
+        "saving": "저장 중...",
+        "verify": "확인",
+        "verifying": "확인 중...",
+        "deactivate": "비활성화",
+        "reactivate": "재활성화"
+      },
+      "hint": {
+        "validWordCount": "유효 단어 {count}개",
+        "wordChanged": "변경됨",
+        "editCredentials": "덱을 만들 때 사용한 닉네임과 비밀번호를 입력하세요."
+      },
+      "error": {
+        "minActiveWords": "활성 단어가 최소 1개 필요합니다."
+      }
+    },
+    "list": {
+      "loading": "불러오는 중...",
+      "emptyWithQuery": "[{query}] 덱이 아직 없습니다. 직접 만들어보세요!",
+      "emptyNoQuery": "아직 덱이 없습니다. 첫 덱을 만들어보세요!",
+      "createCta": "새 덱 만들기"
+    },
+    "hidden": {
+      "title": "🚧 이 덱은 신고로 비공개됐습니다.",
+      "description": "플레이·좋아요·댓글이 차단된 상태입니다. 덱을 만든 분이라면 내용을 수정해 검토에 대응할 수 있습니다.",
+      "editLink": "작성자 수정 페이지"
+    }
   }
 }

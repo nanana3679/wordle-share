@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { FeedDeckCard } from "@/components/FeedDeckCard";
 import { EmptyResult } from "@/components/EmptyResult";
 import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
@@ -16,6 +17,7 @@ interface FeedListProps {
 }
 
 export function FeedList({ initialDecks, initialNextOffset, sort, query }: FeedListProps) {
+  const t = useTranslations("deck.list");
   const [decks, setDecks] = useState(initialDecks);
   const [nextOffset, setNextOffset] = useState(initialNextOffset);
   const loadingRef = useRef(false);
@@ -51,7 +53,7 @@ export function FeedList({ initialDecks, initialNextOffset, sort, query }: FeedL
       ))}
       {nextOffset !== null && (
         <div ref={sentinelRef} className="py-4 text-center text-sm text-muted-foreground">
-          불러오는 중...
+          {t("loading")}
         </div>
       )}
     </div>
