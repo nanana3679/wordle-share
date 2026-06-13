@@ -127,7 +127,7 @@
       "copyFailure": "클립보드 복사에 실패했습니다.",
       "challengeCta": "🔥 챌린지 도전",
       "nextWordUnlock": "내일 새로운 단어가 잠금 해제됩니다.",
-      "shareText": "{deckName} 데일리 {date} {score}"
+      "shareText": "{deckName} 데일리 {date}"
     },
     "gate": {
       "title": "오늘의 데일리를 먼저 풀어야 챌린지가 열립니다.",
