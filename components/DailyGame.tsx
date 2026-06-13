@@ -16,6 +16,7 @@ import {
 import { deriveKeyStates } from "@/lib/game-keyboard";
 import { getScriptAdapter } from "@/lib/scripts";
 import type { ScriptId } from "@/lib/scripts/types";
+import { KanaRulesHelp } from "@/components/KanaRulesHelp";
 
 // 데일리는 client-local date 기준 (ADR 0015 — date는 보안 경계가 아님)
 function localDate(): string {
@@ -120,6 +121,7 @@ export function DailyGame({ deckId, deckName, script }: DailyGameProps) {
 
   return (
     <div className="space-y-6">
+      {script === "kana" && <KanaRulesHelp />}
       <GameBoard
         attempts={view.attempts}
         currentUnits={currentUnits}
