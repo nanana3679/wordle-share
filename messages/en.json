@@ -86,8 +86,14 @@
         "editCredentials": "덱을 만들 때 사용한 닉네임과 비밀번호를 입력하세요."
       },
       "error": {
-        "minActiveWords": "활성 단어가 최소 1개 필요합니다."
+        "minActiveWords": "활성 단어가 최소 1개 필요합니다.",
+        "nameLength": "덱 이름은 1~100자여야 합니다.",
+        "unsupportedScript": "지원하지 않는 쓰기체계입니다."
       }
+    },
+    "action": {
+      "created": "덱을 만들었습니다.",
+      "updated": "덱을 수정했습니다."
     },
     "list": {
       "loading": "불러오는 중...",
@@ -146,6 +152,45 @@
       "copySuccess": "결과를 복사했습니다.",
       "copyFailure": "클립보드 복사에 실패했습니다.",
       "shareText": "🎉 PERFECT CLEAR — {deckName} 챌린지 {date} {total}/{total}"
+    }
+  },
+  "auth": {
+    "error": {
+      "invalidCredentials": "닉네임 또는 비밀번호가 올바르지 않습니다.",
+      "invalidDate": "날짜 형식이 올바르지 않습니다.",
+      "sessionFailed": "세션 발급에 실패했습니다. 잠시 후 다시 시도해주세요.",
+      "sessionFailedShort": "세션 발급에 실패했습니다.",
+      "invalidInput": "입력값을 확인해주세요."
+    },
+    "validation": {
+      "nickFormat": "닉네임은 1~{max}자, '#' 없이 입력해야 합니다.",
+      "botNickForbidden": "bot_ prefix 닉네임은 사용할 수 없습니다.",
+      "passwordLength": "비밀번호는 {min}~{max}자여야 합니다.",
+      "commentLength": "댓글은 1~{max}자여야 합니다."
+    },
+    "success": {
+      "verified": "확인되었습니다.",
+      "commentDeleted": "댓글을 삭제했습니다.",
+      "commentPosted": "댓글을 남겼습니다."
+    }
+  },
+  "validation": {
+    "error": {
+      "invalidChars": "허용되지 않는 문자가 포함된 단어가 있습니다: {lines}",
+      "minOneWord": "최소 1개 단어 필요",
+      "lastActiveWord": "마지막 활성 단어는 비활성화할 수 없습니다. 활성 단어가 최소 1개 필요합니다.",
+      "minOneActiveWord": "최소 1개의 활성 단어가 필요합니다."
+    }
+  },
+  "script": {
+    "latin": {
+      "charDescription": "영문자(a-z, A-Z)"
+    },
+    "hangul": {
+      "charDescription": "한글"
+    },
+    "kana": {
+      "charDescription": "가나(히라가나/가타카나)"
     }
   }
 }
