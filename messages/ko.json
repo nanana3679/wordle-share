@@ -65,7 +65,8 @@
         "nick": "닉네임",
         "password": "비밀번호 (덱 전용 PIN)",
         "words": "단어 목록 (줄당 1개)",
-        "addWords": "단어 추가 (줄당 1개)"
+        "addWords": "단어 추가 (줄당 1개)",
+        "image": "대표 이미지"
       },
       "scriptOption": {
         "latin": "로마자 (a-z)",
@@ -81,12 +82,15 @@
         "verify": "확인",
         "verifying": "확인 중...",
         "deactivate": "비활성화",
-        "reactivate": "재활성화"
+        "reactivate": "재활성화",
+        "uploadImage": "이미지 저장",
+        "uploadingImage": "저장 중..."
       },
       "hint": {
         "validWordCount": "유효 단어 {count}개",
         "wordChanged": "변경됨",
-        "editCredentials": "덱을 만들 때 사용한 닉네임과 비밀번호를 입력하세요."
+        "editCredentials": "덱을 만들 때 사용한 닉네임과 비밀번호를 입력하세요.",
+        "image": "JPG, PNG, WebP 형식. 최대 2MB."
       },
       "error": {
         "minActiveWords": "활성 단어가 최소 1개 필요합니다.",

@@ -35,6 +35,7 @@ export function DeckForm() {
   const [nick, setNick] = useState("");
   const [password, setPassword] = useState("");
   const [wordsText, setWordsText] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSimulator, setShowSimulator] = useState(false);
 
@@ -70,6 +71,7 @@ export function DeckForm() {
       formData.set("nick", nick);
       formData.set("password", password);
       formData.set("words_text", wordsText);
+      if (imageFile) formData.set("image", imageFile);
 
       const result = await actionWithToast(() => createDeck(formData));
       if (result.success && result.data) {
@@ -152,6 +154,17 @@ export function DeckForm() {
         {wordsValidation.ok && (
           <p className="text-sm text-muted-foreground">{t("hint.validWordCount", { count: validWords.length })}</p>
         )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="deck-image">{t("label.image")}</Label>
+        <Input
+          id="deck-image"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+        />
+        <p className="text-sm text-muted-foreground">{t("hint.image")}</p>
       </div>
 
       <div className="flex gap-2">

@@ -65,7 +65,8 @@
         "nick": "ニックネーム",
         "password": "パスワード（デッキ専用PIN）",
         "words": "単語リスト（1行1単語）",
-        "addWords": "単語を追加（1行1単語）"
+        "addWords": "単語を追加（1行1単語）",
+        "image": "代表画像"
       },
       "scriptOption": {
         "latin": "ローマ字 (a-z)",
@@ -81,12 +82,15 @@
         "verify": "確認",
         "verifying": "確認中...",
         "deactivate": "無効化",
-        "reactivate": "再有効化"
+        "reactivate": "再有効化",
+        "uploadImage": "画像を保存",
+        "uploadingImage": "保存中..."
       },
       "hint": {
         "validWordCount": "有効な単語 {count}個",
         "wordChanged": "変更済み",
-        "editCredentials": "デッキ作成時に使用したニックネームとパスワードを入力してください。"
+        "editCredentials": "デッキ作成時に使用したニックネームとパスワードを入力してください。",
+        "image": "JPG、PNG、WebP形式。最大2MB。"
       },
       "error": {
         "minActiveWords": "有効な単語が最低1つ必要です。",

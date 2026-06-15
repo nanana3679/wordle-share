@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { actionWithToast } from "@/lib/action-with-toast";
-import { verifyDeckCredentials, updateDeckWords, type DeckWord } from "@/app/actions/deck";
+import { verifyDeckCredentials, updateDeckImage, updateDeckWords, type DeckWord } from "@/app/actions/deck";
 import { loadCachedCredentials, saveCachedCredentials } from "@/lib/credentialCache";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +26,8 @@ export function DeckEditForm({ deckId, words }: DeckEditFormProps) {
   const [unlocked, setUnlocked] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   // 저장 전까지 보류되는 비활성화/재활성화 토글 (id 집합)
   const [toggledIds, setToggledIds] = useState<Set<string>>(new Set());
   const [addWordsText, setAddWordsText] = useState("");
@@ -87,6 +89,26 @@ export function DeckEditForm({ deckId, words }: DeckEditFormProps) {
       }
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleImageSave = async () => {
+    if (!imageFile) return;
+    setUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.set("deckId", deckId);
+      formData.set("nick", nick.trim());
+      formData.set("password", password);
+      formData.set("image", imageFile);
+
+      const result = await actionWithToast(() => updateDeckImage(formData));
+      if (result.success) {
+        setImageFile(null);
+        router.refresh();
+      }
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -162,6 +184,27 @@ export function DeckEditForm({ deckId, words }: DeckEditFormProps) {
           onChange={(e) => setAddWordsText(e.target.value)}
           rows={4}
         />
+      </section>
+
+      <section className="space-y-2">
+        <Label htmlFor="edit-image">{t("label.image")}</Label>
+        <div className="flex gap-2">
+          <Input
+            id="edit-image"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!imageFile || uploadingImage}
+            onClick={handleImageSave}
+          >
+            {uploadingImage ? t("button.uploadingImage") : t("button.uploadImage")}
+          </Button>
+        </div>
+        <p className="text-sm text-muted-foreground">{t("hint.image")}</p>
       </section>
 
       <Button onClick={handleSave} disabled={saving || activeAfterToggle < 1}>

@@ -251,6 +251,7 @@ export type Database = {
           creator_pw_hash: string
           hidden: boolean
           id: string
+          image_url: string | null
           like_count: number
           name: string
           report_count: number
@@ -264,6 +265,7 @@ export type Database = {
           creator_pw_hash: string
           hidden?: boolean
           id?: string
+          image_url?: string | null
           like_count?: number
           name: string
           report_count?: number
@@ -277,6 +279,7 @@ export type Database = {
           creator_pw_hash?: string
           hidden?: boolean
           id?: string
+          image_url?: string | null
           like_count?: number
           name?: string
           report_count?: number
