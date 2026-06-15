@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +15,17 @@ export async function DeckMetaCard({ deck, activeWordCount }: DeckMetaCardProps)
 
   return (
     <Card>
+      {deck.image_url && (
+        <div className="relative aspect-[16/9] overflow-hidden rounded-t-lg bg-muted">
+          <Image
+            src={deck.image_url}
+            alt={deck.name}
+            fill
+            sizes="(max-width: 640px) 100vw, 640px"
+            className="object-cover"
+          />
+        </div>
+      )}
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           {deck.name}
