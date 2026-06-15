@@ -13,3 +13,17 @@ export function parseForwardedFor(headerValue: string | null): string | null {
   const first = headerValue.split(",")[0]?.trim();
   return first || null;
 }
+
+type HeaderReader = {
+  get(name: string): string | null;
+};
+
+export function requestIpFromHeaders(headers: HeaderReader): string | null {
+  return (
+    parseForwardedFor(headers.get("x-forwarded-for")) ??
+    headers.get("x-real-ip") ??
+    headers.get("x-vercel-forwarded-for") ??
+    headers.get("cf-connecting-ip") ??
+    headers.get("true-client-ip")
+  );
+}

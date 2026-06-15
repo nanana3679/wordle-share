@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { CommentForm } from "@/components/CommentForm";
 import { CommentDeleteButton } from "@/components/CommentDeleteButton";
 import { ReportButton } from "@/components/ReportButton";
@@ -22,6 +23,7 @@ interface CommentThreadProps {
 // (deck, date) 단위 thread를 날짜 헤더로 그룹해 최신순 표시 (#47).
 // 가시성 게이트는 server action(getComments)이 계산한다 — 클라이언트는 결과만 렌더.
 export function CommentThread({ deckId }: CommentThreadProps) {
+  const t = useTranslations("comments");
   const [view, setView] = useState<CommentThreadsView | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [today] = useState(localDate);
@@ -41,22 +43,22 @@ export function CommentThread({ deckId }: CommentThreadProps) {
   }, [reload]);
 
   if (loadError) return <p className="text-sm text-destructive">{loadError}</p>;
-  if (!view) return <p className="text-sm text-muted-foreground">댓글 불러오는 중...</p>;
+  if (!view) return <p className="text-sm text-muted-foreground">{t("loading")}</p>;
 
   return (
     <section className="space-y-6">
-      <h2 className="text-lg font-bold">댓글</h2>
+      <h2 className="text-lg font-bold">{t("title")}</h2>
 
       {view.todayLocked ? (
         <div className="rounded-lg border p-4 text-center text-sm text-muted-foreground">
-          🔒 오늘의 데일리를 완료하면 오늘 댓글을 보고 쓸 수 있습니다.
+          {t("todayLocked")}
         </div>
       ) : (
         <CommentForm deckId={deckId} writerToday={today} onCreated={reload} />
       )}
 
       {view.threads.length === 0 && !view.todayLocked && (
-        <p className="text-sm text-muted-foreground">아직 댓글이 없습니다. 첫 댓글을 남겨보세요!</p>
+        <p className="text-sm text-muted-foreground">{t("empty")}</p>
       )}
 
       {view.threads.map((thread) => (

@@ -52,6 +52,13 @@ export function DeckForm() {
     [wordsText, script],
   );
   const validWords = wordsValidation.ok ? wordsValidation.words : [];
+  const wordsValidationMessage = wordsValidation.ok
+    ? null
+    : wordsValidation.reason === "invalidChars"
+      ? tValidation("invalidChars", { lines: wordsValidation.invalidLines.join(", ") })
+      : wordsValidation.reason === "duplicateWords"
+        ? tValidation("duplicateWords", { lines: wordsValidation.invalidLines.join(", ") })
+        : tValidation("minOneWord");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -140,11 +147,7 @@ export function DeckForm() {
           required
         />
         {!wordsValidation.ok && (
-          <p className="text-sm text-destructive">
-            {wordsValidation.invalidLines.length > 0
-              ? tValidation("invalidChars", { lines: wordsValidation.invalidLines.join(", ") })
-              : tValidation("minOneWord")}
-          </p>
+          <p className="text-sm text-destructive">{wordsValidationMessage}</p>
         )}
         {wordsValidation.ok && (
           <p className="text-sm text-muted-foreground">{t("hint.validWordCount", { count: validWords.length })}</p>

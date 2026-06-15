@@ -177,9 +177,27 @@
       "commentPosted": "Comment posted."
     }
   },
+  "comments": {
+    "title": "Comments",
+    "loading": "Loading comments...",
+    "todayLocked": "🔒 Complete today's daily to read and write today's comments.",
+    "empty": "No comments yet. Leave the first one!"
+  },
+  "report": {
+    "trigger": "Report",
+    "description": "Report inappropriate {target}.",
+    "reasonPlaceholder": "Reason (optional)",
+    "submit": "Submit report",
+    "submitting": "Reporting...",
+    "target": {
+      "deck": "deck",
+      "comment": "comment"
+    }
+  },
   "validation": {
     "error": {
       "invalidChars": "Some words contain unsupported characters: {lines}",
+      "duplicateWords": "Duplicate words are not allowed: {lines}",
       "minOneWord": "At least 1 word required",
       "lastActiveWord": "Cannot deactivate the last active word. At least 1 active word is required.",
       "minOneActiveWord": "At least 1 active word is required."

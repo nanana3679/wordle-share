@@ -177,9 +177,27 @@
       "commentPosted": "コメントを投稿しました。"
     }
   },
+  "comments": {
+    "title": "コメント",
+    "loading": "コメントを読み込んでいます...",
+    "todayLocked": "🔒 今日のデイリーを完了すると、今日のコメントを読んだり書いたりできます。",
+    "empty": "まだコメントがありません。最初のコメントを投稿してみましょう！"
+  },
+  "report": {
+    "trigger": "報告",
+    "description": "不適切な{target}を報告します。",
+    "reasonPlaceholder": "理由（任意）",
+    "submit": "報告する",
+    "submitting": "報告中...",
+    "target": {
+      "deck": "デッキ",
+      "comment": "コメント"
+    }
+  },
   "validation": {
     "error": {
       "invalidChars": "使用できない文字が含まれている単語があります：{lines}",
+      "duplicateWords": "重複した単語があります：{lines}",
       "minOneWord": "単語が最低1つ必要です",
       "lastActiveWord": "最後の有効な単語は無効化できません。有効な単語が最低1つ必要です。",
       "minOneActiveWord": "有効な単語が最低1つ必要です。"
