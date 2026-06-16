@@ -37,7 +37,8 @@
       "pageTitle": "新しいデッキを作成 | wordledecks"
     },
     "edit": {
-      "titleSuffix": "編集"
+      "titleSuffix": "編集",
+      "backToDeck": "デッキ詳細"
     },
     "detail": {
       "backToList": "デッキ一覧",

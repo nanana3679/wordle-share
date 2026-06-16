@@ -3,7 +3,6 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { ArrowLeft } from "lucide-react";
 import { serializeJsonLd } from "@/lib/security-headers";
 import { getDeckById } from "@/app/actions/deck";
 import { DeckMetaCard } from "@/components/DeckMetaCard";
@@ -12,6 +11,7 @@ import { LikeButton } from "@/components/LikeButton";
 import { ReportButton } from "@/components/ReportButton";
 import { HiddenDeckBanner } from "@/components/HiddenDeckBanner";
 import { Button } from "@/components/ui/button";
+import { PageTopBar } from "@/components/PageTopBar";
 
 interface DeckPageProps {
   params: Promise<{ id: string }>;
@@ -70,12 +70,7 @@ export default async function DeckPage({ params }: DeckPageProps) {
   if (deck.hidden) {
     return (
       <main className="mx-auto max-w-xl space-y-6 px-4 py-8">
-        <Button asChild variant="ghost" size="sm">
-          <Link href="/">
-            <ArrowLeft className="size-4" />
-            {t("backToList")}
-          </Link>
-        </Button>
+        <PageTopBar backHref="/" backLabel={t("backToList")} />
         <HiddenDeckBanner deckId={deck.id} />
         <DeckMetaCard deck={deck} activeWordCount={activeWordCount} />
       </main>
@@ -101,12 +96,7 @@ export default async function DeckPage({ params }: DeckPageProps) {
 
   return (
     <main className="mx-auto max-w-xl space-y-6 px-4 py-8">
-      <Button asChild variant="ghost" size="sm">
-        <Link href="/">
-          <ArrowLeft className="size-4" />
-          {t("backToList")}
-        </Link>
-      </Button>
+      <PageTopBar backHref="/" backLabel={t("backToList")} />
       {/* JSON-LD: serializeJsonLd로 `<` 이스케이프 → </script> 브레이크아웃 차단 (sanitized) */}
       {/* eslint-disable-next-line react/no-danger -- sanitized via serializeJsonLd */}
       <script type="application/ld+json" nonce={nonce} dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />

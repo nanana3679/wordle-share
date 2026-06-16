@@ -37,7 +37,8 @@
       "pageTitle": "새 덱 만들기 | wordledecks"
     },
     "edit": {
-      "titleSuffix": "편집"
+      "titleSuffix": "편집",
+      "backToDeck": "덱 상세"
     },
     "detail": {
       "backToList": "덱 목록",
