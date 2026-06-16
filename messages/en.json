@@ -83,6 +83,7 @@
         "verifying": "Verifying...",
         "deactivate": "Deactivate",
         "reactivate": "Reactivate",
+        "selectImage": "Select image",
         "uploadImage": "Save image",
         "uploadingImage": "Saving..."
       },
