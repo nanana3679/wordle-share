@@ -40,6 +40,7 @@
       "titleSuffix": "編集"
     },
     "detail": {
+      "backToList": "デッキ一覧",
       "playDaily": "今日のデイリーをプレイ",
       "editButton": "編集",
       "scriptLabel": {
@@ -119,6 +120,7 @@
     "loading": "読み込み中...",
     "play": {
       "hiddenDeck": "非公開のデッキはプレイできません。",
+      "backToDeck": "デッキ詳細",
       "challengeModeLabel": "🔥 チャレンジ"
     },
     "board": {
@@ -134,6 +136,7 @@
       "copySuccess": "結果をコピーしました。",
       "copyFailure": "クリップボードへのコピーに失敗しました。",
       "challengeCta": "🔥 チャレンジに挑戦",
+      "viewComments": "コメントを見る",
       "nextWordUnlock": "明日、新しい単語が解放されます。",
       "shareText": "{deckName} デイリー {date}"
     },
@@ -151,6 +154,7 @@
       "copyFailure": "クリップボードへのコピーに失敗しました。",
       "nextRetry": "明日また挑戦できます。",
       "giveUp": "あきらめる",
+      "viewComments": "コメントを見る",
       "shareText": "{deckName} チャレンジ {date} {score}/{total} 🔥"
     },
     "perfectClear": {
@@ -159,6 +163,7 @@
       "copyButton": "結果をコピー",
       "copySuccess": "結果をコピーしました。",
       "copyFailure": "クリップボードへのコピーに失敗しました。",
+      "viewComments": "コメントを見る",
       "shareText": "🎉 PERFECT CLEAR — {deckName} チャレンジ {date} {total}/{total}"
     }
   },

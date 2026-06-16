@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -133,7 +134,7 @@ export function ChallengeGame({ deckId, deckName, script }: ChallengeGameProps) 
   if (!view) return <p className="text-center text-sm text-muted-foreground">{tGame("loading")}</p>;
 
   if (view.endedReason === "completed") {
-    return <PerfectClearScreen deckName={deckName} date={view.date} totalRounds={view.totalRounds} />;
+    return <PerfectClearScreen deckId={deckId} deckName={deckName} date={view.date} totalRounds={view.totalRounds} />;
   }
 
   return (
@@ -166,9 +167,14 @@ export function ChallengeGame({ deckId, deckName, script }: ChallengeGameProps) 
               {t("blockedWordLabel")} <span className="font-semibold text-foreground">{view.answer}</span>
             </p>
           )}
-          <Button type="button" onClick={handleCopyFailed}>
-            {t("copyButton")}
-          </Button>
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button type="button" onClick={handleCopyFailed}>
+              {t("copyButton")}
+            </Button>
+            <Button asChild variant="outline">
+              <Link href={`/d/${deckId}#comments`}>{t("viewComments")}</Link>
+            </Button>
+          </div>
           <p className="text-xs text-muted-foreground">{t("nextRetry")}</p>
         </div>
       ) : (

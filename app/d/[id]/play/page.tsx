@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase-server";
 import { isSupportedScript } from "@/lib/scripts";
 import { DailyGame } from "@/components/DailyGame";
 import { ChallengeGame } from "@/components/ChallengeGame";
+import { Button } from "@/components/ui/button";
 
 interface PlayPageProps {
   params: Promise<{ id: string }>;
@@ -36,14 +39,26 @@ export default async function PlayPage({ params, searchParams }: PlayPageProps) 
   // 가려진 덱은 플레이 차단 — server action도 동일하게 거부한다 (#55)
   if (deck.hidden) {
     return (
-      <main className="mx-auto max-w-xl px-4 py-8 text-center text-sm text-muted-foreground">
-        {t("hiddenDeck")}
+      <main className="mx-auto max-w-xl space-y-6 px-4 py-8">
+        <Button asChild variant="ghost" size="sm">
+          <Link href={`/d/${deck.id}`}>
+            <ArrowLeft className="size-4" />
+            {t("backToDeck")}
+          </Link>
+        </Button>
+        <p className="text-center text-sm text-muted-foreground">{t("hiddenDeck")}</p>
       </main>
     );
   }
 
   return (
     <main className="mx-auto max-w-xl space-y-6 px-4 py-8">
+      <Button asChild variant="ghost" size="sm">
+        <Link href={`/d/${deck.id}`}>
+          <ArrowLeft className="size-4" />
+          {t("backToDeck")}
+        </Link>
+      </Button>
       <h1 className="text-center text-2xl font-bold">
         {deck.name}
         {mode === "challenge" && <span className="ml-2 text-base font-normal">{t("challengeModeLabel")}</span>}

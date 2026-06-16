@@ -40,6 +40,7 @@
       "titleSuffix": "편집"
     },
     "detail": {
+      "backToList": "덱 목록",
       "playDaily": "오늘의 데일리 플레이",
       "editButton": "편집",
       "scriptLabel": {
@@ -119,6 +120,7 @@
     "loading": "불러오는 중...",
     "play": {
       "hiddenDeck": "비공개 덱은 플레이할 수 없습니다.",
+      "backToDeck": "덱 상세",
       "challengeModeLabel": "🔥 챌린지"
     },
     "board": {
@@ -134,6 +136,7 @@
       "copySuccess": "결과를 복사했습니다.",
       "copyFailure": "클립보드 복사에 실패했습니다.",
       "challengeCta": "🔥 챌린지 도전",
+      "viewComments": "댓글 보러가기",
       "nextWordUnlock": "내일 새로운 단어가 잠금 해제됩니다.",
       "shareText": "{deckName} 데일리 {date}"
     },
@@ -151,6 +154,7 @@
       "copyFailure": "클립보드 복사에 실패했습니다.",
       "nextRetry": "내일 다시 도전할 수 있습니다.",
       "giveUp": "포기하기",
+      "viewComments": "댓글 보러가기",
       "shareText": "{deckName} 챌린지 {date} {score}/{total} 🔥"
     },
     "perfectClear": {
@@ -159,6 +163,7 @@
       "copyButton": "결과 복사",
       "copySuccess": "결과를 복사했습니다.",
       "copyFailure": "클립보드 복사에 실패했습니다.",
+      "viewComments": "댓글 보러가기",
       "shareText": "🎉 PERFECT CLEAR — {deckName} 챌린지 {date} {total}/{total}"
     }
   },
