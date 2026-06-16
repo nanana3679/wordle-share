@@ -23,7 +23,15 @@ import type { Tables } from "@/types/database";
 
 // creator_pw_hash 노출 방지용 화이트리스트
 const DECK_PUBLIC_COLUMNS =
-  "id, name, script, creator_id, creator_nick, like_count, hidden, report_count, created_at, updated_at";
+  "id, name, script, creator_id, creator_nick, image_url, like_count, hidden, report_count, created_at, updated_at";
+
+const DECK_IMAGE_BUCKET = "deck-images";
+const MAX_DECK_IMAGE_BYTES = 2 * 1024 * 1024;
+const DECK_IMAGE_TYPES: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
 
 export type PublicDeck = Omit<Tables<"decks">, "creator_pw_hash">;
 export type DeckWord = Tables<"words">;
@@ -35,6 +43,10 @@ export interface DeckWithWords {
 
 type CredentialCheck =
   | { ok: true }
+  | { ok: false; message: string };
+
+type DeckImageUpload =
+  | { ok: true; imageUrl: string; objectPath: string }
   | { ok: false; message: string };
 
 // verifyCredentials는 request context 밖에서 호출될 수도 있어
@@ -65,6 +77,57 @@ async function verifyCredentials(
   return { ok: true };
 }
 
+function readOptionalImage(formData: FormData): File | null {
+  const file = formData.get("image");
+  if (!(file instanceof File) || file.size === 0) return null;
+  return file;
+}
+
+async function uploadDeckImage(deckId: string, file: File): Promise<DeckImageUpload> {
+  if (file.size > MAX_DECK_IMAGE_BYTES) {
+    return { ok: false, message: "이미지는 2MB 이하만 업로드할 수 있습니다." };
+  }
+
+  const ext = DECK_IMAGE_TYPES[file.type];
+  if (!ext) {
+    return { ok: false, message: "이미지는 JPG, PNG, WebP 형식만 업로드할 수 있습니다." };
+  }
+
+  const admin = createAdminClient();
+  const objectPrefix = `${deckId}/`;
+  const objectPath = `${objectPrefix}cover-${Date.now()}.${ext}`;
+
+  const { error } = await admin.storage
+    .from(DECK_IMAGE_BUCKET)
+    .upload(objectPath, file, {
+      contentType: file.type,
+      cacheControl: "31536000",
+      upsert: true,
+    });
+
+  if (error) {
+    return { ok: false, message: `이미지 업로드에 실패했습니다: ${error.message}` };
+  }
+
+  const { data } = admin.storage.from(DECK_IMAGE_BUCKET).getPublicUrl(objectPath);
+  return { ok: true, imageUrl: data.publicUrl, objectPath };
+}
+
+async function listDeckImagePaths(deckId: string): Promise<string[]> {
+  const admin = createAdminClient();
+  const objectPrefix = `${deckId}/`;
+  const { data } = await admin.storage
+    .from(DECK_IMAGE_BUCKET)
+    .list(deckId, { limit: 100 });
+  return (data ?? []).map((object) => `${objectPrefix}${object.name}`);
+}
+
+async function removeDeckImagePaths(paths: string[]): Promise<void> {
+  if (paths.length === 0) return;
+  const admin = createAdminClient();
+  await admin.storage.from(DECK_IMAGE_BUCKET).remove(paths);
+}
+
 export async function createDeck(formData: FormData): Promise<ActionResponse<{ id: string }>> {
   return safeAction(async () => {
     const tAuth = await getTranslations("auth");
@@ -76,6 +139,7 @@ export async function createDeck(formData: FormData): Promise<ActionResponse<{ i
     const nick = String(formData.get("nick") ?? "").trim();
     const password = String(formData.get("password") ?? "");
     const wordsText = String(formData.get("words_text") ?? "");
+    const image = readOptionalImage(formData);
 
     const fieldErrors: { [key: string]: string[] } = {};
     if (!name || name.length > 100) fieldErrors.name = [tDeckForm("error.nameLength")];
@@ -134,6 +198,23 @@ export async function createDeck(formData: FormData): Promise<ActionResponse<{ i
       // 단어 없는 덱은 invariant 위반 — 덱을 남기지 않는다
       await admin.from("decks").delete().eq("id", deck.id);
       return { success: false, message: `단어 저장에 실패했습니다: ${wordsError.message}` };
+    }
+
+    if (image) {
+      const upload = await uploadDeckImage(deck.id, image);
+      if (!upload.ok) {
+        await admin.from("decks").delete().eq("id", deck.id);
+        return { success: false, message: upload.message };
+      }
+      const { error: imageError } = await admin
+        .from("decks")
+        .update({ image_url: upload.imageUrl })
+        .eq("id", deck.id);
+      if (imageError) {
+        await removeDeckImagePaths([upload.objectPath]);
+        await admin.from("decks").delete().eq("id", deck.id);
+        return { success: false, message: `이미지 저장에 실패했습니다: ${imageError.message}` };
+      }
     }
 
     revalidatePath(`/d/${deck.id}`);
@@ -263,5 +344,44 @@ export async function updateDeckWords(input: {
 
     revalidatePath(`/d/${deckId}`);
     return { success: true, message: tDeckAction("updated") };
+  });
+}
+
+export async function updateDeckImage(formData: FormData): Promise<ActionResponse<{ imageUrl: string }>> {
+  return safeAction(async () => {
+    const tAuth = await getTranslations("auth");
+    const deckId = String(formData.get("deckId") ?? "");
+    const nick = String(formData.get("nick") ?? "").trim();
+    const password = String(formData.get("password") ?? "");
+    const image = readOptionalImage(formData);
+
+    if (!deckId || !image) {
+      return { success: false, message: "업로드할 이미지를 선택해주세요." };
+    }
+
+    const check = await verifyCredentials(deckId, nick, password, {
+      deckNotFound: "덱을 찾을 수 없습니다.",
+      invalidCredentials: tAuth("error.invalidCredentials"),
+    });
+    if (!check.ok) return { success: false, message: check.message };
+
+    const existingImagePaths = await listDeckImagePaths(deckId);
+    const upload = await uploadDeckImage(deckId, image);
+    if (!upload.ok) return { success: false, message: upload.message };
+
+    const admin = createAdminClient();
+    const { error } = await admin
+      .from("decks")
+      .update({ image_url: upload.imageUrl, updated_at: new Date().toISOString() })
+      .eq("id", deckId);
+    if (error) {
+      await removeDeckImagePaths([upload.objectPath]);
+      return { success: false, message: `이미지 저장에 실패했습니다: ${error.message}` };
+    }
+
+    await removeDeckImagePaths(existingImagePaths.filter((path) => path !== upload.objectPath));
+    revalidatePath(`/d/${deckId}`);
+    revalidatePath(`/d/${deckId}/edit`);
+    return { success: true, data: { imageUrl: upload.imageUrl }, message: "이미지를 저장했습니다." };
   });
 }

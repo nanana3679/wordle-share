@@ -21,7 +21,12 @@ export interface WordUpdatePlan {
 
 export type WordsValidation =
   | { ok: true; words: string[] }
-  | { ok: false; message: string; invalidLines: string[] };
+  | {
+      ok: false;
+      reason: "invalidChars" | "duplicateWords" | "minOneWord";
+      message: string;
+      invalidLines: string[];
+    };
 
 export type PlanResult =
   | { ok: true; plan: WordUpdatePlan }
@@ -29,7 +34,7 @@ export type PlanResult =
 
 export const MIN_ACTIVE_WORDS = 1;
 
-// 줄 단위 입력을 canonical form으로 정규화·검증·dedupe한다.
+// 줄 단위 입력을 canonical form으로 정규화·검증한다.
 // requireMin이 true면 유효 단어 0개를 에러로 처리한다 (덱 생성 경로).
 // 덱 로드/검증 경계에서 호출되므로 미등록 script id는 hard-fail한다 (assertKnownScript).
 export function parseWordLines(
@@ -42,6 +47,7 @@ export function parseWordLines(
   assertKnownScript(scriptId);
 
   const invalidLines: string[] = [];
+  const duplicateLines: string[] = [];
   const seen = new Set<string>();
   const words: string[] = [];
 
@@ -53,7 +59,10 @@ export function parseWordLines(
       invalidLines.push(trimmed);
       continue;
     }
-    if (seen.has(normalized)) continue; // 정규화 후 중복은 조용히 dedupe
+    if (seen.has(normalized)) {
+      duplicateLines.push(trimmed);
+      continue;
+    }
     seen.add(normalized);
     words.push(normalized);
   }
@@ -61,12 +70,21 @@ export function parseWordLines(
   if (invalidLines.length > 0) {
     return {
       ok: false,
+      reason: "invalidChars",
       message: `허용되지 않는 문자가 포함된 단어가 있습니다: ${invalidLines.join(", ")}`,
       invalidLines,
     };
   }
+  if (duplicateLines.length > 0) {
+    return {
+      ok: false,
+      reason: "duplicateWords",
+      message: `중복 단어가 있습니다: ${duplicateLines.join(", ")}`,
+      invalidLines: duplicateLines,
+    };
+  }
   if (requireMin && words.length < MIN_ACTIVE_WORDS) {
-    return { ok: false, message: "최소 1개 단어 필요", invalidLines: [] };
+    return { ok: false, reason: "minOneWord", message: "최소 1개 단어 필요", invalidLines: [] };
   }
   return { ok: true, words };
 }

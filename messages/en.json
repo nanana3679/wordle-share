@@ -65,7 +65,8 @@
         "nick": "Nickname",
         "password": "Password (deck PIN)",
         "words": "Word list (one per line)",
-        "addWords": "Add words (one per line)"
+        "addWords": "Add words (one per line)",
+        "image": "Cover image"
       },
       "scriptOption": {
         "latin": "Latin (a-z)",
@@ -81,12 +82,15 @@
         "verify": "Verify",
         "verifying": "Verifying...",
         "deactivate": "Deactivate",
-        "reactivate": "Reactivate"
+        "reactivate": "Reactivate",
+        "uploadImage": "Save image",
+        "uploadingImage": "Saving..."
       },
       "hint": {
         "validWordCount": "{count} valid words",
         "wordChanged": "Changed",
-        "editCredentials": "Enter the nickname and password you used when creating this deck."
+        "editCredentials": "Enter the nickname and password you used when creating this deck.",
+        "image": "JPG, PNG, or WebP. Max 2MB."
       },
       "error": {
         "minActiveWords": "At least 1 active word is required.",
@@ -177,9 +181,27 @@
       "commentPosted": "Comment posted."
     }
   },
+  "comments": {
+    "title": "Comments",
+    "loading": "Loading comments...",
+    "todayLocked": "🔒 Complete today's daily to read and write today's comments.",
+    "empty": "No comments yet. Leave the first one!"
+  },
+  "report": {
+    "trigger": "Report",
+    "description": "Report inappropriate {target}.",
+    "reasonPlaceholder": "Reason (optional)",
+    "submit": "Submit report",
+    "submitting": "Reporting...",
+    "target": {
+      "deck": "deck",
+      "comment": "comment"
+    }
+  },
   "validation": {
     "error": {
       "invalidChars": "Some words contain unsupported characters: {lines}",
+      "duplicateWords": "Duplicate words are not allowed: {lines}",
       "minOneWord": "At least 1 word required",
       "lastActiveWord": "Cannot deactivate the last active word. At least 1 active word is required.",
       "minOneActiveWord": "At least 1 active word is required."

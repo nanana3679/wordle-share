@@ -65,7 +65,8 @@
         "nick": "닉네임",
         "password": "비밀번호 (덱 전용 PIN)",
         "words": "단어 목록 (줄당 1개)",
-        "addWords": "단어 추가 (줄당 1개)"
+        "addWords": "단어 추가 (줄당 1개)",
+        "image": "대표 이미지"
       },
       "scriptOption": {
         "latin": "로마자 (a-z)",
@@ -81,12 +82,15 @@
         "verify": "확인",
         "verifying": "확인 중...",
         "deactivate": "비활성화",
-        "reactivate": "재활성화"
+        "reactivate": "재활성화",
+        "uploadImage": "이미지 저장",
+        "uploadingImage": "저장 중..."
       },
       "hint": {
         "validWordCount": "유효 단어 {count}개",
         "wordChanged": "변경됨",
-        "editCredentials": "덱을 만들 때 사용한 닉네임과 비밀번호를 입력하세요."
+        "editCredentials": "덱을 만들 때 사용한 닉네임과 비밀번호를 입력하세요.",
+        "image": "JPG, PNG, WebP 형식. 최대 2MB."
       },
       "error": {
         "minActiveWords": "활성 단어가 최소 1개 필요합니다.",
@@ -177,9 +181,27 @@
       "commentPosted": "댓글을 남겼습니다."
     }
   },
+  "comments": {
+    "title": "댓글",
+    "loading": "댓글 불러오는 중...",
+    "todayLocked": "🔒 오늘의 데일리를 완료하면 오늘 댓글을 보고 쓸 수 있습니다.",
+    "empty": "아직 댓글이 없습니다. 첫 댓글을 남겨보세요!"
+  },
+  "report": {
+    "trigger": "신고",
+    "description": "부적절한 {target}을 신고합니다.",
+    "reasonPlaceholder": "사유 (선택)",
+    "submit": "신고하기",
+    "submitting": "신고 중...",
+    "target": {
+      "deck": "덱",
+      "comment": "댓글"
+    }
+  },
   "validation": {
     "error": {
       "invalidChars": "허용되지 않는 문자가 포함된 단어가 있습니다: {lines}",
+      "duplicateWords": "중복 단어가 있습니다: {lines}",
       "minOneWord": "최소 1개 단어 필요",
       "lastActiveWord": "마지막 활성 단어는 비활성화할 수 없습니다. 활성 단어가 최소 1개 필요합니다.",
       "minOneActiveWord": "최소 1개의 활성 단어가 필요합니다."

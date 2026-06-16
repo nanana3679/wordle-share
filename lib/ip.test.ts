@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { hashIp, parseForwardedFor } from './ip';
+import { hashIp, parseForwardedFor, requestIpFromHeaders } from './ip';
 
 describe('hashIp — 결정성 (AC)', () => {
   it('같은 (ip, salt)면 항상 같은 해시', () => {
@@ -29,5 +29,33 @@ describe('parseForwardedFor', () => {
   it('없거나 비어있으면 null', () => {
     expect(parseForwardedFor(null)).toBeNull();
     expect(parseForwardedFor('')).toBeNull();
+  });
+});
+
+describe('requestIpFromHeaders', () => {
+  function headers(values: Record<string, string | null>) {
+    return {
+      get(name: string) {
+        return values[name] ?? null;
+      },
+    };
+  }
+
+  it('x-forwarded-for 첫 항목을 우선한다', () => {
+    expect(requestIpFromHeaders(headers({
+      'x-forwarded-for': '203.0.113.7, 10.0.0.1',
+      'x-real-ip': '198.51.100.1',
+    }))).toBe('203.0.113.7');
+  });
+
+  it('프록시별 대체 헤더를 순서대로 사용한다', () => {
+    expect(requestIpFromHeaders(headers({ 'x-real-ip': '198.51.100.1' }))).toBe('198.51.100.1');
+    expect(requestIpFromHeaders(headers({ 'x-vercel-forwarded-for': '198.51.100.2' }))).toBe('198.51.100.2');
+    expect(requestIpFromHeaders(headers({ 'cf-connecting-ip': '198.51.100.3' }))).toBe('198.51.100.3');
+    expect(requestIpFromHeaders(headers({ 'true-client-ip': '198.51.100.4' }))).toBe('198.51.100.4');
+  });
+
+  it('IP 헤더가 없으면 null', () => {
+    expect(requestIpFromHeaders(headers({}))).toBeNull();
   });
 });

@@ -65,7 +65,8 @@
         "nick": "ニックネーム",
         "password": "パスワード（デッキ専用PIN）",
         "words": "単語リスト（1行1単語）",
-        "addWords": "単語を追加（1行1単語）"
+        "addWords": "単語を追加（1行1単語）",
+        "image": "代表画像"
       },
       "scriptOption": {
         "latin": "ローマ字 (a-z)",
@@ -81,12 +82,15 @@
         "verify": "確認",
         "verifying": "確認中...",
         "deactivate": "無効化",
-        "reactivate": "再有効化"
+        "reactivate": "再有効化",
+        "uploadImage": "画像を保存",
+        "uploadingImage": "保存中..."
       },
       "hint": {
         "validWordCount": "有効な単語 {count}個",
         "wordChanged": "変更済み",
-        "editCredentials": "デッキ作成時に使用したニックネームとパスワードを入力してください。"
+        "editCredentials": "デッキ作成時に使用したニックネームとパスワードを入力してください。",
+        "image": "JPG、PNG、WebP形式。最大2MB。"
       },
       "error": {
         "minActiveWords": "有効な単語が最低1つ必要です。",
@@ -177,9 +181,27 @@
       "commentPosted": "コメントを投稿しました。"
     }
   },
+  "comments": {
+    "title": "コメント",
+    "loading": "コメントを読み込んでいます...",
+    "todayLocked": "🔒 今日のデイリーを完了すると、今日のコメントを読んだり書いたりできます。",
+    "empty": "まだコメントがありません。最初のコメントを投稿してみましょう！"
+  },
+  "report": {
+    "trigger": "報告",
+    "description": "不適切な{target}を報告します。",
+    "reasonPlaceholder": "理由（任意）",
+    "submit": "報告する",
+    "submitting": "報告中...",
+    "target": {
+      "deck": "デッキ",
+      "comment": "コメント"
+    }
+  },
   "validation": {
     "error": {
       "invalidChars": "使用できない文字が含まれている単語があります：{lines}",
+      "duplicateWords": "重複した単語があります：{lines}",
       "minOneWord": "単語が最低1つ必要です",
       "lastActiveWord": "最後の有効な単語は無効化できません。有効な単語が最低1つ必要です。",
       "minOneActiveWord": "有効な単語が最低1つ必要です。"

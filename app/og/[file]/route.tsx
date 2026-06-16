@@ -23,7 +23,7 @@ export async function GET(
   const [{ data: deck }, { count: wordCount }] = await Promise.all([
     supabase
       .from("decks")
-      .select("name, script, like_count, hidden")
+      .select("name, script, image_url, like_count, hidden")
       .eq("id", deckId)
       .single(),
     supabase
@@ -49,23 +49,51 @@ export async function GET(
           alignItems: "center",
           justifyContent: "center",
           gap: 24,
+          position: "relative",
           backgroundColor: "#0f172a",
           color: "#f8fafc",
           fontSize: 36,
+          overflow: "hidden",
         }}
       >
-        <div style={{ display: "flex", gap: 12, fontSize: 28, color: "#94a3b8" }}>
-          wordledecks · {SCRIPT_LABELS[deck.script] ?? deck.script}
-        </div>
-        <div style={{ display: "flex", fontSize: 72, fontWeight: 700, padding: "0 60px" }}>
-          {deck.name}
-        </div>
-        <div style={{ display: "flex", gap: 40, fontSize: 32, color: "#cbd5e1" }}>
-          <span>단어 {wordCount ?? 0}개</span>
-          <span>❤️ {deck.like_count}</span>
-        </div>
-        <div style={{ display: "flex", fontSize: 24, color: "#64748b" }}>
-          오늘의 단어에 도전해보세요
+        {deck.image_url && (
+          // eslint-disable-next-line @next/next/no-img-element -- next/og ImageResponse renders raw img tags.
+          <img
+            src={deck.image_url}
+            alt=""
+            width="1200"
+            height="630"
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              opacity: 0.42,
+            }}
+          />
+        )}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "linear-gradient(180deg, rgba(15,23,42,0.52), rgba(15,23,42,0.92))",
+          }}
+        />
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 24, zIndex: 1 }}>
+          <div style={{ display: "flex", gap: 12, fontSize: 28, color: "#cbd5e1" }}>
+            wordledecks · {SCRIPT_LABELS[deck.script] ?? deck.script}
+          </div>
+          <div style={{ display: "flex", fontSize: 72, fontWeight: 700, padding: "0 60px", textAlign: "center" }}>
+            {deck.name}
+          </div>
+          <div style={{ display: "flex", gap: 40, fontSize: 32, color: "#e2e8f0" }}>
+            <span>단어 {wordCount ?? 0}개</span>
+            <span>❤️ {deck.like_count}</span>
+          </div>
+          <div style={{ display: "flex", fontSize: 24, color: "#cbd5e1" }}>
+            오늘의 단어에 도전해보세요
+          </div>
         </div>
       </div>
     ),

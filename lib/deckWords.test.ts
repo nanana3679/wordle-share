@@ -6,8 +6,17 @@ function row(id: string, text: string, active: boolean): DeckWordRow {
 }
 
 describe('parseWordLines', () => {
-  it('정규화(NFC+lowercase) 후 dedupe한다', () => {
+  it('정규화(NFC+lowercase) 후 중복 단어를 거부한다', () => {
     const result = parseWordLines('LoL\nlol\npikachu', 'latin');
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toBe('duplicateWords');
+      expect(result.invalidLines).toEqual(['lol']);
+    }
+  });
+
+  it('유효 단어는 정규화해서 반환한다', () => {
+    const result = parseWordLines('LoL\npikachu', 'latin');
     expect(result).toEqual({ ok: true, words: ['lol', 'pikachu'] });
   });
 
@@ -19,13 +28,19 @@ describe('parseWordLines', () => {
   it('허용 문자 외 단어는 원본 줄을 들어 거부한다', () => {
     const result = parseWordLines('pikachu\nstar wars', 'latin');
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.invalidLines).toEqual(['star wars']);
+    if (!result.ok) {
+      expect(result.reason).toBe('invalidChars');
+      expect(result.invalidLines).toEqual(['star wars']);
+    }
   });
 
   it('유효 단어 0개면 "최소 1개 단어 필요" 에러 (AC)', () => {
     const result = parseWordLines('', 'latin');
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.message).toContain('최소 1개');
+    if (!result.ok) {
+      expect(result.reason).toBe('minOneWord');
+      expect(result.message).toContain('최소 1개');
+    }
   });
 
   it('requireMin: false면 0개를 허용한다 (편집 시 추가 없음 케이스)', () => {

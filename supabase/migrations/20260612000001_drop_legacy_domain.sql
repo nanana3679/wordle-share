@@ -12,6 +12,6 @@ DROP POLICY IF EXISTS "인증된 사용자 썸네일 업로드 가능" ON storag
 DROP POLICY IF EXISTS "인증된 사용자 썸네일 수정 가능" ON storage.objects;
 DROP POLICY IF EXISTS "인증된 사용자 썸네일 삭제 가능" ON storage.objects;
 
--- 3. deck-thumbnails 버킷 비우고 삭제
-DELETE FROM storage.objects WHERE bucket_id = 'deck-thumbnails';
-DELETE FROM storage.buckets WHERE id = 'deck-thumbnails';
+-- 3. deck-thumbnails 버킷 삭제는 Storage API로만 가능하다.
+-- Supabase hosted Postgres는 storage.objects/storage.buckets 직접 DELETE를 막으므로
+-- DB reset migration에서는 정책만 제거하고 버킷 데이터는 운영자가 대시보드에서 정리한다.

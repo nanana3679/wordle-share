@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase-admin";
 import { safeAction } from "@/lib/safe-action";
 import { ActionResponse } from "@/types/action";
-import { hashIp, parseForwardedFor } from "@/lib/ip";
+import { hashIp, requestIpFromHeaders } from "@/lib/ip";
 
 // IP 해시 단독 식별 좋아요 (ADR 0002). likes 테이블은 RLS 정책이 없어
 // client direct 접근이 차단된다 — 모든 read/write는 본 server action만.
@@ -19,18 +19,20 @@ export type LikeActionResponse = ActionResponse<LikeStatus> & { conflict?: boole
 
 const PG_UNIQUE_VIOLATION = "23505";
 
-async function requestIpHash(): Promise<string | null> {
+type IpHashResult =
+  | { ok: true; ipHash: string }
+  | { ok: false; message: string };
+
+async function requestIpHash(): Promise<IpHashResult> {
   const salt = process.env.IP_HASH_SALT;
   if (!salt) {
     console.error("[like] IP_HASH_SALT 환경변수가 설정되지 않았습니다.");
-    return null;
+    return { ok: false, message: "좋아요 설정이 누락되었습니다." };
   }
   const headerStore = await headers();
-  const ip =
-    parseForwardedFor(headerStore.get("x-forwarded-for")) ??
-    headerStore.get("x-real-ip");
-  if (!ip) return null;
-  return hashIp(ip, salt);
+  const ip = requestIpFromHeaders(headerStore);
+  if (!ip) return { ok: false, message: "요청 IP를 확인할 수 없습니다." };
+  return { ok: true, ipHash: hashIp(ip, salt) };
 }
 
 async function currentStatus(deckId: string, ipHash: string): Promise<LikeStatus | null> {
@@ -51,9 +53,9 @@ async function currentStatus(deckId: string, ipHash: string): Promise<LikeStatus
 export async function getLikeStatus(deckId: string): Promise<LikeActionResponse> {
   return safeAction(async () => {
     const ipHash = await requestIpHash();
-    if (!ipHash) return { success: false, message: "요청 IP를 확인할 수 없습니다." };
+    if (!ipHash.ok) return { success: false, message: ipHash.message };
 
-    const status = await currentStatus(deckId, ipHash);
+    const status = await currentStatus(deckId, ipHash.ipHash);
     if (!status) return { success: false, message: "덱을 찾을 수 없습니다." };
     return { success: true, data: status, message: "좋아요 상태를 가져왔습니다." };
   });
@@ -66,7 +68,7 @@ export async function toggleLike(
 ): Promise<LikeActionResponse> {
   return safeAction(async () => {
     const ipHash = await requestIpHash();
-    if (!ipHash) return { success: false, message: "요청 IP를 확인할 수 없습니다." };
+    if (!ipHash.ok) return { success: false, message: ipHash.message };
 
     const admin = createAdminClient();
 
@@ -78,7 +80,7 @@ export async function toggleLike(
       .single();
     if (!deck) return { success: false, message: "덱을 찾을 수 없습니다." };
     if (deck.hidden) {
-      const status = await currentStatus(deckId, ipHash);
+      const status = await currentStatus(deckId, ipHash.ipHash);
       return {
         success: false,
         conflict: true,
@@ -90,9 +92,9 @@ export async function toggleLike(
     if (like) {
       const { error } = await admin
         .from("likes")
-        .insert({ deck_id: deckId, ip_hash: ipHash });
+        .insert({ deck_id: deckId, ip_hash: ipHash.ipHash });
       if (error?.code === PG_UNIQUE_VIOLATION) {
-        const status = await currentStatus(deckId, ipHash);
+        const status = await currentStatus(deckId, ipHash.ipHash);
         return {
           success: false,
           conflict: true,
@@ -108,14 +110,14 @@ export async function toggleLike(
         .from("likes")
         .delete()
         .eq("deck_id", deckId)
-        .eq("ip_hash", ipHash);
+        .eq("ip_hash", ipHash.ipHash);
       if (error) {
         return { success: false, message: `좋아요 취소에 실패했습니다: ${error.message}` };
       }
     }
 
     // 트리거 반영 후 서버 진실을 반환 — 클라이언트가 이 값으로 동기화한다
-    const status = await currentStatus(deckId, ipHash);
+    const status = await currentStatus(deckId, ipHash.ipHash);
     if (!status) return { success: false, message: "덱을 찾을 수 없습니다." };
     return {
       success: true,

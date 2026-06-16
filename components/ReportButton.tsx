@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,6 +19,7 @@ interface ReportButtonProps {
 }
 
 export function ReportButton({ targetType, targetId }: ReportButtonProps) {
+  const t = useTranslations("report");
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -47,22 +49,22 @@ export function ReportButton({ targetType, targetId }: ReportButtonProps) {
           size="sm"
           className="h-7 px-2 text-xs text-muted-foreground"
         >
-          신고
+          {t("trigger")}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-64">
         <form onSubmit={handleSubmit} className="space-y-2">
           <p className="text-xs text-muted-foreground">
-            부적절한 {targetType === "deck" ? "덱" : "댓글"}을 신고합니다.
+            {t("description", { target: t(`target.${targetType}`) })}
           </p>
           <Input
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="사유 (선택)"
+            placeholder={t("reasonPlaceholder")}
             maxLength={200}
           />
           <Button type="submit" size="sm" disabled={submitting} className="w-full">
-            {submitting ? "신고 중..." : "신고하기"}
+            {submitting ? t("submitting") : t("submit")}
           </Button>
         </form>
       </PopoverContent>

@@ -10,7 +10,7 @@ import { escapeLikePattern, normalizeSearchQuery } from "@/lib/search";
 // creator_pw_hash는 화이트리스트로 제외한다.
 
 const FEED_COLUMNS =
-  "id, name, script, creator_id, creator_nick, like_count, created_at";
+  "id, name, script, creator_id, creator_nick, image_url, like_count, created_at";
 // Hot은 computed score라 DB 정렬 불가 — 최신 window를 가져와 서버(JS)에서 정렬한다.
 // hot 점수는 recency 가중이라 오래된 덱은 어차피 하위권 → window 근사로 충분 (MVP)
 const HOT_WINDOW = 200;
@@ -24,6 +24,7 @@ export interface FeedDeck {
   script: string;
   creator_id: string;
   creator_nick: string;
+  image_url: string | null;
   like_count: number;
   created_at: string;
 }

@@ -35,6 +35,7 @@ export function DeckForm() {
   const [nick, setNick] = useState("");
   const [password, setPassword] = useState("");
   const [wordsText, setWordsText] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSimulator, setShowSimulator] = useState(false);
 
@@ -52,6 +53,13 @@ export function DeckForm() {
     [wordsText, script],
   );
   const validWords = wordsValidation.ok ? wordsValidation.words : [];
+  const wordsValidationMessage = wordsValidation.ok
+    ? null
+    : wordsValidation.reason === "invalidChars"
+      ? tValidation("invalidChars", { lines: wordsValidation.invalidLines.join(", ") })
+      : wordsValidation.reason === "duplicateWords"
+        ? tValidation("duplicateWords", { lines: wordsValidation.invalidLines.join(", ") })
+        : tValidation("minOneWord");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,6 +71,7 @@ export function DeckForm() {
       formData.set("nick", nick);
       formData.set("password", password);
       formData.set("words_text", wordsText);
+      if (imageFile) formData.set("image", imageFile);
 
       const result = await actionWithToast(() => createDeck(formData));
       if (result.success && result.data) {
@@ -140,15 +149,22 @@ export function DeckForm() {
           required
         />
         {!wordsValidation.ok && (
-          <p className="text-sm text-destructive">
-            {wordsValidation.invalidLines.length > 0
-              ? tValidation("invalidChars", { lines: wordsValidation.invalidLines.join(", ") })
-              : tValidation("minOneWord")}
-          </p>
+          <p className="text-sm text-destructive">{wordsValidationMessage}</p>
         )}
         {wordsValidation.ok && (
           <p className="text-sm text-muted-foreground">{t("hint.validWordCount", { count: validWords.length })}</p>
         )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="deck-image">{t("label.image")}</Label>
+        <Input
+          id="deck-image"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+        />
+        <p className="text-sm text-muted-foreground">{t("hint.image")}</p>
       </div>
 
       <div className="flex gap-2">
