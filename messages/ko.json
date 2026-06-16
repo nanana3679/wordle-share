@@ -83,6 +83,7 @@
         "verifying": "확인 중...",
         "deactivate": "비활성화",
         "reactivate": "재활성화",
+        "selectImage": "이미지 선택",
         "uploadImage": "이미지 저장",
         "uploadingImage": "저장 중..."
       },
