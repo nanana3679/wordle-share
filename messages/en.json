@@ -40,6 +40,7 @@
       "titleSuffix": "Edit"
     },
     "detail": {
+      "backToList": "Deck list",
       "playDaily": "Play Today's Daily",
       "editButton": "Edit",
       "scriptLabel": {
@@ -118,6 +119,7 @@
     "loading": "Loading...",
     "play": {
       "hiddenDeck": "This deck is hidden and cannot be played.",
+      "backToDeck": "Deck detail",
       "challengeModeLabel": "🔥 Challenge"
     },
     "board": {
@@ -133,6 +135,7 @@
       "copySuccess": "Result copied.",
       "copyFailure": "Failed to copy to clipboard.",
       "challengeCta": "🔥 Try Challenge",
+      "viewComments": "View comments",
       "nextWordUnlock": "A new word unlocks tomorrow.",
       "shareText": "{deckName} Daily {date}"
     },
@@ -150,6 +153,7 @@
       "copyFailure": "Failed to copy to clipboard.",
       "nextRetry": "Come back tomorrow to try again.",
       "giveUp": "Give up",
+      "viewComments": "View comments",
       "shareText": "{deckName} Challenge {date} {score}/{total} 🔥"
     },
     "perfectClear": {
@@ -158,6 +162,7 @@
       "copyButton": "Copy result",
       "copySuccess": "Result copied.",
       "copyFailure": "Failed to copy to clipboard.",
+      "viewComments": "View comments",
       "shareText": "🎉 PERFECT CLEAR — {deckName} Challenge {date} {total}/{total}"
     }
   },

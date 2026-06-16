@@ -1,16 +1,18 @@
 "use client";
 
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
 interface PerfectClearScreenProps {
+  deckId: string;
   deckName: string;
   date: string;
   totalRounds: number;
 }
 
-export function PerfectClearScreen({ deckName, date, totalRounds }: PerfectClearScreenProps) {
+export function PerfectClearScreen({ deckId, deckName, date, totalRounds }: PerfectClearScreenProps) {
   const t = useTranslations("game.perfectClear");
 
   const handleCopy = async () => {
@@ -31,9 +33,14 @@ export function PerfectClearScreen({ deckName, date, totalRounds }: PerfectClear
       <p className="text-sm text-muted-foreground">
         {t("description", { count: totalRounds })}
       </p>
-      <Button type="button" onClick={handleCopy}>
-        {t("copyButton")}
-      </Button>
+      <div className="flex flex-wrap justify-center gap-2">
+        <Button type="button" onClick={handleCopy}>
+          {t("copyButton")}
+        </Button>
+        <Button asChild variant="outline">
+          <Link href={`/d/${deckId}#comments`}>{t("viewComments")}</Link>
+        </Button>
+      </div>
     </div>
   );
 }

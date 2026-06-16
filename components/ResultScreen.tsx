@@ -55,13 +55,18 @@ export function ResultScreen({ deckName, view, deckId }: ResultScreenProps) {
           ? t("attemptsCount", { current: view.attempts.length, max: view.maxAttempts })
           : t("attemptsExhausted", { max: view.maxAttempts })}
       </p>
-      <div className="flex justify-center gap-2">
+      <div className="flex flex-wrap justify-center gap-2">
         <Button type="button" onClick={handleCopy}>
           {t("copyButton")}
         </Button>
         {deckId && (
           <Button asChild variant="outline">
             <Link href={`/d/${deckId}/play?mode=challenge`}>{t("challengeCta")}</Link>
+          </Button>
+        )}
+        {deckId && (
+          <Button asChild variant="outline">
+            <Link href={`/d/${deckId}#comments`}>{t("viewComments")}</Link>
           </Button>
         )}
       </div>
