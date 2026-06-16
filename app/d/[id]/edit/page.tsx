@@ -18,7 +18,7 @@ export default async function DeckEditPage({ params }: DeckEditPageProps) {
   return (
     <main className="mx-auto max-w-xl space-y-6 px-4 py-8">
       <h1 className="text-2xl font-bold">{deck.name} {t("titleSuffix")}</h1>
-      <DeckEditForm deckId={deck.id} words={words} />
+      <DeckEditForm deckId={deck.id} version={deck.version} words={words} />
     </main>
   );
 }

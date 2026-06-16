@@ -31,8 +31,8 @@ import { ActionResponse } from "@/types/action";
  * );
  * ```
  */
-export async function actionWithToast<T>(
-  actionFn: () => Promise<ActionResponse<T>>,
+export async function actionWithToast<TResponse extends ActionResponse<unknown>>(
+  actionFn: () => Promise<TResponse>,
   options?: {
     /** toast를 표시할지 여부 (기본값: true) */
     showToast?: boolean;
@@ -41,7 +41,7 @@ export async function actionWithToast<T>(
     /** 실패 시에만 toast를 표시할지 여부 (기본값: false) */
     showOnlyError?: boolean;
   }
-): Promise<ActionResponse<T>> {
+): Promise<TResponse> {
   const {
     showToast = true,
     showOnlySuccess = false,
@@ -85,6 +85,6 @@ export async function actionWithToast<T>(
     return {
       success: false,
       message: errorMessage,
-    };
+    } as TResponse;
   }
 }

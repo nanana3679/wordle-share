@@ -257,6 +257,7 @@ export type Database = {
           report_count: number
           script: string
           updated_at: string
+          version: number
         }
         Insert: {
           created_at?: string
@@ -271,6 +272,7 @@ export type Database = {
           report_count?: number
           script?: string
           updated_at?: string
+          version?: number
         }
         Update: {
           created_at?: string
@@ -285,6 +287,7 @@ export type Database = {
           report_count?: number
           script?: string
           updated_at?: string
+          version?: number
         }
         Relationships: []
       }
