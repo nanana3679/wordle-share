@@ -257,6 +257,7 @@ export type Database = {
           report_count: number
           script: string
           updated_at: string
+          version: number
         }
         Insert: {
           created_at?: string
@@ -271,6 +272,7 @@ export type Database = {
           report_count?: number
           script?: string
           updated_at?: string
+          version?: number
         }
         Update: {
           created_at?: string
@@ -285,6 +287,7 @@ export type Database = {
           report_count?: number
           script?: string
           updated_at?: string
+          version?: number
         }
         Relationships: []
       }
@@ -325,7 +328,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      update_deck_words_with_version: {
+        Args: {
+          p_deck_id: string
+          p_deactivate_ids: string[]
+          p_expected_version: number
+          p_insert_texts: string[]
+          p_reactivate_ids: string[]
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

@@ -23,7 +23,7 @@ import type { Tables } from "@/types/database";
 
 // creator_pw_hash 노출 방지용 화이트리스트
 const DECK_PUBLIC_COLUMNS =
-  "id, name, script, creator_id, creator_nick, image_url, like_count, hidden, report_count, created_at, updated_at";
+  "id, name, script, creator_id, creator_nick, image_url, like_count, hidden, report_count, version, created_at, updated_at";
 
 const DECK_IMAGE_BUCKET = "deck-images";
 const MAX_DECK_IMAGE_BYTES = 2 * 1024 * 1024;
@@ -40,6 +40,8 @@ export interface DeckWithWords {
   deck: PublicDeck;
   words: DeckWord[];
 }
+
+type DeckMutationResponse<T = void> = ActionResponse<T> & { conflict?: boolean };
 
 type CredentialCheck =
   | { ok: true }
@@ -274,13 +276,14 @@ export async function updateDeckWords(input: {
   deckId: string;
   nick: string;
   password: string;
+  expectedVersion: number;
   addWordsText: string;
   deactivateIds: string[];
-}): Promise<ActionResponse> {
+}): Promise<DeckMutationResponse> {
   return safeAction(async () => {
     const tAuth = await getTranslations("auth");
     const tDeckAction = await getTranslations("deck.action");
-    const { deckId, nick, password, addWordsText, deactivateIds } = input;
+    const { deckId, nick, password, expectedVersion, addWordsText, deactivateIds } = input;
 
     const check = await verifyCredentials(deckId, nick, password, {
       deckNotFound: "덱을 찾을 수 없습니다.",
@@ -316,46 +319,39 @@ export async function updateDeckWords(input: {
 
     const { toInsert, toReactivateIds, toDeactivateIds } = planResult.plan;
 
-    if (toInsert.length > 0) {
-      const { error } = await admin
-        .from("words")
-        .insert(toInsert.map((text) => ({ deck_id: deckId, text })));
-      if (error) return { success: false, message: `단어 추가에 실패했습니다: ${error.message}` };
+    const { data: updated, error: updateError } = await admin.rpc("update_deck_words_with_version", {
+      p_deck_id: deckId,
+      p_expected_version: expectedVersion,
+      p_insert_texts: toInsert,
+      p_reactivate_ids: toReactivateIds,
+      p_deactivate_ids: toDeactivateIds,
+    });
+    if (updateError) {
+      return { success: false, message: `단어 저장에 실패했습니다: ${updateError.message}` };
     }
-    if (toReactivateIds.length > 0) {
-      const { error } = await admin
-        .from("words")
-        .update({ active: true })
-        .in("id", toReactivateIds);
-      if (error) return { success: false, message: `단어 재활성화에 실패했습니다: ${error.message}` };
+    if (!updated) {
+      return {
+        success: false,
+        conflict: true,
+        message: "다른 저장 요청이 먼저 반영됐습니다. 새로고침 후 다시 시도해주세요.",
+      };
     }
-    if (toDeactivateIds.length > 0) {
-      const { error } = await admin
-        .from("words")
-        .update({ active: false })
-        .in("id", toDeactivateIds);
-      if (error) return { success: false, message: `단어 비활성화에 실패했습니다: ${error.message}` };
-    }
-
-    await admin
-      .from("decks")
-      .update({ updated_at: new Date().toISOString() })
-      .eq("id", deckId);
 
     revalidatePath(`/d/${deckId}`);
     return { success: true, message: tDeckAction("updated") };
   });
 }
 
-export async function updateDeckImage(formData: FormData): Promise<ActionResponse<{ imageUrl: string }>> {
+export async function updateDeckImage(formData: FormData): Promise<DeckMutationResponse<{ imageUrl: string }>> {
   return safeAction(async () => {
     const tAuth = await getTranslations("auth");
     const deckId = String(formData.get("deckId") ?? "");
     const nick = String(formData.get("nick") ?? "").trim();
     const password = String(formData.get("password") ?? "");
+    const expectedVersion = Number(formData.get("expectedVersion"));
     const image = readOptionalImage(formData);
 
-    if (!deckId || !image) {
+    if (!deckId || !Number.isInteger(expectedVersion) || expectedVersion < 0 || !image) {
       return { success: false, message: "업로드할 이미지를 선택해주세요." };
     }
 
@@ -370,13 +366,27 @@ export async function updateDeckImage(formData: FormData): Promise<ActionRespons
     if (!upload.ok) return { success: false, message: upload.message };
 
     const admin = createAdminClient();
-    const { error } = await admin
+    const { data, error } = await admin
       .from("decks")
-      .update({ image_url: upload.imageUrl, updated_at: new Date().toISOString() })
-      .eq("id", deckId);
+      .update({
+        image_url: upload.imageUrl,
+        version: expectedVersion + 1,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", deckId)
+      .eq("version", expectedVersion)
+      .select("id");
     if (error) {
       await removeDeckImagePaths([upload.objectPath]);
       return { success: false, message: `이미지 저장에 실패했습니다: ${error.message}` };
+    }
+    if (!data || data.length === 0) {
+      await removeDeckImagePaths([upload.objectPath]);
+      return {
+        success: false,
+        conflict: true,
+        message: "다른 저장 요청이 먼저 반영됐습니다. 새로고침 후 다시 시도해주세요.",
+      };
     }
 
     await removeDeckImagePaths(existingImagePaths.filter((path) => path !== upload.objectPath));

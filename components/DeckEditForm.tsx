@@ -15,10 +15,11 @@ import { cn } from "@/lib/utils";
 
 interface DeckEditFormProps {
   deckId: string;
+  version: number;
   words: DeckWord[];
 }
 
-export function DeckEditForm({ deckId, words }: DeckEditFormProps) {
+export function DeckEditForm({ deckId, version, words }: DeckEditFormProps) {
   const router = useRouter();
   const t = useTranslations("deck.form");
   const [nick, setNick] = useState("");
@@ -78,6 +79,7 @@ export function DeckEditForm({ deckId, words }: DeckEditFormProps) {
           deckId,
           nick: nick.trim(),
           password,
+          expectedVersion: version,
           addWordsText: [addWordsText, ...reactivateTexts].join("\n"),
           deactivateIds,
         }),
@@ -85,6 +87,8 @@ export function DeckEditForm({ deckId, words }: DeckEditFormProps) {
       if (result.success) {
         setToggledIds(new Set());
         setAddWordsText("");
+        router.refresh();
+      } else if (result.conflict) {
         router.refresh();
       }
     } finally {
@@ -100,10 +104,14 @@ export function DeckEditForm({ deckId, words }: DeckEditFormProps) {
       formData.set("deckId", deckId);
       formData.set("nick", nick.trim());
       formData.set("password", password);
+      formData.set("expectedVersion", String(version));
       formData.set("image", imageFile);
 
       const result = await actionWithToast(() => updateDeckImage(formData));
       if (result.success) {
+        setImageFile(null);
+        router.refresh();
+      } else if (result.conflict) {
         setImageFile(null);
         router.refresh();
       }
