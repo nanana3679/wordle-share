@@ -46,7 +46,7 @@ type CredentialCheck =
   | { ok: false; message: string };
 
 type DeckImageUpload =
-  | { ok: true; imageUrl: string }
+  | { ok: true; imageUrl: string; objectPath: string }
   | { ok: false; message: string };
 
 // verifyCredentials는 request context 밖에서 호출될 수도 있어
@@ -97,14 +97,6 @@ async function uploadDeckImage(deckId: string, file: File): Promise<DeckImageUpl
   const objectPrefix = `${deckId}/`;
   const objectPath = `${objectPrefix}cover-${Date.now()}.${ext}`;
 
-  const { data: existing } = await admin.storage
-    .from(DECK_IMAGE_BUCKET)
-    .list(deckId, { limit: 20 });
-  const oldPaths = (existing ?? []).map((object) => `${objectPrefix}${object.name}`);
-  if (oldPaths.length > 0) {
-    await admin.storage.from(DECK_IMAGE_BUCKET).remove(oldPaths);
-  }
-
   const { error } = await admin.storage
     .from(DECK_IMAGE_BUCKET)
     .upload(objectPath, file, {
@@ -118,7 +110,22 @@ async function uploadDeckImage(deckId: string, file: File): Promise<DeckImageUpl
   }
 
   const { data } = admin.storage.from(DECK_IMAGE_BUCKET).getPublicUrl(objectPath);
-  return { ok: true, imageUrl: data.publicUrl };
+  return { ok: true, imageUrl: data.publicUrl, objectPath };
+}
+
+async function listDeckImagePaths(deckId: string): Promise<string[]> {
+  const admin = createAdminClient();
+  const objectPrefix = `${deckId}/`;
+  const { data } = await admin.storage
+    .from(DECK_IMAGE_BUCKET)
+    .list(deckId, { limit: 100 });
+  return (data ?? []).map((object) => `${objectPrefix}${object.name}`);
+}
+
+async function removeDeckImagePaths(paths: string[]): Promise<void> {
+  if (paths.length === 0) return;
+  const admin = createAdminClient();
+  await admin.storage.from(DECK_IMAGE_BUCKET).remove(paths);
 }
 
 export async function createDeck(formData: FormData): Promise<ActionResponse<{ id: string }>> {
@@ -204,6 +211,7 @@ export async function createDeck(formData: FormData): Promise<ActionResponse<{ i
         .update({ image_url: upload.imageUrl })
         .eq("id", deck.id);
       if (imageError) {
+        await removeDeckImagePaths([upload.objectPath]);
         await admin.from("decks").delete().eq("id", deck.id);
         return { success: false, message: `이미지 저장에 실패했습니다: ${imageError.message}` };
       }
@@ -357,6 +365,7 @@ export async function updateDeckImage(formData: FormData): Promise<ActionRespons
     });
     if (!check.ok) return { success: false, message: check.message };
 
+    const existingImagePaths = await listDeckImagePaths(deckId);
     const upload = await uploadDeckImage(deckId, image);
     if (!upload.ok) return { success: false, message: upload.message };
 
@@ -366,9 +375,11 @@ export async function updateDeckImage(formData: FormData): Promise<ActionRespons
       .update({ image_url: upload.imageUrl, updated_at: new Date().toISOString() })
       .eq("id", deckId);
     if (error) {
+      await removeDeckImagePaths([upload.objectPath]);
       return { success: false, message: `이미지 저장에 실패했습니다: ${error.message}` };
     }
 
+    await removeDeckImagePaths(existingImagePaths.filter((path) => path !== upload.objectPath));
     revalidatePath(`/d/${deckId}`);
     revalidatePath(`/d/${deckId}/edit`);
     return { success: true, data: { imageUrl: upload.imageUrl }, message: "이미지를 저장했습니다." };
