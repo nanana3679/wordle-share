@@ -153,6 +153,7 @@ export function ChallengeGame({ deckId, deckName, script }: ChallengeGameProps) 
         targetLength={view.targetLength}
         maxAttempts={view.maxAttempts}
         finished={ended}
+        script={script}
       />
 
       {view.endedReason === "failed" ? (
