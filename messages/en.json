@@ -37,7 +37,8 @@
       "pageTitle": "Create New Deck | wordledecks"
     },
     "edit": {
-      "titleSuffix": "Edit"
+      "titleSuffix": "Edit",
+      "backToDeck": "Deck detail"
     },
     "detail": {
       "backToList": "Deck list",

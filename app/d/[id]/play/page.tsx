@@ -1,13 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase-server";
 import { isSupportedScript } from "@/lib/scripts";
 import { DailyGame } from "@/components/DailyGame";
 import { ChallengeGame } from "@/components/ChallengeGame";
-import { Button } from "@/components/ui/button";
+import { PageTopBar } from "@/components/PageTopBar";
 
 interface PlayPageProps {
   params: Promise<{ id: string }>;
@@ -40,12 +38,7 @@ export default async function PlayPage({ params, searchParams }: PlayPageProps) 
   if (deck.hidden) {
     return (
       <main className="mx-auto max-w-xl space-y-6 px-4 py-8">
-        <Button asChild variant="ghost" size="sm">
-          <Link href={`/d/${deck.id}`}>
-            <ArrowLeft className="size-4" />
-            {t("backToDeck")}
-          </Link>
-        </Button>
+        <PageTopBar backHref={`/d/${deck.id}`} backLabel={t("backToDeck")} />
         <p className="text-center text-sm text-muted-foreground">{t("hiddenDeck")}</p>
       </main>
     );
@@ -53,12 +46,7 @@ export default async function PlayPage({ params, searchParams }: PlayPageProps) 
 
   return (
     <main className="mx-auto max-w-xl space-y-6 px-4 py-8">
-      <Button asChild variant="ghost" size="sm">
-        <Link href={`/d/${deck.id}`}>
-          <ArrowLeft className="size-4" />
-          {t("backToDeck")}
-        </Link>
-      </Button>
+      <PageTopBar backHref={`/d/${deck.id}`} backLabel={t("backToDeck")} />
       <h1 className="text-center text-2xl font-bold">
         {deck.name}
         {mode === "challenge" && <span className="ml-2 text-base font-normal">{t("challengeModeLabel")}</span>}
