@@ -130,30 +130,6 @@ async function removeDeckImagePaths(paths: string[]): Promise<void> {
   await admin.storage.from(DECK_IMAGE_BUCKET).remove(paths);
 }
 
-async function claimDeckVersion(
-  deckId: string,
-  expectedVersion: number,
-): Promise<{ ok: true; nextVersion: number } | { ok: false; message: string }> {
-  const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("decks")
-    .update({
-      version: expectedVersion + 1,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", deckId)
-    .eq("version", expectedVersion)
-    .select("version");
-
-  if (error) {
-    return { ok: false, message: `덱 버전 갱신에 실패했습니다: ${error.message}` };
-  }
-  if (!data || data.length === 0) {
-    return { ok: false, message: "다른 저장 요청이 먼저 반영됐습니다. 새로고침 후 다시 시도해주세요." };
-  }
-  return { ok: true, nextVersion: data[0].version };
-}
-
 export async function createDeck(formData: FormData): Promise<ActionResponse<{ id: string }>> {
   return safeAction(async () => {
     const tAuth = await getTranslations("auth");
@@ -341,32 +317,24 @@ export async function updateDeckWords(input: {
     const planResult = planWordUpdate(existing as DeckWordRow[], parsed.words, deactivateIds);
     if (!planResult.ok) return { success: false, message: planResult.message };
 
-    const versionClaim = await claimDeckVersion(deckId, expectedVersion);
-    if (!versionClaim.ok) {
-      return { success: false, conflict: true, message: versionClaim.message };
-    }
-
     const { toInsert, toReactivateIds, toDeactivateIds } = planResult.plan;
 
-    if (toInsert.length > 0) {
-      const { error } = await admin
-        .from("words")
-        .insert(toInsert.map((text) => ({ deck_id: deckId, text })));
-      if (error) return { success: false, message: `단어 추가에 실패했습니다: ${error.message}` };
+    const { data: updated, error: updateError } = await admin.rpc("update_deck_words_with_version", {
+      p_deck_id: deckId,
+      p_expected_version: expectedVersion,
+      p_insert_texts: toInsert,
+      p_reactivate_ids: toReactivateIds,
+      p_deactivate_ids: toDeactivateIds,
+    });
+    if (updateError) {
+      return { success: false, message: `단어 저장에 실패했습니다: ${updateError.message}` };
     }
-    if (toReactivateIds.length > 0) {
-      const { error } = await admin
-        .from("words")
-        .update({ active: true })
-        .in("id", toReactivateIds);
-      if (error) return { success: false, message: `단어 재활성화에 실패했습니다: ${error.message}` };
-    }
-    if (toDeactivateIds.length > 0) {
-      const { error } = await admin
-        .from("words")
-        .update({ active: false })
-        .in("id", toDeactivateIds);
-      if (error) return { success: false, message: `단어 비활성화에 실패했습니다: ${error.message}` };
+    if (!updated) {
+      return {
+        success: false,
+        conflict: true,
+        message: "다른 저장 요청이 먼저 반영됐습니다. 새로고침 후 다시 시도해주세요.",
+      };
     }
 
     revalidatePath(`/d/${deckId}`);

@@ -328,7 +328,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      update_deck_words_with_version: {
+        Args: {
+          p_deck_id: string
+          p_deactivate_ids: string[]
+          p_expected_version: number
+          p_insert_texts: string[]
+          p_reactivate_ids: string[]
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
