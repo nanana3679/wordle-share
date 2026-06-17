@@ -53,4 +53,19 @@ describe("feed query helpers", () => {
     expect(liked.pages[0].decks[0]).toBe(data.pages[0].decks[0]);
     expect(liked.pageParams).toBe(data.pageParams);
   });
+
+  it("clamps malformed others baseline to zero", () => {
+    const data = {
+      pages: [{ decks: [deck("a", 0, true)], nextOffset: null }],
+      pageParams: [0],
+    };
+
+    const updated = updateDeckLikeInFeedData(data, "a", { liked: false });
+
+    expect(updated.pages[0].decks[0]).toMatchObject({
+      id: "a",
+      likedByMe: false,
+      like_count: 0,
+    });
+  });
 });

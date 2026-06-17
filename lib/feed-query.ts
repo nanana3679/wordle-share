@@ -32,7 +32,10 @@ export function updateDeckLikeInFeedData(
       ...page,
       decks: page.decks.map((deck) => {
         if (deck.id !== deckId) return deck;
-        const othersLikeCountBaseline = deck.like_count - (deck.likedByMe ? 1 : 0);
+        const othersLikeCountBaseline = Math.max(
+          0,
+          deck.like_count - (deck.likedByMe ? 1 : 0),
+        );
         return {
           ...deck,
           likedByMe: like.liked,
