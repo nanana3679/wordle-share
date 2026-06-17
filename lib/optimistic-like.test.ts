@@ -17,7 +17,7 @@ describe('낙관적 좋아요 — 성공 시나리오 (AC)', () => {
 
   it('서버 200 + 새 like_count 반환 시 서버 값으로 동기화', () => {
     let state = applyClick(initialLikeState(false, 10));
-    state = applyServerConfirm(state, { liked: true, count: 13 }); // 다른 IP 좋아요 누적 반영
+    state = applyServerConfirm(state, { liked: true, count: 13 }); // 다른 세션 좋아요 누적 반영
     expect(state).toEqual({ liked: true, count: 13, snapshot: null });
   });
 });

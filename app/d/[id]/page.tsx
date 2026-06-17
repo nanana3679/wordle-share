@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { serializeJsonLd } from "@/lib/security-headers";
 import { getDeckById } from "@/app/actions/deck";
+import { getLikeStatus } from "@/app/actions/like";
 import { DeckMetaCard } from "@/components/DeckMetaCard";
 import { CommentThread } from "@/components/CommentThread";
 import { LikeButton } from "@/components/LikeButton";
@@ -65,6 +66,8 @@ export default async function DeckPage({ params }: DeckPageProps) {
   const { deck, words } = result.data;
   const activeWordCount = words.filter((w) => w.active).length;
   const t = await getTranslations("deck.detail");
+  const likeStatus = await getLikeStatus(deck.id);
+  const likedByMe = likeStatus.success && likeStatus.data ? likeStatus.data.liked : false;
 
   // 직접 링크는 살아있되 인터랙션은 전부 차단 — 작성자 대응 경로만 노출 (ADR 0013)
   if (deck.hidden) {
@@ -108,7 +111,7 @@ export default async function DeckPage({ params }: DeckPageProps) {
         <Button asChild variant="outline">
           <Link href={`/d/${deck.id}/edit`}>{t("editButton")}</Link>
         </Button>
-        <LikeButton deckId={deck.id} initialCount={deck.like_count} />
+        <LikeButton deckId={deck.id} initialCount={deck.like_count} initialLiked={likedByMe} />
         <ReportButton targetType="deck" targetId={deck.id} />
       </div>
 

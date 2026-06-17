@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { Heart } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { getLikeStatus, toggleLike, type LikeActionResponse } from "@/app/actions/like";
+import { toggleLike, type LikeActionResponse } from "@/app/actions/like";
 import {
   initialLikeState,
   applyClick,
@@ -20,26 +20,15 @@ import { cn } from "@/lib/utils";
 interface LikeButtonProps {
   deckId: string;
   initialCount: number;
+  initialLiked: boolean;
 }
 
-export function LikeButton({ deckId, initialCount }: LikeButtonProps) {
+export function LikeButton({ deckId, initialCount, initialLiked }: LikeButtonProps) {
   const t = useTranslations('common');
-  const [state, setState] = useState<LikeState>(() => initialLikeState(false, initialCount));
+  const [state, setState] = useState<LikeState>(() => initialLikeState(initialLiked, initialCount));
   const stateRef = useRef(state);
   stateRef.current = state;
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // 본인 IP의 liked 여부는 서버만 안다 — 마운트 시 동기화
-  useEffect(() => {
-    let cancelled = false;
-    getLikeStatus(deckId).then((result) => {
-      if (cancelled || !result.success || !result.data) return;
-      setState(initialLikeState(result.data.liked, result.data.likeCount));
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [deckId]);
 
   const flush = async () => {
     const desired = pendingDesired(stateRef.current);
