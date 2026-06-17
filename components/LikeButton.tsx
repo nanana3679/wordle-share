@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { Heart } from "lucide-react";
@@ -11,19 +11,12 @@ import type { FeedPage } from "@/app/actions/feed";
 import {
   initialLikeState,
   applyClick,
-  applyServerConfirm,
   applyRollback,
   pendingDesired,
   LIKE_DEBOUNCE_MS,
   type LikeState,
 } from "@/lib/optimistic-like";
-import {
-  applyOptimisticDeckLikeInFeedData,
-  restoreFeedQueries,
-  snapshotFeedQueries,
-  updateDeckLikeInFeedData,
-  type FeedQuerySnapshot,
-} from "@/lib/feed-query";
+import { updateDeckLikeInFeedData } from "@/lib/feed-query";
 import { cn } from "@/lib/utils";
 
 interface LikeButtonProps {
@@ -36,40 +29,27 @@ export function LikeButton({ deckId, initialCount, initialLiked }: LikeButtonPro
   const t = useTranslations('common');
   const queryClient = useQueryClient();
   const [state, setState] = useState<LikeState>(() => initialLikeState(initialLiked, initialCount));
+  const othersLikeCountBaseline = useMemo(
+    () => Math.max(0, initialCount - (initialLiked ? 1 : 0)),
+    [initialCount, initialLiked],
+  );
   const stateRef = useRef(state);
   stateRef.current = state;
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const feedSnapshotRef = useRef<FeedQuerySnapshot | null>(null);
+  const displayCount = othersLikeCountBaseline + (state.liked ? 1 : 0);
 
-  const syncFeedCache = useCallback((like: { liked: boolean; count: number }) => {
+  const syncFeedCache = useCallback((liked: boolean) => {
     queryClient.setQueriesData<InfiniteData<FeedPage>>(
       { queryKey: ["feed"] },
-      (data) => (data ? updateDeckLikeInFeedData(data, deckId, like) : data),
+      (data) => (data ? updateDeckLikeInFeedData(data, deckId, { liked }) : data),
     );
   }, [deckId, queryClient]);
-
-  const applyOptimisticFeedCache = useCallback((liked: boolean) => {
-    if (!feedSnapshotRef.current) {
-      feedSnapshotRef.current = snapshotFeedQueries(queryClient);
-    }
-    queryClient.setQueriesData<InfiniteData<FeedPage>>(
-      { queryKey: ["feed"] },
-      (data) => (data ? applyOptimisticDeckLikeInFeedData(data, deckId, liked) : data),
-    );
-  }, [deckId, queryClient]);
-
-  const restoreFeedCache = useCallback(() => {
-    if (!feedSnapshotRef.current) return;
-    restoreFeedQueries(queryClient, feedSnapshotRef.current);
-    feedSnapshotRef.current = null;
-  }, [queryClient]);
 
   const flush = async () => {
     const desired = pendingDesired(stateRef.current);
     if (desired === null) {
       // 연타로 원위치 — 전송 생략, snapshot만 해제
       setState((prev) => ({ ...prev, snapshot: null }));
-      restoreFeedCache();
       return;
     }
 
@@ -78,16 +58,12 @@ export function LikeButton({ deckId, initialCount, initialLiked }: LikeButtonPro
     if (!result) result = await send().catch(() => null); // 네트워크 실패 1회 재시도 (AC)
 
     if (result?.success && result.data) {
-      setState((prev) => applyServerConfirm(prev, {
-        liked: result.data!.liked,
-        count: result.data!.likeCount,
-      }));
-      syncFeedCache({ liked: result.data.liked, count: result.data.likeCount });
-      feedSnapshotRef.current = null;
+      setState((prev) => ({ ...prev, liked: result.data!.liked, snapshot: null }));
+      syncFeedCache(result.data.liked);
     } else {
       setState((prev) => {
         const next = applyRollback(prev);
-        restoreFeedCache();
+        syncFeedCache(next.liked);
         return next;
       });
       toast.error(result?.message ?? t('networkError'));
@@ -97,7 +73,7 @@ export function LikeButton({ deckId, initialCount, initialLiked }: LikeButtonPro
   const handleClick = () => {
     setState((prev) => {
       const next = applyClick(prev); // 즉시 반영 (AC)
-      applyOptimisticFeedCache(next.liked);
+      syncFeedCache(next.liked);
       return next;
     });
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -114,14 +90,13 @@ export function LikeButton({ deckId, initialCount, initialLiked }: LikeButtonPro
   useEffect(() => {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      restoreFeedCache();
     };
-  }, [restoreFeedCache]);
+  }, []);
 
   return (
     <Button type="button" variant="outline" onClick={handleClick} aria-pressed={state.liked}>
       <Heart className={cn("size-4", state.liked && "fill-red-500 text-red-500")} />
-      {state.count}
+      {displayCount}
     </Button>
   );
 }

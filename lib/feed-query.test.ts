@@ -1,16 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { QueryClient, type InfiniteData } from "@tanstack/react-query";
-import {
-  applyOptimisticDeckLikeInFeedData,
-  feedQueryKey,
-  mergeFeedPages,
-  restoreFeedQueries,
-  snapshotFeedQueries,
-  updateDeckLikeInFeedData,
-} from "./feed-query";
+import { feedQueryKey, mergeFeedPages, updateDeckLikeInFeedData } from "./feed-query";
 import type { FeedPage } from "../app/actions/feed";
 
-function deck(id: string, likeCount = 0) {
+function deck(id: string, likeCount = 0, likedByMe = false) {
   return {
     id,
     name: `deck-${id}`,
@@ -19,7 +11,7 @@ function deck(id: string, likeCount = 0) {
     creator_nick: "nick",
     image_url: null,
     like_count: likeCount,
-    likedByMe: false,
+    likedByMe,
     created_at: "2026-06-17T00:00:00.000Z",
   };
 }
@@ -47,43 +39,18 @@ describe("feed query helpers", () => {
     expect(merged.nextOffset).toBeNull();
   });
 
-  it("updates a deck like state inside infinite feed data", () => {
+  it("displays count as others baseline plus likedByMe", () => {
     const data = {
-      pages: [page(["a", "b"], 2), page(["c"], null)],
+      pages: [{ decks: [deck("a"), deck("b", 7, false), deck("c", 11, true)], nextOffset: null }],
       pageParams: [0, 2],
     };
 
-    const updated = updateDeckLikeInFeedData(data, "b", { liked: true, count: 7 });
+    const liked = updateDeckLikeInFeedData(data, "b", { liked: true });
+    const unliked = updateDeckLikeInFeedData(data, "c", { liked: false });
 
-    expect(updated.pages[0].decks[1]).toMatchObject({ id: "b", likedByMe: true, like_count: 7 });
-    expect(updated.pages[0].decks[0]).toBe(data.pages[0].decks[0]);
-    expect(updated.pageParams).toBe(data.pageParams);
-  });
-
-  it("restores exact feed/search cache snapshots after optimistic updates", () => {
-    const queryClient = new QueryClient();
-    const feedKey = feedQueryKey({ sort: "hot" });
-    const searchKey = feedQueryKey({ sort: "likes", query: "blue archive" });
-    queryClient.setQueryData(feedKey, {
-      pages: [{ decks: [deck("b", 7)], nextOffset: null }],
-      pageParams: [0],
-    });
-    queryClient.setQueryData(searchKey, {
-      pages: [{ decks: [deck("b", 11)], nextOffset: null }],
-      pageParams: [0],
-    });
-    const snapshot = snapshotFeedQueries(queryClient);
-
-    queryClient.setQueriesData<InfiniteData<FeedPage>>({ queryKey: ["feed"] }, (data) =>
-      data ? applyOptimisticDeckLikeInFeedData(data, "b", true) : data,
-    );
-    restoreFeedQueries(queryClient, snapshot);
-
-    expect(queryClient.getQueryData(feedKey)).toMatchObject({
-      pages: [{ decks: [{ id: "b", likedByMe: false, like_count: 7 }] }],
-    });
-    expect(queryClient.getQueryData(searchKey)).toMatchObject({
-      pages: [{ decks: [{ id: "b", likedByMe: false, like_count: 11 }] }],
-    });
+    expect(liked.pages[0].decks[1]).toMatchObject({ id: "b", likedByMe: true, like_count: 8 });
+    expect(unliked.pages[0].decks[2]).toMatchObject({ id: "c", likedByMe: false, like_count: 10 });
+    expect(liked.pages[0].decks[0]).toBe(data.pages[0].decks[0]);
+    expect(liked.pageParams).toBe(data.pageParams);
   });
 });
