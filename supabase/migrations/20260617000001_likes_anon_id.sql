@@ -5,10 +5,10 @@ ALTER TABLE public.likes
   ADD COLUMN IF NOT EXISTS anon_id uuid REFERENCES auth.users(id) ON DELETE CASCADE;
 
 ALTER TABLE public.likes
-  ALTER COLUMN ip_hash DROP NOT NULL;
+  DROP CONSTRAINT IF EXISTS likes_pkey;
 
 ALTER TABLE public.likes
-  DROP CONSTRAINT IF EXISTS likes_pkey;
+  ALTER COLUMN ip_hash DROP NOT NULL;
 
 CREATE UNIQUE INDEX IF NOT EXISTS likes_deck_anon_uidx
   ON public.likes(deck_id, anon_id)
