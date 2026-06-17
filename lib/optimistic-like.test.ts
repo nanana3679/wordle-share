@@ -6,6 +6,7 @@ import {
   clearPendingChange,
   applyRollback,
   pendingDesired,
+  pendingServerDesired,
 } from './optimistic-like';
 
 describe('낙관적 좋아요 — 성공 시나리오 (AC)', () => {
@@ -63,5 +64,15 @@ describe('낙관적 좋아요 — debounce 연타 수렴 (AC)', () => {
     // snapshot은 최초 확정값 유지 → 실패 시 (false, 10)으로 정확히 롤백
     state = applyRollback(state);
     expect(state).toEqual({ liked: false, count: 10, snapshot: null });
+  });
+
+  it('요청 전송 직후 반대로 클릭하면 마지막 서버 목표와 비교해 다음 의도를 만든다', () => {
+    let state = initialLikeState(false, 10);
+    state = applyClick(state); // like 요청 전송 예정
+    expect(pendingServerDesired(state, false)).toBe(true);
+
+    state = applyClick(state); // like=true 요청이 이미 나간 직후 unlike
+    expect(pendingDesired(state)).toBeNull();
+    expect(pendingServerDesired(state, true)).toBe(false);
   });
 });

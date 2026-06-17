@@ -1,20 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useQueryClient, type InfiniteData } from "@tanstack/react-query";
+import { useMutation, useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { Heart } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { toggleLike, type LikeActionResponse } from "@/app/actions/like";
+import { toggleLike } from "@/app/actions/like";
 import type { FeedPage } from "@/app/actions/feed";
 import {
   initialLikeState,
   applyClick,
-  applyServerLiked,
   applyRollback,
   clearPendingChange,
-  pendingDesired,
+  pendingServerDesired,
   LIKE_DEBOUNCE_MS,
   type LikeState,
 } from "@/lib/optimistic-like";
@@ -25,6 +24,12 @@ interface LikeButtonProps {
   deckId: string;
   initialCount: number;
   initialLiked: boolean;
+}
+
+interface LikeMutationInput {
+  liked: boolean;
+  previousLiked: boolean;
+  requestId: number;
 }
 
 export function LikeButton({ deckId, initialCount, initialLiked }: LikeButtonProps) {
@@ -38,6 +43,8 @@ export function LikeButton({ deckId, initialCount, initialLiked }: LikeButtonPro
   const stateRef = useRef(state);
   stateRef.current = state;
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const serverTargetRef = useRef(initialLiked);
+  const requestIdRef = useRef(0);
   const displayCount = othersLikeCountBaseline + (state.liked ? 1 : 0);
 
   const syncFeedCache = useCallback((liked: boolean) => {
@@ -47,29 +54,44 @@ export function LikeButton({ deckId, initialCount, initialLiked }: LikeButtonPro
     );
   }, [deckId, queryClient]);
 
-  const flush = async () => {
-    const desired = pendingDesired(stateRef.current);
+  const likeMutation = useMutation({
+    mutationFn: async ({ liked }: LikeMutationInput) => {
+      const result = await toggleLike(deckId, liked);
+      if (!result.success) {
+        throw new Error(result.message);
+      }
+    },
+    retry: 3,
+    onSuccess: (_data, variables) => {
+      if (variables.requestId !== requestIdRef.current) return;
+      setState((prev) => (prev.liked === variables.liked ? clearPendingChange(prev) : prev));
+    },
+    onError: (error, variables) => {
+      if (variables.requestId !== requestIdRef.current) return;
+      serverTargetRef.current = variables.previousLiked;
+      if (stateRef.current.liked !== variables.liked) return;
+      setState((prev) => {
+        const next = applyRollback(prev);
+        syncFeedCache(next.liked);
+        return next;
+      });
+      toast.error(error instanceof Error ? error.message : t('networkError'));
+    },
+  });
+
+  const flush = () => {
+    const desired = pendingServerDesired(stateRef.current, serverTargetRef.current);
     if (desired === null) {
       // 연타로 원위치 — 전송 생략, snapshot만 해제
       setState((prev) => clearPendingChange(prev));
       return;
     }
 
-    const send = (): Promise<LikeActionResponse> => toggleLike(deckId, desired);
-    let result = await send().catch(() => null);
-    if (!result) result = await send().catch(() => null); // 네트워크 실패 1회 재시도 (AC)
-
-    if (result?.success && result.data) {
-      setState((prev) => applyServerLiked(prev, result.data!.liked));
-      syncFeedCache(result.data.liked);
-    } else {
-      setState((prev) => {
-        const next = applyRollback(prev);
-        syncFeedCache(next.liked);
-        return next;
-      });
-      toast.error(result?.message ?? t('networkError'));
-    }
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+    const previousLiked = serverTargetRef.current;
+    serverTargetRef.current = desired;
+    likeMutation.mutate({ liked: desired, previousLiked, requestId });
   };
 
   const handleClick = () => {
@@ -85,6 +107,7 @@ export function LikeButton({ deckId, initialCount, initialLiked }: LikeButtonPro
   useEffect(() => {
     setState((prev) => {
       if (prev.snapshot) return prev;
+      serverTargetRef.current = initialLiked;
       return initialLikeState(initialLiked, initialCount);
     });
   }, [initialLiked, initialCount]);

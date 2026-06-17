@@ -47,3 +47,8 @@ export function pendingDesired(state: LikeState): boolean | null {
   if (!state.snapshot) return null;
   return state.liked === state.snapshot.liked ? null : state.liked;
 }
+
+// in-flight 요청이 있을 때는 최초 snapshot보다 마지막으로 서버에 보낸 목표 상태가 중요하다.
+export function pendingServerDesired(state: LikeState, serverLiked: boolean): boolean | null {
+  return state.liked === serverLiked ? null : state.liked;
+}
