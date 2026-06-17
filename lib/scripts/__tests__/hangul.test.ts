@@ -146,8 +146,9 @@ describe('hangul adapter 기본 속성', () => {
   it('두벌식 자판 레이아웃', () => {
     expect(hangul.keyboard.rows).toHaveLength(3);
     expect(hangul.keyboard.rows[0]).toContain('ㅂ');
-    expect(hangul.keyboard.rows[2][0]).toBe('ENTER');
-    expect(hangul.keyboard.rows[2][hangul.keyboard.rows[2].length - 1]).toBe('BACKSPACE');
+    expect(hangul.keyboard.rows[2][0]).toBe('ㅋ');
+    expect(hangul.keyboard.rows.flat()).not.toContain('ENTER');
+    expect(hangul.keyboard.rows.flat()).not.toContain('BACKSPACE');
   });
 });
 
