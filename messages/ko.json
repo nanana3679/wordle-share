@@ -81,8 +81,8 @@
         "saving": "저장 중...",
         "verify": "확인",
         "verifying": "확인 중...",
-        "deactivate": "비활성화",
-        "reactivate": "재활성화",
+        "deactivate": "삭제",
+        "reactivate": "되돌리기",
         "uploadImage": "이미지 저장",
         "uploadingImage": "저장 중..."
       },
@@ -93,7 +93,7 @@
         "image": "JPG, PNG, WebP 형식. 최대 2MB."
       },
       "error": {
-        "minActiveWords": "활성 단어가 최소 1개 필요합니다.",
+        "minActiveWords": "단어를 모두 삭제할 수는 없습니다.",
         "nameLength": "덱 이름은 1~100자여야 합니다.",
         "unsupportedScript": "지원하지 않는 쓰기체계입니다."
       }
@@ -203,8 +203,8 @@
       "invalidChars": "허용되지 않는 문자가 포함된 단어가 있습니다: {lines}",
       "duplicateWords": "중복 단어가 있습니다: {lines}",
       "minOneWord": "최소 1개 단어 필요",
-      "lastActiveWord": "마지막 활성 단어는 비활성화할 수 없습니다. 활성 단어가 최소 1개 필요합니다.",
-      "minOneActiveWord": "최소 1개의 활성 단어가 필요합니다."
+      "lastActiveWord": "마지막 단어는 삭제할 수 없습니다. 단어가 최소 1개 필요합니다.",
+      "minOneActiveWord": "단어가 최소 1개 필요합니다."
     }
   },
   "script": {
