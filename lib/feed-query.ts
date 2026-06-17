@@ -1,3 +1,4 @@
+import type { InfiniteData } from "@tanstack/react-query";
 import type { FeedPage, FeedSort } from "@/app/actions/feed";
 
 export function feedQueryKey(input: { sort: FeedSort; query?: string }) {
@@ -17,5 +18,30 @@ export function mergeFeedPages(pages: FeedPage[]): FeedPage {
   return {
     decks,
     nextOffset: pages.at(-1)?.nextOffset ?? null,
+  };
+}
+
+export function updateDeckLikeInFeedData(
+  data: InfiniteData<FeedPage>,
+  deckId: string,
+  like: { liked: boolean },
+): InfiniteData<FeedPage> {
+  return {
+    pageParams: data.pageParams,
+    pages: data.pages.map((page) => ({
+      ...page,
+      decks: page.decks.map((deck) => {
+        if (deck.id !== deckId) return deck;
+        const othersLikeCountBaseline = Math.max(
+          0,
+          deck.like_count - (deck.likedByMe ? 1 : 0),
+        );
+        return {
+          ...deck,
+          likedByMe: like.liked,
+          like_count: othersLikeCountBaseline + (like.liked ? 1 : 0),
+        };
+      }),
+    })),
   };
 }
