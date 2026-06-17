@@ -46,21 +46,31 @@ export type Database = {
       }
       likes: {
         Row: {
+          anon_id: string | null
           created_at: string
           deck_id: string
-          ip_hash: string
+          ip_hash: string | null
         }
         Insert: {
+          anon_id?: string | null
           created_at?: string
           deck_id: string
-          ip_hash: string
+          ip_hash?: string | null
         }
         Update: {
+          anon_id?: string | null
           created_at?: string
           deck_id?: string
-          ip_hash?: string
+          ip_hash?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "likes_anon_id_fkey"
+            columns: ["anon_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "likes_deck_id_fkey"
             columns: ["deck_id"]

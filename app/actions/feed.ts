@@ -1,10 +1,12 @@
 "use server";
 
 import { createClient } from "@/lib/supabase-server";
+import { createAdminClient } from "@/lib/supabase-admin";
 import { safeAction } from "@/lib/safe-action";
 import { ActionResponse } from "@/types/action";
 import { sortByHotScore } from "@/lib/hot-score";
 import { escapeLikePattern, normalizeSearchQuery } from "@/lib/search";
+import { getAnonUserId } from "@/lib/anon-session";
 
 // 피드/검색 조회 (#76). decks SELECT는 공개 RLS라 anon 클라이언트로 충분 —
 // creator_pw_hash는 화이트리스트로 제외한다.
@@ -26,6 +28,7 @@ export interface FeedDeck {
   creator_nick: string;
   image_url: string | null;
   like_count: number;
+  likedByMe: boolean;
   created_at: string;
 }
 
@@ -33,6 +36,29 @@ export interface FeedPage {
   decks: FeedDeck[];
   /** 다음 페이지 cursor — null이면 끝 */
   nextOffset: number | null;
+}
+
+type PublicFeedDeck = Omit<FeedDeck, "likedByMe">;
+
+async function likedDeckIdsForAnon(deckIds: string[]): Promise<Set<string>> {
+  if (deckIds.length === 0) return new Set();
+
+  const anonId = await getAnonUserId();
+  if (!anonId) return new Set();
+
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("likes")
+    .select("deck_id")
+    .eq("anon_id", anonId)
+    .in("deck_id", deckIds);
+
+  return new Set((data ?? []).map((like) => like.deck_id));
+}
+
+async function attachLikedByMe(decks: PublicFeedDeck[]): Promise<FeedDeck[]> {
+  const likedIds = await likedDeckIdsForAnon(decks.map((deck) => deck.id));
+  return decks.map((deck) => ({ ...deck, likedByMe: likedIds.has(deck.id) }));
 }
 
 export async function getFeed(input: {
@@ -56,11 +82,11 @@ export async function getFeed(input: {
       if (error) return { success: false, message: `피드를 가져오는데 실패했습니다: ${error.message}` };
 
       const sorted = sortByHotScore(data ?? []);
-      const page = sorted.slice(offset, offset + limit);
+      const page = sorted.slice(offset, offset + limit) as PublicFeedDeck[];
       const end = offset + page.length;
       return {
         success: true,
-        data: { decks: page, nextOffset: end < sorted.length ? end : null },
+        data: { decks: await attachLikedByMe(page), nextOffset: end < sorted.length ? end : null },
         message: "피드를 가져왔습니다.",
       };
     }
@@ -73,11 +99,11 @@ export async function getFeed(input: {
     const { data, error } = await query.range(offset, offset + limit - 1);
     if (error) return { success: false, message: `피드를 가져오는데 실패했습니다: ${error.message}` };
 
-    const decks = data ?? [];
+    const decks = (data ?? []) as PublicFeedDeck[];
     return {
       success: true,
       data: {
-        decks,
+        decks: await attachLikedByMe(decks),
         nextOffset: decks.length === limit ? offset + decks.length : null,
       },
       message: "피드를 가져왔습니다.",
@@ -109,11 +135,11 @@ export async function searchDecks(input: {
       .range(offset, offset + limit - 1);
     if (error) return { success: false, message: `검색에 실패했습니다: ${error.message}` };
 
-    const decks = data ?? [];
+    const decks = (data ?? []) as PublicFeedDeck[];
     return {
       success: true,
       data: {
-        decks,
+        decks: await attachLikedByMe(decks),
         nextOffset: decks.length === limit ? offset + decks.length : null,
       },
       message: "검색했습니다.",
