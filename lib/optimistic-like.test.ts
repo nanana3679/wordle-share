@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   initialLikeState,
   applyClick,
-  applyServerConfirm,
+  applyServerLiked,
+  clearPendingChange,
   applyRollback,
   pendingDesired,
 } from './optimistic-like';
@@ -15,10 +16,10 @@ describe('낙관적 좋아요 — 성공 시나리오 (AC)', () => {
     expect(pendingDesired(state)).toBe(true);
   });
 
-  it('서버 200 + 새 like_count 반환 시 서버 값으로 동기화', () => {
+  it('서버 200 반환 시 liked만 서버 값으로 확정한다', () => {
     let state = applyClick(initialLikeState(false, 10));
-    state = applyServerConfirm(state, { liked: true, count: 13 }); // 다른 세션 좋아요 누적 반영
-    expect(state).toEqual({ liked: true, count: 13, snapshot: null });
+    state = applyServerLiked(state, true);
+    expect(state).toEqual({ liked: true, count: 11, snapshot: null });
   });
 });
 
@@ -50,6 +51,7 @@ describe('낙관적 좋아요 — debounce 연타 수렴 (AC)', () => {
     expect(state.liked).toBe(false);
     expect(state.count).toBe(10);
     expect(pendingDesired(state)).toBeNull();
+    expect(clearPendingChange(state)).toEqual({ liked: false, count: 10, snapshot: null });
   });
 
   it('연타 후 최종 상태만 desired로 전송된다 (마지막 상태가 서버 진실로 수렴)', () => {

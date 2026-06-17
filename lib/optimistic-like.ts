@@ -1,8 +1,8 @@
-// 낙관적 좋아요 상태 머신 (#48, ADR 0002)
+// 낙관적 좋아요 상태 머신 (#48, ADR 0017)
 // UI 의존 없는 순수 reducer로 분리해 성공/롤백/debounce 수렴을 단위 테스트한다.
 //
 // 흐름: 클릭 → 즉시 로컬 반영(snapshot 보관) → 200ms debounce 후 마지막
-// desired 상태만 서버 전송 → 성공이면 서버 값으로 동기화, 409/실패면 snapshot 롤백.
+// desired 상태만 서버 전송 → 성공이면 liked만 확정, 409/실패면 snapshot 롤백.
 
 export interface LikeState {
   liked: boolean;
@@ -26,12 +26,14 @@ export function applyClick(state: LikeState): LikeState {
   };
 }
 
-// 서버 성공: 서버 값이 진실 — 마지막 상태가 서버 진실로 수렴한다.
-export function applyServerConfirm(
-  _state: LikeState,
-  server: { liked: boolean; count: number },
-): LikeState {
-  return { liked: server.liked, count: server.count, snapshot: null };
+// 서버 성공: liked만 서버 진실로 수렴한다. count 표시는 ADR 0017의 baseline 공식이 담당한다.
+export function applyServerLiked(state: LikeState, liked: boolean): LikeState {
+  return { ...state, liked, snapshot: null };
+}
+
+// debounce 후 전송할 변경이 없으면 snapshot만 해제한다.
+export function clearPendingChange(state: LikeState): LikeState {
+  return { ...state, snapshot: null };
 }
 
 // 409(이미 추천) 또는 재시도 후에도 실패: snapshot으로 롤백.

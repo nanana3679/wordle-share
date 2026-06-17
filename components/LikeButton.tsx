@@ -11,7 +11,9 @@ import type { FeedPage } from "@/app/actions/feed";
 import {
   initialLikeState,
   applyClick,
+  applyServerLiked,
   applyRollback,
+  clearPendingChange,
   pendingDesired,
   LIKE_DEBOUNCE_MS,
   type LikeState,
@@ -49,7 +51,7 @@ export function LikeButton({ deckId, initialCount, initialLiked }: LikeButtonPro
     const desired = pendingDesired(stateRef.current);
     if (desired === null) {
       // 연타로 원위치 — 전송 생략, snapshot만 해제
-      setState((prev) => ({ ...prev, snapshot: null }));
+      setState((prev) => clearPendingChange(prev));
       return;
     }
 
@@ -58,7 +60,7 @@ export function LikeButton({ deckId, initialCount, initialLiked }: LikeButtonPro
     if (!result) result = await send().catch(() => null); // 네트워크 실패 1회 재시도 (AC)
 
     if (result?.success && result.data) {
-      setState((prev) => ({ ...prev, liked: result.data!.liked, snapshot: null }));
+      setState((prev) => applyServerLiked(prev, result.data!.liked));
       syncFeedCache(result.data.liked);
     } else {
       setState((prev) => {
