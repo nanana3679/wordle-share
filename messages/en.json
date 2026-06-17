@@ -83,8 +83,8 @@
         "saving": "Saving...",
         "verify": "Verify",
         "verifying": "Verifying...",
-        "deactivate": "Deactivate",
-        "reactivate": "Reactivate",
+        "deactivate": "Delete",
+        "reactivate": "Undo",
         "selectImage": "Select image",
         "uploadImage": "Save image",
         "uploadingImage": "Saving..."
@@ -96,7 +96,7 @@
         "image": "JPG, PNG, or WebP. Max 2MB."
       },
       "error": {
-        "minActiveWords": "At least 1 active word is required.",
+        "minActiveWords": "You cannot delete every word.",
         "nameLength": "Deck name must be 1–100 characters.",
         "unsupportedScript": "Unsupported script."
       }
@@ -210,8 +210,8 @@
       "invalidChars": "Some words contain unsupported characters: {lines}",
       "duplicateWords": "Duplicate words are not allowed: {lines}",
       "minOneWord": "At least 1 word required",
-      "lastActiveWord": "Cannot deactivate the last active word. At least 1 active word is required.",
-      "minOneActiveWord": "At least 1 active word is required."
+      "lastActiveWord": "You cannot delete the last word. At least 1 word is required.",
+      "minOneActiveWord": "At least 1 word is required."
     }
   },
   "script": {

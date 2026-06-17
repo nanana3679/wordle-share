@@ -83,8 +83,8 @@
         "saving": "保存中...",
         "verify": "確認",
         "verifying": "確認中...",
-        "deactivate": "無効化",
-        "reactivate": "再有効化",
+        "deactivate": "削除",
+        "reactivate": "元に戻す",
         "selectImage": "画像を選択",
         "uploadImage": "画像を保存",
         "uploadingImage": "保存中..."
@@ -96,7 +96,7 @@
         "image": "JPG、PNG、WebP形式。最大2MB。"
       },
       "error": {
-        "minActiveWords": "有効な単語が最低1つ必要です。",
+        "minActiveWords": "単語をすべて削除することはできません。",
         "nameLength": "デッキ名は1〜100文字で入力してください。",
         "unsupportedScript": "サポートされていない文字体系です。"
       }
@@ -210,8 +210,8 @@
       "invalidChars": "使用できない文字が含まれている単語があります：{lines}",
       "duplicateWords": "重複した単語があります：{lines}",
       "minOneWord": "単語が最低1つ必要です",
-      "lastActiveWord": "最後の有効な単語は無効化できません。有効な単語が最低1つ必要です。",
-      "minOneActiveWord": "有効な単語が最低1つ必要です。"
+      "lastActiveWord": "最後の単語は削除できません。単語が最低1つ必要です。",
+      "minOneActiveWord": "単語が最低1つ必要です。"
     }
   },
   "script": {
