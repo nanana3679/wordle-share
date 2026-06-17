@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by [0017](./0017-anonymous-session-likes-and-local-count-display.md)
 
 ## Context
 
