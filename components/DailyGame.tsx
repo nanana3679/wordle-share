@@ -130,6 +130,7 @@ export function DailyGame({ deckId, deckName, script }: DailyGameProps) {
         targetLength={view.targetLength}
         maxAttempts={view.maxAttempts}
         finished={finished}
+        script={script}
       />
 
       {finished ? (

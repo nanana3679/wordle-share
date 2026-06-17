@@ -1,6 +1,8 @@
 "use client";
 
 import type { DailyAttemptView } from "@/app/actions/daily";
+import { formatGameUnit } from "@/lib/game-display";
+import type { ScriptId } from "@/lib/scripts/types";
 import type { LetterState } from "@/lib/wordleGame";
 import { cn } from "@/lib/utils";
 
@@ -13,9 +15,10 @@ export const TILE_STYLES: Record<LetterState, string> = {
 
 interface AttemptHistoryProps {
   attempts: DailyAttemptView[];
+  script: ScriptId;
 }
 
-export function AttemptHistory({ attempts }: AttemptHistoryProps) {
+export function AttemptHistory({ attempts, script }: AttemptHistoryProps) {
   return (
     <>
       {attempts.map((attempt, i) => (
@@ -28,7 +31,7 @@ export function AttemptHistory({ attempts }: AttemptHistoryProps) {
                 TILE_STYLES[attempt.states[j] ?? "empty"],
               )}
             >
-              {unit}
+              {formatGameUnit(unit, script)}
             </span>
           ))}
         </div>

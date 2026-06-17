@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getDeckById } from "@/app/actions/deck";
 import { DeckEditForm } from "@/components/DeckEditForm";
+import { PageTopBar } from "@/components/PageTopBar";
 
 interface DeckEditPageProps {
   params: Promise<{ id: string }>;
@@ -17,6 +18,7 @@ export default async function DeckEditPage({ params }: DeckEditPageProps) {
 
   return (
     <main className="mx-auto max-w-xl space-y-6 px-4 py-8">
+      <PageTopBar backHref={`/d/${deck.id}`} backLabel={t("backToDeck")} />
       <h1 className="text-2xl font-bold">{deck.name} {t("titleSuffix")}</h1>
       <DeckEditForm deckId={deck.id} version={deck.version} words={words} />
     </main>
