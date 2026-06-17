@@ -8,6 +8,7 @@ import { Suspense } from "react";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import { getSiteUrl } from "@/lib/site";
+import { QueryProvider } from "@/components/QueryProvider";
 
 const pretendard = localFont({
   src: [
@@ -55,12 +56,14 @@ export default async function RootLayout({
         style={{ fontFamily: "var(--font-pretendard)" }}
       >
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <ErrorBoundary>
-            <Suspense fallback={<Loading />}>
-              {children}
-            </Suspense>
-          </ErrorBoundary>
-          <Toaster />
+          <QueryProvider>
+            <ErrorBoundary>
+              <Suspense fallback={<Loading />}>
+                {children}
+              </Suspense>
+            </ErrorBoundary>
+            <Toaster />
+          </QueryProvider>
         </NextIntlClientProvider>
       </body>
     </html>
