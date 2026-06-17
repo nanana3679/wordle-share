@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase-server";
 import { isSupportedScript } from "@/lib/scripts";
 import { DailyGame } from "@/components/DailyGame";
 import { ChallengeGame } from "@/components/ChallengeGame";
+import { PageTopBar } from "@/components/PageTopBar";
 
 interface PlayPageProps {
   params: Promise<{ id: string }>;
@@ -36,14 +37,16 @@ export default async function PlayPage({ params, searchParams }: PlayPageProps) 
   // 가려진 덱은 플레이 차단 — server action도 동일하게 거부한다 (#55)
   if (deck.hidden) {
     return (
-      <main className="mx-auto max-w-xl px-4 py-8 text-center text-sm text-muted-foreground">
-        {t("hiddenDeck")}
+      <main className="mx-auto max-w-xl space-y-6 px-4 py-8">
+        <PageTopBar backHref={`/d/${deck.id}`} backLabel={t("backToDeck")} />
+        <p className="text-center text-sm text-muted-foreground">{t("hiddenDeck")}</p>
       </main>
     );
   }
 
   return (
     <main className="mx-auto max-w-xl space-y-6 px-4 py-8">
+      <PageTopBar backHref={`/d/${deck.id}`} backLabel={t("backToDeck")} />
       <h1 className="text-center text-2xl font-bold">
         {deck.name}
         {mode === "challenge" && <span className="ml-2 text-base font-normal">{t("challengeModeLabel")}</span>}

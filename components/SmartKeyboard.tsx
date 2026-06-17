@@ -99,18 +99,18 @@ export function SmartKeyboard({
         <button
           type="button"
           disabled={disabled}
-          onClick={onEnter}
-          className={cn("rounded bg-muted px-4 py-3 text-sm font-semibold", disabled && "opacity-50")}
-        >
-          {adapter.keyboard.enterLabel}
-        </button>
-        <button
-          type="button"
-          disabled={disabled}
           onClick={onBackspace}
           className={cn("rounded bg-muted px-4 py-3 text-sm font-semibold", disabled && "opacity-50")}
         >
           ⌫
+        </button>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={onEnter}
+          className={cn("rounded bg-muted px-4 py-3 text-sm font-semibold", disabled && "opacity-50")}
+        >
+          {adapter.keyboard.enterLabel}
         </button>
       </div>
     </div>

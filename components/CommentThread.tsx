@@ -46,7 +46,7 @@ export function CommentThread({ deckId }: CommentThreadProps) {
   if (!view) return <p className="text-sm text-muted-foreground">{t("loading")}</p>;
 
   return (
-    <section className="space-y-6">
+    <section id="comments" className="scroll-mt-6 space-y-6">
       <h2 className="text-lg font-bold">{t("title")}</h2>
 
       {view.todayLocked ? (

@@ -155,9 +155,8 @@ describe('kana adapter 기본 속성', () => {
   it('50음 가나표 자판', () => {
     expect(kana.keyboard.rows.length).toBeGreaterThanOrEqual(5);
     expect(kana.keyboard.rows[0]).toContain('あ');
-    const lastRow = kana.keyboard.rows[kana.keyboard.rows.length - 1];
-    expect(lastRow).toContain('ENTER');
-    expect(lastRow).toContain('BACKSPACE');
+    expect(kana.keyboard.rows.flat()).not.toContain('ENTER');
+    expect(kana.keyboard.rows.flat()).not.toContain('BACKSPACE');
   });
 });
 

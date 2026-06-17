@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ImagePlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,6 +13,7 @@ import { actionWithToast } from "@/lib/action-with-toast";
 import { verifyDeckCredentials, updateDeckImage, updateDeckWords, type DeckWord } from "@/app/actions/deck";
 import { loadCachedCredentials, saveCachedCredentials } from "@/lib/credentialCache";
 import { cn } from "@/lib/utils";
+import { ImageFilePreview } from "@/components/ImageFilePreview";
 
 interface DeckEditFormProps {
   deckId: string;
@@ -196,13 +198,22 @@ export function DeckEditForm({ deckId, version, words }: DeckEditFormProps) {
 
       <section className="space-y-2">
         <Label htmlFor="edit-image">{t("label.image")}</Label>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Input
+            key={imageFile ? "selected" : "empty"}
             id="edit-image"
             type="file"
             accept="image/jpeg,image/png,image/webp"
+            className="sr-only"
             onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
           />
+          <Label
+            htmlFor="edit-image"
+            className={cn(buttonVariants({ variant: "outline" }), "w-fit cursor-pointer")}
+          >
+            <ImagePlus className="size-4" />
+            {t("button.selectImage")}
+          </Label>
           <Button
             type="button"
             variant="outline"
@@ -212,6 +223,7 @@ export function DeckEditForm({ deckId, version, words }: DeckEditFormProps) {
             {uploadingImage ? t("button.uploadingImage") : t("button.uploadImage")}
           </Button>
         </div>
+        <ImageFilePreview file={imageFile} label={t("label.image")} />
         <p className="text-sm text-muted-foreground">{t("hint.image")}</p>
       </section>
 

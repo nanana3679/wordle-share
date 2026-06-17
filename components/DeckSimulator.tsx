@@ -42,8 +42,7 @@ export function DeckSimulator({ words, script }: DeckSimulatorProps) {
     setLengthError(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = () => {
     const normalized = normalizeWord(guess.trim());
     const guessLength = adapter.splitUnits(normalized).length;
     if (guessLength !== targetLength) {
@@ -80,17 +79,22 @@ export function DeckSimulator({ words, script }: DeckSimulatorProps) {
       </div>
 
       {game.gameStatus === "playing" ? (
-        <form onSubmit={handleSubmit} className="flex gap-2">
+        <div className="flex gap-2">
           <Input
             value={guess}
             onChange={(e) => setGuess(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter") return;
+              e.preventDefault();
+              handleSubmit();
+            }}
             placeholder="추측 단어 입력"
             aria-label="추측 단어"
           />
-          <Button type="submit" variant="secondary">
+          <Button type="button" variant="secondary" onClick={handleSubmit}>
             제출
           </Button>
-        </form>
+        </div>
       ) : (
         <p className="text-sm font-medium">
           {game.gameStatus === "won" ? "정답!" : `실패 — 정답은 "${game.targetWord}"`}

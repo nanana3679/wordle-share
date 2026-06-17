@@ -2,6 +2,8 @@
 
 import type { DailyAttemptView } from "@/app/actions/daily";
 import { AttemptHistory } from "@/components/AttemptHistory";
+import { formatGameUnit } from "@/lib/game-display";
+import type { ScriptId } from "@/lib/scripts/types";
 import { cn } from "@/lib/utils";
 
 interface GameBoardProps {
@@ -10,6 +12,7 @@ interface GameBoardProps {
   targetLength: number;
   maxAttempts: number;
   finished: boolean;
+  script: ScriptId;
 }
 
 // 가변 격자: 열 수 = 단어 글자(unit) 수, 행 수 = maxAttempts
@@ -19,6 +22,7 @@ export function GameBoard({
   targetLength,
   maxAttempts,
   finished,
+  script,
 }: GameBoardProps) {
   const emptyRows = Math.max(
     0,
@@ -27,7 +31,7 @@ export function GameBoard({
 
   return (
     <div className="space-y-1">
-      <AttemptHistory attempts={attempts} />
+      <AttemptHistory attempts={attempts} script={script} />
 
       {!finished && (
         <div className="flex justify-center gap-1">
@@ -39,7 +43,7 @@ export function GameBoard({
                 currentUnits[i] ? "border-foreground" : "border-muted",
               )}
             >
-              {currentUnits[i] ?? ""}
+              {currentUnits[i] ? formatGameUnit(currentUnits[i], script) : ""}
             </span>
           ))}
         </div>
