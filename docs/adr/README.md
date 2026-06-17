@@ -13,7 +13,7 @@
 
 ### 신원 / 인증
 - [0001](./0001-anon-auth-and-nick-pw-identity.md) — Supabase Anonymous Auth + 단일 nick/pw 자격증명
-- [0002](./0002-ip-hash-for-likes.md) — 좋아요는 IP 해시 단독 식별
+- [0002](./0002-ip-hash-for-likes.md) — 좋아요는 IP 해시 단독 식별 (Superseded by 0017)
 
 ### 게임 디자인 철학
 - [0003](./0003-no-public-user-leaderboard.md) — 사용자 점수 랭킹/리더보드 없음
@@ -31,6 +31,7 @@
 ### 엔지니어링
 - [0009](./0009-optimistic-locking-with-version.md) — 모든 액션에 expected_version 동봉
 - [0015](./0015-round-state-capture.md) — DailyWord에 active_word_ids 스냅샷 + 라운드는 date만 캡처
+- [0017](./0017-anonymous-session-likes-and-local-count-display.md) — 익명 세션 좋아요 + 페이지 로드 기준 로컬 count 표시
 
 ### 운영
 - [0011](./0011-operator-seed-via-public-api.md) — 운영자 시드 덱은 일반 API 호출 + 지속 업데이트
