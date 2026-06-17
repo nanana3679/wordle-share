@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { feedQueryKey, mergeFeedPages } from "./feed-query";
+import { feedQueryKey, mergeFeedPages, updateDeckLikeInFeedData } from "./feed-query";
 import type { FeedPage } from "../app/actions/feed";
 
 function page(ids: string[], nextOffset: number | null): FeedPage {
@@ -33,5 +33,18 @@ describe("feed query helpers", () => {
 
     expect(merged.decks.map((deck) => deck.id)).toEqual(["a", "b", "c"]);
     expect(merged.nextOffset).toBeNull();
+  });
+
+  it("updates a deck like state inside infinite feed data", () => {
+    const data = {
+      pages: [page(["a", "b"], 2), page(["c"], null)],
+      pageParams: [0, 2],
+    };
+
+    const updated = updateDeckLikeInFeedData(data, "b", { liked: true, count: 7 });
+
+    expect(updated.pages[0].decks[1]).toMatchObject({ id: "b", likedByMe: true, like_count: 7 });
+    expect(updated.pages[0].decks[0]).toBe(data.pages[0].decks[0]);
+    expect(updated.pageParams).toBe(data.pageParams);
   });
 });

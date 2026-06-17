@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { Heart } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { toggleLike, type LikeActionResponse } from "@/app/actions/like";
+import type { FeedPage } from "@/app/actions/feed";
 import {
   initialLikeState,
   applyClick,
@@ -15,6 +17,7 @@ import {
   LIKE_DEBOUNCE_MS,
   type LikeState,
 } from "@/lib/optimistic-like";
+import { updateDeckLikeInFeedData } from "@/lib/feed-query";
 import { cn } from "@/lib/utils";
 
 interface LikeButtonProps {
@@ -25,10 +28,18 @@ interface LikeButtonProps {
 
 export function LikeButton({ deckId, initialCount, initialLiked }: LikeButtonProps) {
   const t = useTranslations('common');
+  const queryClient = useQueryClient();
   const [state, setState] = useState<LikeState>(() => initialLikeState(initialLiked, initialCount));
   const stateRef = useRef(state);
   stateRef.current = state;
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const syncFeedCache = (like: { liked: boolean; count: number }) => {
+    queryClient.setQueriesData<InfiniteData<FeedPage>>(
+      { queryKey: ["feed"] },
+      (data) => (data ? updateDeckLikeInFeedData(data, deckId, like) : data),
+    );
+  };
 
   const flush = async () => {
     const desired = pendingDesired(stateRef.current);
@@ -47,17 +58,33 @@ export function LikeButton({ deckId, initialCount, initialLiked }: LikeButtonPro
         liked: result.data!.liked,
         count: result.data!.likeCount,
       }));
+      syncFeedCache({ liked: result.data.liked, count: result.data.likeCount });
     } else {
-      setState((prev) => applyRollback(prev));
+      setState((prev) => {
+        const next = applyRollback(prev);
+        syncFeedCache({ liked: next.liked, count: next.count });
+        return next;
+      });
       toast.error(result?.message ?? t('networkError'));
     }
   };
 
   const handleClick = () => {
-    setState((prev) => applyClick(prev)); // 즉시 반영 (AC)
+    setState((prev) => {
+      const next = applyClick(prev); // 즉시 반영 (AC)
+      syncFeedCache({ liked: next.liked, count: next.count });
+      return next;
+    });
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => void flush(), LIKE_DEBOUNCE_MS); // 200ms debounce (AC)
   };
+
+  useEffect(() => {
+    setState((prev) => {
+      if (prev.snapshot) return prev;
+      return initialLikeState(initialLiked, initialCount);
+    });
+  }, [initialLiked, initialCount]);
 
   useEffect(() => {
     return () => {
