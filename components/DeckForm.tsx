@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { ImagePlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,11 +21,13 @@ import { parseWordLines } from "@/lib/deckWords";
 import { SUPPORTED_SCRIPTS } from "@/lib/scripts";
 import type { ScriptId } from "@/lib/scripts/types";
 import { DeckSimulator } from "@/components/DeckSimulator";
+import { ImageFilePreview } from "@/components/ImageFilePreview";
 import {
   loadCachedCredentials,
   saveCachedCredentials,
   appendMyDeck,
 } from "@/lib/credentialCache";
+import { cn } from "@/lib/utils";
 
 export function DeckForm() {
   const router = useRouter();
@@ -158,12 +161,24 @@ export function DeckForm() {
 
       <div className="space-y-2">
         <Label htmlFor="deck-image">{t("label.image")}</Label>
-        <Input
-          id="deck-image"
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
-        />
+        <div className="space-y-3">
+          <Input
+            key={imageFile ? "selected" : "empty"}
+            id="deck-image"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="sr-only"
+            onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+          />
+          <Label
+            htmlFor="deck-image"
+            className={cn(buttonVariants({ variant: "outline" }), "w-fit cursor-pointer")}
+          >
+            <ImagePlus className="size-4" />
+            {t("button.selectImage")}
+          </Label>
+          <ImageFilePreview file={imageFile} label={t("label.image")} />
+        </div>
         <p className="text-sm text-muted-foreground">{t("hint.image")}</p>
       </div>
 

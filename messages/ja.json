@@ -83,6 +83,7 @@
         "verifying": "確認中...",
         "deactivate": "無効化",
         "reactivate": "再有効化",
+        "selectImage": "画像を選択",
         "uploadImage": "画像を保存",
         "uploadingImage": "保存中..."
       },
