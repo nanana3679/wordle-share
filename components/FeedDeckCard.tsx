@@ -31,7 +31,7 @@ export function FeedDeckCard({ deck }: { deck: FeedDeck }) {
           {formatDisplayNick(deck.creator_nick, deck.creator_id)}
         </p>
       </Link>
-      <LikeButton deckId={deck.id} initialCount={deck.like_count} />
+      <LikeButton deckId={deck.id} initialCount={deck.like_count} initialLiked={deck.likedByMe} />
     </div>
   );
 }
