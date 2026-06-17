@@ -6,10 +6,10 @@
 관리자가 검수 후 업로드하는 반자동 플로우. 사용자가 봤을 때 AI 덱과 일반 덱은 구분 불가(같은 `decks` 테이블,
 같은 목록/플레이 경로).
 
-## 실행 방식: Claude Code Skill
+## 실행 방식: Skill 기본
 
-기존 `@anthropic-ai/sdk` 기반 CLI 스크립트(`scripts/ai/*.ts`, `lib/ai/*.ts`)는 제거. 현재는 Claude Code
-**Skill** 2개로 동작하며 실행 시 API 토큰 비용이 들지 않음 (Claude Code 구독 내 무료).
+기본 경로는 `.claude/skills/`의 Skill 3개다. 주제 선정과 덱 초안 생성은 Codex/Claude가 직접
+WebSearch/WebFetch로 수행하므로 Anthropic API 키가 필요 없다.
 
 ```text
 /propose-topics            (Skill, WebSearch + WebFetch)
@@ -20,7 +20,7 @@
   ↓  decks-<runId>.json + decks-<runId>.trace.json
 👤 관리자가 단어/태그/이름/설명 검수 (status: approved)
   ↓
-(보류) upload-decks — `decks.words` jsonb 마이그레이션 후 구현
+/upload-decks <path>       (Skill, public API upload; no AI key)
 ```
 
 ## 구성 요소
@@ -29,7 +29,9 @@
 |---|---|
 | `.claude/skills/propose-topics/SKILL.md` | 주제 후보 생성 Skill (프롬프트·규칙·출력 포맷) |
 | `.claude/skills/generate-decks/SKILL.md` | 덱 초안 생성 Skill (태그 taxonomy 포함) |
+| `.claude/skills/upload-decks/SKILL.md` | 승인 덱 업로드 Skill (`/api/decks`, bot token gate) |
 | `scripts/ai/schemas.ts` | zod 기반 산출물 포맷 정의 (검증 + 향후 upload 스크립트 공용) |
+| `scripts/ai/upload-decks.ts` | 승인 덱 artifact 업로드 스크립트 (AI 호출 없음) |
 | `scripts/ai/README.md` | 사용법, 검수 가이드 |
 
 ## 트레이스 파일
@@ -58,7 +60,7 @@
 
 ## 설계 결정
 
-- **Skill 전환 이유**: API 직접 호출은 실행마다 토큰 비용 발생. Claude Code 구독 내에서 돌리면 사실상 무료.
+- **Skill 전환 이유**: API 직접 호출은 실행마다 토큰 비용 발생. Codex/Claude 구독 내에서 돌리면 사실상 무료.
   트레이드오프는 재현성 — Skill은 실행마다 Claude가 재해석하므로 결과가 약간씩 달라질 수 있음.
 - **테이블 분리 안 함**: 사용자 구분 없이 동일 테이블. AI 흔적은 내부 메타(추후 sidecar 테이블)에만.
 - **계정 불필요**: 익명 덱 작성 기능이 일회성 핸들/비번으로 동작하므로 봇 계정 관리 제거.
@@ -85,13 +87,16 @@ runId 해시로 자동 선택.
 제한은 없고, Skill이 검증 실패 시 단어만 drop하여 trace에 기록. 태그는 lowercase·hyphenated로
 정규화 후 중복 제거.
 
-## 업로드 단계 (미구현)
+## 업로드 단계
 
-연결되어야 할 두 가지:
-1. **익명 덱 작성 기능**: 이미 PR #4에서 머지됨 (`decks.creator_id` nullable, `author_handle`/`author_password_hash`).
-2. **단어 태그 DB 스키마**: 현재 `decks.words text[]` → `jsonb` 전환. 또는 `deck_words` 별도 테이블 신설.
+`/upload-decks <decks-artifact>`가 `status: "approved"` 덱만 `/api/decks`로 업로드한다.
+업로드는 AI 호출이 아니므로 Anthropic API 키가 필요 없다.
 
-둘 다 반영된 뒤 `scripts/ai/upload-decks.ts`가 `approved` 덱을 일괄 POST.
+필요 env:
+- `BOT_NICK`
+- `BOT_PW`
+- `BOT_SEED_TOKEN`
+- `API_BASE_URL`
 
 ## 향후 확장 (파이프라인 밖 기능)
 
