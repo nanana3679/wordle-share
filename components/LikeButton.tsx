@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { Heart } from "lucide-react";
@@ -17,7 +17,13 @@ import {
   LIKE_DEBOUNCE_MS,
   type LikeState,
 } from "@/lib/optimistic-like";
-import { updateDeckLikeInFeedData } from "@/lib/feed-query";
+import {
+  applyOptimisticDeckLikeInFeedData,
+  restoreFeedQueries,
+  snapshotFeedQueries,
+  updateDeckLikeInFeedData,
+  type FeedQuerySnapshot,
+} from "@/lib/feed-query";
 import { cn } from "@/lib/utils";
 
 interface LikeButtonProps {
@@ -33,19 +39,37 @@ export function LikeButton({ deckId, initialCount, initialLiked }: LikeButtonPro
   const stateRef = useRef(state);
   stateRef.current = state;
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const feedSnapshotRef = useRef<FeedQuerySnapshot | null>(null);
 
-  const syncFeedCache = (like: { liked: boolean; count: number }) => {
+  const syncFeedCache = useCallback((like: { liked: boolean; count: number }) => {
     queryClient.setQueriesData<InfiniteData<FeedPage>>(
       { queryKey: ["feed"] },
       (data) => (data ? updateDeckLikeInFeedData(data, deckId, like) : data),
     );
-  };
+  }, [deckId, queryClient]);
+
+  const applyOptimisticFeedCache = useCallback((liked: boolean) => {
+    if (!feedSnapshotRef.current) {
+      feedSnapshotRef.current = snapshotFeedQueries(queryClient);
+    }
+    queryClient.setQueriesData<InfiniteData<FeedPage>>(
+      { queryKey: ["feed"] },
+      (data) => (data ? applyOptimisticDeckLikeInFeedData(data, deckId, liked) : data),
+    );
+  }, [deckId, queryClient]);
+
+  const restoreFeedCache = useCallback(() => {
+    if (!feedSnapshotRef.current) return;
+    restoreFeedQueries(queryClient, feedSnapshotRef.current);
+    feedSnapshotRef.current = null;
+  }, [queryClient]);
 
   const flush = async () => {
     const desired = pendingDesired(stateRef.current);
     if (desired === null) {
       // 연타로 원위치 — 전송 생략, snapshot만 해제
       setState((prev) => ({ ...prev, snapshot: null }));
+      restoreFeedCache();
       return;
     }
 
@@ -59,10 +83,11 @@ export function LikeButton({ deckId, initialCount, initialLiked }: LikeButtonPro
         count: result.data!.likeCount,
       }));
       syncFeedCache({ liked: result.data.liked, count: result.data.likeCount });
+      feedSnapshotRef.current = null;
     } else {
       setState((prev) => {
         const next = applyRollback(prev);
-        syncFeedCache({ liked: next.liked, count: next.count });
+        restoreFeedCache();
         return next;
       });
       toast.error(result?.message ?? t('networkError'));
@@ -72,7 +97,7 @@ export function LikeButton({ deckId, initialCount, initialLiked }: LikeButtonPro
   const handleClick = () => {
     setState((prev) => {
       const next = applyClick(prev); // 즉시 반영 (AC)
-      syncFeedCache({ liked: next.liked, count: next.count });
+      applyOptimisticFeedCache(next.liked);
       return next;
     });
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -89,8 +114,9 @@ export function LikeButton({ deckId, initialCount, initialLiked }: LikeButtonPro
   useEffect(() => {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
+      restoreFeedCache();
     };
-  }, []);
+  }, [restoreFeedCache]);
 
   return (
     <Button type="button" variant="outline" onClick={handleClick} aria-pressed={state.liked}>
