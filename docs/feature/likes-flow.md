@@ -1,74 +1,67 @@
-# 덱 목록 페이지 좋아요 기능 흐름
+# 좋아요 흐름
 
-interface DeckWithLikes extends Deck {
-  likeCount: number;
-  isLiked: boolean;
-}
+## 목표
 
-getDecks(queryKey, userId?)
+- 좋아요 버튼은 클릭 즉시 반응한다.
+- 서버 write는 같은 버튼 instance 기준 in-flight 요청 1개만 허용한다.
+- ack timeout/retry 후 최종 실패하면 마지막 서버 ack 기준 `likedByMe`로 롤백한다.
+- 표시 count는 정확한 global count가 아니라 ADR 0017의 로컬 공식으로 계산한다.
 
-- const [likeState, setLikeState] = useState({
-    likes: initialLikes,
-    isLiked: initialIsLiked,
-  });
+## 상태
 
-  const [optimisticState, addOptimisticState] = useOptimistic(
-    likeState,
-    // 실제 상태, addOptimisticState(가짜 상태 업데이트)의 인자
-    (currentState, optimisticUpdate) => {
-      const action = optimisticUpdate.action;
+- `latestDesiredRef`: 사용자의 최신 liked 의도
+- `serverKnownRef`: 마지막 ack 기준 서버 liked 상태
+- `inFlightRef`: 아직 success/error/timeout 처리가 끝나지 않은 서버 요청
+- `otherLikesBaseline`: 페이지 로드 시점의 내 좋아요 제외 count 기준값
 
-      if (action === "LIKE") {
-        return { likes: currentState.likes + 1, isLiked: true };
-      } else if (action === "DISLIKE") {
-        return { likes: currentState.likes - 1, isLiked: false };
-      }
-      return currentState;
-    }
-  );
+## 표시 Count
 
-  const handleLike = async () => {
-    const newIsLiked = !optimisticState.isLiked;
-    const action = newIsLiked ? "LIKE" : "DISLIKE";
+```text
+displayCount = otherLikesBaseline + (likedByMe ? 1 : 0)
+```
 
-    // 1. 낙관적 업데이트: UI를 즉시 변경
-    addOptimisticState({ action: action });
-    
-    try {
-      // 2. 서버에 요청 전송
-      await updateLikeStatus(postId, newIsLiked);
+- 서버 ack의 `likeCount`로 버튼 count를 즉시 덮어쓰지 않는다.
+- 다음 page load/feed refetch 때 최신 `like_count`와 `likedByMe`로 baseline을 다시 계산한다.
 
-      // 3. 서버 요청 성공: 실제 상태를 업데이트하여 낙관적 상태를 최종 상태로 확정
-      // startTransition을 사용하여 상태 업데이트가 UI 블로킹을 일으키지 않도록 합니다.
-      startTransition(() => {
-        setState({ likes: optimisticState.likes, isLiked: newIsLiked });
-      });
+## 클릭 흐름
 
-    } catch (error) {
-      // 4. 서버 요청 실패: 실제 상태가 변경되지 않았으므로
-      // useOptimistic이 자동으로 낙관적 상태를 **초기 상태 (state)**로 롤백합니다.
-      console.error(error.message);
-      // 사용자에게 실패 알림 등을 추가할 수 있습니다.
-      alert("좋아요 처리 실패: " + error.message); 
-      
-      // setState 호출이 없어도, useOptimistic의 내부 메커니즘이 
-      // 비동기 작업(updateLikeStatus)이 끝났을 때 현재의 'state' 값으로 
-      // 'optimisticState'를 재설정합니다.
-    }
-  };
+```text
+click
+→ latestDesiredRef + optimistic UI/cache update
+→ debounce
+→ no in-flight && latestDesired != serverKnown 이면 setLike(latestDesired)
+```
 
-- likeCount, isLiked (optimistically update)
-- toggleLike(deck.id)
-  - if (isLiked) {
-    setIsLiked(false)
-    setLikeCount(prev => prev - 1)
-    startTransition(() => {
-      deleteLike(deck.id)
-    })
-  } else {
-    setIsLiked(true)
-    setLikeCount(prev => prev + 1)
-    startTransition(() => {
-      createLike(deck.id)
-    })
-  }
+- 사용자가 in-flight 중 다시 누르면 UI/cache만 즉시 바꾼다.
+- 새 서버 요청은 기존 요청의 ack/timeout 처리가 끝난 뒤 보낸다.
+
+## Ack 흐름
+
+```text
+ack success
+→ serverKnownRef 갱신
+→ serverKnown != latestDesired 이면 최신 의도 재전송
+```
+
+- 성공 응답은 버튼 count를 덮어쓰지 않는다.
+- 오래된 응답은 UI/cache를 직접 덮어쓰지 않는다.
+
+## Timeout / 실패 흐름
+
+```text
+ack timeout
+→ mutation error
+→ React Query retry
+→ retries exhausted
+→ toast + rollback likedByMe to serverKnownRef
+→ best-effort getLikeStatus reconcile
+```
+
+- timeout은 서버 write 취소가 아니라 "ack 미수신"이다.
+- reconcile이 실패하면 다음 navigation/refetch가 eventual drift를 복구한다.
+
+## 서버 액션
+
+- `setLike(true)`는 이미 liked여도 success다.
+- `setLike(false)`는 이미 unliked여도 success다.
+- hidden deck conflict는 실패로 유지한다.

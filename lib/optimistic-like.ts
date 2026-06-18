@@ -1,8 +1,8 @@
-// 낙관적 좋아요 상태 머신 (#48, ADR 0002)
+// 낙관적 좋아요 상태 머신 (#48, ADR 0017)
 // UI 의존 없는 순수 reducer로 분리해 성공/롤백/debounce 수렴을 단위 테스트한다.
 //
 // 흐름: 클릭 → 즉시 로컬 반영(snapshot 보관) → 200ms debounce 후 마지막
-// desired 상태만 서버 전송 → 성공이면 서버 값으로 동기화, 409/실패면 snapshot 롤백.
+// desired 상태만 서버 전송 → 성공이면 liked만 확정, 409/실패면 snapshot 롤백.
 
 export interface LikeState {
   liked: boolean;
@@ -12,6 +12,11 @@ export interface LikeState {
 }
 
 export const LIKE_DEBOUNCE_MS = 200;
+
+export type LikeFlushDecision =
+  | { type: "defer" }
+  | { type: "clear" }
+  | { type: "send"; liked: boolean };
 
 export function initialLikeState(liked: boolean, count: number): LikeState {
   return { liked, count, snapshot: null };
@@ -26,15 +31,18 @@ export function applyClick(state: LikeState): LikeState {
   };
 }
 
-// 서버 성공: 서버 값이 진실 — 마지막 상태가 서버 진실로 수렴한다.
-export function applyServerConfirm(
-  _state: LikeState,
-  server: { liked: boolean; count: number },
-): LikeState {
-  return { liked: server.liked, count: server.count, snapshot: null };
+// 서버 성공: liked만 서버 진실로 수렴한다. count 표시는 ADR 0017의 baseline 공식이 담당한다.
+export function applyServerLiked(state: LikeState, liked: boolean): LikeState {
+  return { ...state, liked, snapshot: null };
 }
 
-// 409(이미 추천) 또는 재시도 후에도 실패: snapshot으로 롤백.
+// debounce 후 전송할 변경이 없으면 snapshot만 해제한다.
+export function clearPendingChange(state: LikeState): LikeState {
+  return { ...state, snapshot: null };
+}
+
+// 409 같은 즉시 실패: 최초 낙관적 변경 전 snapshot으로 롤백.
+// retry exhaustion 이후에는 최신 서버 ack 기준으로 applyServerLiked를 사용한다.
 export function applyRollback(state: LikeState): LikeState {
   if (!state.snapshot) return state;
   return { liked: state.snapshot.liked, count: state.snapshot.count, snapshot: null };
@@ -44,4 +52,37 @@ export function applyRollback(state: LikeState): LikeState {
 export function pendingDesired(state: LikeState): boolean | null {
   if (!state.snapshot) return null;
   return state.liked === state.snapshot.liked ? null : state.liked;
+}
+
+// in-flight 요청이 있을 때는 최초 snapshot보다 마지막으로 서버에 보낸 목표 상태가 중요하다.
+export function pendingServerDesired(state: LikeState, serverLiked: boolean): boolean | null {
+  return state.liked === serverLiked ? null : state.liked;
+}
+
+export function pendingLatestDesired(
+  latestDesired: boolean,
+  serverLiked: boolean,
+  hasInFlight: boolean,
+): boolean | null {
+  const decision = getLikeFlushDecision(latestDesired, serverLiked, hasInFlight);
+  return decision.type === "send" ? decision.liked : null;
+}
+
+export function getLikeFlushDecision(
+  latestDesired: boolean,
+  serverLiked: boolean,
+  hasInFlight: boolean,
+): LikeFlushDecision {
+  if (hasInFlight) return { type: "defer" };
+  if (latestDesired === serverLiked) return { type: "clear" };
+  return { type: "send", liked: latestDesired };
+}
+
+export function canSyncInitialLikeState(
+  state: LikeState,
+  latestDesired: boolean,
+  serverLiked: boolean,
+  hasInFlight: boolean,
+): boolean {
+  return !state.snapshot && !hasInFlight && latestDesired === serverLiked;
 }
