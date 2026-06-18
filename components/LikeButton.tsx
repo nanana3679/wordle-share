@@ -13,6 +13,8 @@ import {
   applyClick,
   applyServerLiked,
   clearPendingChange,
+  canSyncInitialLikeState,
+  getLikeFlushDecision,
   pendingLatestDesired,
   LIKE_DEBOUNCE_MS,
   type LikeState,
@@ -148,12 +150,13 @@ export function LikeButton({ deckId, initialCount, initialLiked }: LikeButtonPro
   });
 
   const flush = useCallback(() => {
-    const desired = pendingLatestDesired(
+    const decision = getLikeFlushDecision(
       latestDesiredRef.current,
       serverKnownRef.current,
       inFlightRef.current !== null,
     );
-    if (desired === null) {
+    if (decision.type === "defer") return;
+    if (decision.type === "clear") {
       // 연타로 원위치 — 전송 생략, snapshot만 해제
       setState((prev) => clearPendingChange(prev));
       return;
@@ -161,6 +164,7 @@ export function LikeButton({ deckId, initialCount, initialLiked }: LikeButtonPro
 
     const requestId = requestIdRef.current + 1;
     requestIdRef.current = requestId;
+    const desired = decision.liked;
     const variables = { liked: desired, previousLiked: serverKnownRef.current, requestId };
     inFlightRef.current = variables;
     likeMutation.mutate(variables);
@@ -184,7 +188,16 @@ export function LikeButton({ deckId, initialCount, initialLiked }: LikeButtonPro
 
   useEffect(() => {
     setState((prev) => {
-      if (prev.snapshot) return prev;
+      if (
+        !canSyncInitialLikeState(
+          prev,
+          latestDesiredRef.current,
+          serverKnownRef.current,
+          inFlightRef.current !== null,
+        )
+      ) {
+        return prev;
+      }
       latestDesiredRef.current = initialLiked;
       serverKnownRef.current = initialLiked;
       return initialLikeState(initialLiked, initialCount);

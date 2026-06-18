@@ -8,6 +8,8 @@ import {
   pendingDesired,
   pendingServerDesired,
   pendingLatestDesired,
+  getLikeFlushDecision,
+  canSyncInitialLikeState,
 } from './optimistic-like';
 
 describe('낙관적 좋아요 — 성공 시나리오 (AC)', () => {
@@ -104,5 +106,21 @@ describe('낙관적 좋아요 — debounce 연타 수렴 (AC)', () => {
     serverKnown = true; // like=true ack
     hasInFlight = false;
     expect(pendingLatestDesired(latestDesired, serverKnown, hasInFlight)).toBe(false);
+  });
+
+  it('in-flight 중 debounce flush는 pending marker를 clear하지 않고 defer한다', () => {
+    expect(getLikeFlushDecision(false, true, true)).toEqual({ type: "defer" });
+    expect(getLikeFlushDecision(false, true, false)).toEqual({ type: "send", liked: false });
+    expect(getLikeFlushDecision(true, true, false)).toEqual({ type: "clear" });
+  });
+
+  it('in-flight 또는 미수렴 의도가 있으면 initial props sync를 보류한다', () => {
+    const settled = initialLikeState(false, 10);
+    const pending = applyClick(settled);
+
+    expect(canSyncInitialLikeState(settled, false, false, false)).toBe(true);
+    expect(canSyncInitialLikeState(settled, false, true, true)).toBe(false);
+    expect(canSyncInitialLikeState(settled, false, true, false)).toBe(false);
+    expect(canSyncInitialLikeState(pending, true, false, false)).toBe(false);
   });
 });

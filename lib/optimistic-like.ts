@@ -13,6 +13,11 @@ export interface LikeState {
 
 export const LIKE_DEBOUNCE_MS = 200;
 
+export type LikeFlushDecision =
+  | { type: "defer" }
+  | { type: "clear" }
+  | { type: "send"; liked: boolean };
+
 export function initialLikeState(liked: boolean, count: number): LikeState {
   return { liked, count, snapshot: null };
 }
@@ -59,6 +64,25 @@ export function pendingLatestDesired(
   serverLiked: boolean,
   hasInFlight: boolean,
 ): boolean | null {
-  if (hasInFlight) return null;
-  return latestDesired === serverLiked ? null : latestDesired;
+  const decision = getLikeFlushDecision(latestDesired, serverLiked, hasInFlight);
+  return decision.type === "send" ? decision.liked : null;
+}
+
+export function getLikeFlushDecision(
+  latestDesired: boolean,
+  serverLiked: boolean,
+  hasInFlight: boolean,
+): LikeFlushDecision {
+  if (hasInFlight) return { type: "defer" };
+  if (latestDesired === serverLiked) return { type: "clear" };
+  return { type: "send", liked: latestDesired };
+}
+
+export function canSyncInitialLikeState(
+  state: LikeState,
+  latestDesired: boolean,
+  serverLiked: boolean,
+  hasInFlight: boolean,
+): boolean {
+  return !state.snapshot && !hasInFlight && latestDesired === serverLiked;
 }
