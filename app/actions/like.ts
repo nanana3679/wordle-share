@@ -115,6 +115,9 @@ export async function toggleLike(
           .select("deck_id");
         if (claimError?.code === PG_UNIQUE_VIOLATION) {
           const status = await currentStatus(deckId, anonId, ipHash);
+          if (status?.liked) {
+            return { success: true, data: status, message: "좋아요!" };
+          }
           return {
             success: false,
             conflict: true,
@@ -137,6 +140,9 @@ export async function toggleLike(
         .insert({ deck_id: deckId, anon_id: anonId, ip_hash: ipHash });
       if (error?.code === PG_UNIQUE_VIOLATION) {
         const status = await currentStatus(deckId, anonId, ipHash);
+        if (status?.liked) {
+          return { success: true, data: status, message: "좋아요!" };
+        }
         return {
           success: false,
           conflict: true,

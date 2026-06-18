@@ -6,19 +6,38 @@ import { useTranslations } from "next-intl";
 import { Heart } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { toggleLike } from "@/app/actions/like";
+import { getLikeStatus, toggleLike } from "@/app/actions/like";
 import type { FeedPage } from "@/app/actions/feed";
 import {
   initialLikeState,
   applyClick,
-  applyRollback,
+  applyServerLiked,
   clearPendingChange,
-  pendingServerDesired,
+  pendingLatestDesired,
   LIKE_DEBOUNCE_MS,
   type LikeState,
 } from "@/lib/optimistic-like";
 import { updateDeckLikeInFeedData } from "@/lib/feed-query";
 import { cn } from "@/lib/utils";
+
+const LIKE_ACK_TIMEOUT_MS = 5000;
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeoutId = setTimeout(
+          () => reject(new Error("좋아요 응답 시간이 초과되었습니다.")),
+          timeoutMs,
+        );
+      }),
+    ]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
 
 interface LikeButtonProps {
   deckId: string;
@@ -40,10 +59,11 @@ export function LikeButton({ deckId, initialCount, initialLiked }: LikeButtonPro
     () => Math.max(0, initialCount - (initialLiked ? 1 : 0)),
     [initialCount, initialLiked],
   );
-  const stateRef = useRef(state);
-  stateRef.current = state;
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const serverTargetRef = useRef(initialLiked);
+  const latestDesiredRef = useRef(initialLiked);
+  const serverKnownRef = useRef(initialLiked);
+  const inFlightRef = useRef<LikeMutationInput | null>(null);
+  const flushRef = useRef<() => void>(() => {});
   const requestIdRef = useRef(0);
   const displayCount = othersLikeCountBaseline + (state.liked ? 1 : 0);
 
@@ -54,33 +74,85 @@ export function LikeButton({ deckId, initialCount, initialLiked }: LikeButtonPro
     );
   }, [deckId, queryClient]);
 
+  const reconcileLikeStatus = useCallback(async (options?: { adoptServerTruth?: boolean }) => {
+    const expectedDesired = latestDesiredRef.current;
+    try {
+      const result = await withTimeout(getLikeStatus(deckId), LIKE_ACK_TIMEOUT_MS);
+      if (!result.success || !result.data) return;
+      if (latestDesiredRef.current !== expectedDesired) return;
+
+      const reconciledLiked = result.data.liked;
+      serverKnownRef.current = reconciledLiked;
+      if (options?.adoptServerTruth || latestDesiredRef.current === reconciledLiked) {
+        latestDesiredRef.current = reconciledLiked;
+        setState((prev) => {
+          const next = applyServerLiked(prev, reconciledLiked);
+          syncFeedCache(next.liked);
+          return next;
+        });
+        return;
+      }
+
+      if (!debounceRef.current && !inFlightRef.current) {
+        setTimeout(() => flushRef.current(), 0);
+      }
+    } catch {
+      // Best-effort reconcile: the next navigation or query refetch can repair drift.
+    }
+  }, [deckId, syncFeedCache]);
+
   const likeMutation = useMutation({
     mutationFn: async ({ liked }: LikeMutationInput) => {
-      const result = await toggleLike(deckId, liked);
+      const result = await withTimeout(toggleLike(deckId, liked), LIKE_ACK_TIMEOUT_MS);
       if (!result.success) {
         throw new Error(result.message);
       }
+      return result.data?.liked ?? liked;
     },
     retry: 3,
-    onSuccess: (_data, variables) => {
-      if (variables.requestId !== requestIdRef.current) return;
-      setState((prev) => (prev.liked === variables.liked ? clearPendingChange(prev) : prev));
+    onSuccess: (serverLiked, variables) => {
+      if (variables.requestId !== inFlightRef.current?.requestId) return;
+      serverKnownRef.current = serverLiked;
+      setState((prev) => (
+        latestDesiredRef.current === serverKnownRef.current
+          ? clearPendingChange(prev)
+          : prev
+      ));
     },
     onError: (error, variables) => {
-      if (variables.requestId !== requestIdRef.current) return;
-      serverTargetRef.current = variables.previousLiked;
-      if (stateRef.current.liked !== variables.liked) return;
+      if (variables.requestId !== inFlightRef.current?.requestId) return;
+      serverKnownRef.current = variables.previousLiked;
+      if (latestDesiredRef.current !== variables.liked) {
+        void reconcileLikeStatus();
+        return;
+      }
+      latestDesiredRef.current = variables.previousLiked;
       setState((prev) => {
-        const next = applyRollback(prev);
+        const next = applyServerLiked(prev, variables.previousLiked);
         syncFeedCache(next.liked);
         return next;
       });
       toast.error(error instanceof Error ? error.message : t('networkError'));
+      void reconcileLikeStatus({ adoptServerTruth: true });
+    },
+    onSettled: (_data, _error, variables) => {
+      if (variables.requestId !== inFlightRef.current?.requestId) return;
+      inFlightRef.current = null;
+      if (
+        !debounceRef.current &&
+        pendingLatestDesired(latestDesiredRef.current, serverKnownRef.current, false) !== null
+      ) {
+        setTimeout(() => flushRef.current(), 0);
+      }
     },
   });
 
-  const flush = () => {
-    const desired = pendingServerDesired(stateRef.current, serverTargetRef.current);
+  const flush = useCallback(() => {
+    const desired = pendingLatestDesired(
+      latestDesiredRef.current,
+      serverKnownRef.current,
+      inFlightRef.current !== null,
+    );
     if (desired === null) {
       // 연타로 원위치 — 전송 생략, snapshot만 해제
       setState((prev) => clearPendingChange(prev));
@@ -89,25 +161,32 @@ export function LikeButton({ deckId, initialCount, initialLiked }: LikeButtonPro
 
     const requestId = requestIdRef.current + 1;
     requestIdRef.current = requestId;
-    const previousLiked = serverTargetRef.current;
-    serverTargetRef.current = desired;
-    likeMutation.mutate({ liked: desired, previousLiked, requestId });
-  };
+    const variables = { liked: desired, previousLiked: serverKnownRef.current, requestId };
+    inFlightRef.current = variables;
+    likeMutation.mutate(variables);
+  }, [likeMutation]);
+
+  flushRef.current = flush;
 
   const handleClick = () => {
     setState((prev) => {
       const next = applyClick(prev); // 즉시 반영 (AC)
+      latestDesiredRef.current = next.liked;
       syncFeedCache(next.liked);
       return next;
     });
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => void flush(), LIKE_DEBOUNCE_MS); // 200ms debounce (AC)
+    debounceRef.current = setTimeout(() => {
+      debounceRef.current = null;
+      flushRef.current();
+    }, LIKE_DEBOUNCE_MS); // 200ms debounce (AC)
   };
 
   useEffect(() => {
     setState((prev) => {
       if (prev.snapshot) return prev;
-      serverTargetRef.current = initialLiked;
+      latestDesiredRef.current = initialLiked;
+      serverKnownRef.current = initialLiked;
       return initialLikeState(initialLiked, initialCount);
     });
   }, [initialLiked, initialCount]);
@@ -115,6 +194,7 @@ export function LikeButton({ deckId, initialCount, initialLiked }: LikeButtonPro
   useEffect(() => {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = null;
     };
   }, []);
 

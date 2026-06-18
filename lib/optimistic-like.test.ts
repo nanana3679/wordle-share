@@ -7,6 +7,7 @@ import {
   applyRollback,
   pendingDesired,
   pendingServerDesired,
+  pendingLatestDesired,
 } from './optimistic-like';
 
 describe('낙관적 좋아요 — 성공 시나리오 (AC)', () => {
@@ -42,6 +43,18 @@ describe('낙관적 좋아요 — 롤백 시나리오 (AC)', () => {
     const state = initialLikeState(false, 10);
     expect(applyRollback(state)).toEqual(state);
   });
+
+  it('재시도 최종 실패 시 최초 snapshot이 아니라 마지막 서버 ack 기준 liked로 롤백한다', () => {
+    let state = initialLikeState(false, 10);
+    state = applyClick(state); // like=true 요청
+    state = applyServerLiked(state, true); // 서버가 liked를 ack
+    state = applyClick(state); // unlike=false 요청
+
+    state = applyServerLiked(state, true); // unlike 실패, 서버 기준은 liked 유지
+
+    expect(state.liked).toBe(true);
+    expect(state.snapshot).toBeNull();
+  });
 });
 
 describe('낙관적 좋아요 — debounce 연타 수렴 (AC)', () => {
@@ -74,5 +87,22 @@ describe('낙관적 좋아요 — debounce 연타 수렴 (AC)', () => {
     state = applyClick(state); // like=true 요청이 이미 나간 직후 unlike
     expect(pendingDesired(state)).toBeNull();
     expect(pendingServerDesired(state, true)).toBe(false);
+  });
+
+  it('in-flight 중에는 새 요청을 보류하고 ack 후 최신 의도로 후속 전송한다', () => {
+    let latestDesired = false;
+    let serverKnown = false;
+    let hasInFlight = false;
+
+    latestDesired = true;
+    expect(pendingLatestDesired(latestDesired, serverKnown, hasInFlight)).toBe(true);
+
+    hasInFlight = true;
+    latestDesired = false;
+    expect(pendingLatestDesired(latestDesired, serverKnown, hasInFlight)).toBeNull();
+
+    serverKnown = true; // like=true ack
+    hasInFlight = false;
+    expect(pendingLatestDesired(latestDesired, serverKnown, hasInFlight)).toBe(false);
   });
 });

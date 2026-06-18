@@ -36,7 +36,8 @@ export function clearPendingChange(state: LikeState): LikeState {
   return { ...state, snapshot: null };
 }
 
-// 409(이미 추천) 또는 재시도 후에도 실패: snapshot으로 롤백.
+// 409 같은 즉시 실패: 최초 낙관적 변경 전 snapshot으로 롤백.
+// retry exhaustion 이후에는 최신 서버 ack 기준으로 applyServerLiked를 사용한다.
 export function applyRollback(state: LikeState): LikeState {
   if (!state.snapshot) return state;
   return { liked: state.snapshot.liked, count: state.snapshot.count, snapshot: null };
@@ -51,4 +52,13 @@ export function pendingDesired(state: LikeState): boolean | null {
 // in-flight 요청이 있을 때는 최초 snapshot보다 마지막으로 서버에 보낸 목표 상태가 중요하다.
 export function pendingServerDesired(state: LikeState, serverLiked: boolean): boolean | null {
   return state.liked === serverLiked ? null : state.liked;
+}
+
+export function pendingLatestDesired(
+  latestDesired: boolean,
+  serverLiked: boolean,
+  hasInFlight: boolean,
+): boolean | null {
+  if (hasInFlight) return null;
+  return latestDesired === serverLiked ? null : latestDesired;
 }
