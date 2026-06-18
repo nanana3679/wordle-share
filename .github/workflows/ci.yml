@@ -17,7 +17,7 @@ jobs:
 
       # pnpm-workspace.yaml이 packages 없이 ignoredBuiltDependencies만 쓰는
       # pnpm 10 형식이라 pnpm 9에서는 "packages field missing" 에러가 난다
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 10
 
